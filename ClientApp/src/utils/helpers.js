@@ -38,11 +38,21 @@ export const formatDate = (dateString) => {
   });
 };
 
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount || 0);
+export const formatCurrency = (amount, moneda = 'C$') => {
+  // Handle Nicaraguan Córdoba (C$) and USD
+  if (moneda === 'C$') {
+    return `C$ ${new Intl.NumberFormat('es-NI', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0)}`;
+  } else if (moneda === 'USD') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount || 0);
+  }
+  // Default fallback
+  return `${moneda} ${amount || 0}`;
 };
 
 export const getEstadoColor = (estado) => {

@@ -31,8 +31,10 @@ apiClient.interceptors.response.use(
 );
 
 export const authService = {
-  login: (email, password) => 
-    apiClient.post('/usuarios/login', { email, password }),
+  login: (correo, password) => 
+    apiClient.post('/auth/login', { correo, password }),
+  logout: () => apiClient.post('/auth/logout'),
+  verify: () => apiClient.get('/auth/verify'),
 };
 
 export const clientesService = {

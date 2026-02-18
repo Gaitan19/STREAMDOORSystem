@@ -23,11 +23,11 @@ GO
 -- ============================================
 -- Insertar Usuario Administrador por Defecto
 -- ============================================
--- Contraseña: Admin123! (debe ser hasheada por la aplicación)
--- Este es solo un ejemplo, la contraseña debe ser hasheada desde el backend
-INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash) VALUES
-('Administrador', 'admin@streamdoor.com', NULL, 'PLACEHOLDER_HASH');
-GO
+-- IMPORTANTE: No se incluye un usuario administrador por defecto por seguridad.
+-- Debe crear el primer usuario administrador usando la API:
+-- POST /api/usuarios
+-- Body: { "nombre": "Administrador", "correo": "admin@streamdoor.com", "password": "TuContraseñaSegura123!" }
+-- La contraseña será automáticamente hasheada por el sistema usando BCrypt.
 
 -- ============================================
 -- Insertar Medios de Pago de Ejemplo
