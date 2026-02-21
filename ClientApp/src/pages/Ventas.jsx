@@ -51,12 +51,16 @@ const Ventas = () => {
         serviciosService.getAll(),
         mediosPagoService.getAll()
       ]);
+      console.log('Clientes cargados:', clientesData);
+      console.log('Servicios cargados:', serviciosData);
+      console.log('Medios de Pago cargados:', mediosPagoData);
       setVentas(ventasData);
       setFilteredVentas(ventasData);
       setClientes(clientesData);
       setServicios(serviciosData);
       setMediosPago(mediosPagoData);
-    } catch {
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
       showAlert('error', 'Error al cargar datos');
     } finally {
       setLoading(false);

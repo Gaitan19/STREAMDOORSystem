@@ -7,10 +7,9 @@ const Select = ({
   value,
   onChange,
   name,
-  ...otherProps 
+  ...props 
 }) => {
-  // Remove name, value, onChange from otherProps to prevent conflicts
-  const { name: _, value: __, onChange: ___, ...props } = otherProps;
+  console.log(`Select "${label}" - Options count:`, options.length, 'Options:', options);
   
   return (
     <div className={className}>
