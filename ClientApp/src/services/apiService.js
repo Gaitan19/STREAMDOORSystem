@@ -1,13 +1,17 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative path for API calls so Vite proxy can handle them
+// In development: Vite proxy will forward /api to https://localhost:44447
+// In production: /api will go to the same origin as the frontend
+const API_BASE_URL = '/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for cookies
 });
 
 apiClient.interceptors.request.use((config) => {
