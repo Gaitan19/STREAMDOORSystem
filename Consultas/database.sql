@@ -95,8 +95,16 @@ BEGIN
         ServicioID INT PRIMARY KEY IDENTITY(1,1),
         Nombre NVARCHAR(50) NOT NULL,
         Descripcion NVARCHAR(255) NULL,
+        Precio DECIMAL(10,2) NULL,
         Activo BIT DEFAULT 1
     );
+END
+GO
+
+-- Migración: Agregar columna Precio si no existe
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'Servicios') AND name = 'Precio')
+BEGIN
+    ALTER TABLE Servicios ADD Precio DECIMAL(10,2) NULL;
 END
 GO
 

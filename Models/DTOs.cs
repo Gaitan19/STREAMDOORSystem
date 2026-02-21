@@ -62,6 +62,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int ServicioID { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
+        public decimal? Precio { get; set; }
         public bool Activo { get; set; }
     }
 
@@ -69,6 +70,7 @@ namespace STREAMDOORSystem.Models.DTOs
     {
         public string Nombre { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
+        public decimal? Precio { get; set; }
     }
 
     // DTOs de Correo

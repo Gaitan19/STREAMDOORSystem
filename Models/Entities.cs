@@ -71,6 +71,9 @@ namespace STREAMDOORSystem.Models
         [MaxLength(255)]
         public string? Descripcion { get; set; }
 
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? Precio { get; set; }
+
         public bool Activo { get; set; } = true;
     }
 

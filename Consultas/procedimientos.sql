@@ -132,11 +132,12 @@ GO
 -- Crear Servicio
 CREATE OR ALTER PROCEDURE sp_CrearServicio
     @Nombre NVARCHAR(50),
-    @Descripcion NVARCHAR(255) = NULL
+    @Descripcion NVARCHAR(255) = NULL,
+    @Precio DECIMAL(10,2) = NULL
 AS
 BEGIN
-    INSERT INTO Servicios (Nombre, Descripcion)
-    VALUES (@Nombre, @Descripcion);
+    INSERT INTO Servicios (Nombre, Descripcion, Precio)
+    VALUES (@Nombre, @Descripcion, @Precio);
     
     SELECT SCOPE_IDENTITY() AS ServicioID;
 END
@@ -146,7 +147,7 @@ GO
 CREATE OR ALTER PROCEDURE sp_ListarServicios
 AS
 BEGIN
-    SELECT ServicioID, Nombre, Descripcion, Activo
+    SELECT ServicioID, Nombre, Descripcion, Precio, Activo
     FROM Servicios
     WHERE Activo = 1
     ORDER BY Nombre;

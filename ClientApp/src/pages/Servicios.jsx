@@ -22,20 +22,9 @@ const Servicios = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    precio: '',
-    duracionDias: '',
-    categoria: ''
+    precio: ''
   });
   const [errors, setErrors] = useState({});
-
-  const categorias = [
-    { value: 'Streaming', label: 'Streaming' },
-    { value: 'Música', label: 'Música' },
-    { value: 'Gaming', label: 'Gaming' },
-    { value: 'Software', label: 'Software' },
-    { value: 'Cloud', label: 'Cloud Storage' },
-    { value: 'Otro', label: 'Otro' }
-  ];
 
   useEffect(() => {
     loadServicios();
@@ -62,7 +51,7 @@ const Servicios = () => {
   const handleSearch = (searchTerm) => {
     const filtered = servicios.filter(servicio =>
       servicio.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      servicio.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
+      servicio.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredServicios(filtered);
   };
@@ -80,12 +69,6 @@ const Servicios = () => {
       newErrors.precio = 'El precio debe ser mayor a 0';
     }
 
-    if (!formData.duracionDias) {
-      newErrors.duracionDias = 'La duración es requerida';
-    } else if (isNaN(formData.duracionDias) || parseInt(formData.duracionDias) <= 0) {
-      newErrors.duracionDias = 'La duración debe ser mayor a 0';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -97,13 +80,13 @@ const Servicios = () => {
 
     try {
       const payload = {
-        ...formData,
-        precio: parseFloat(formData.precio),
-        duracionDias: parseInt(formData.duracionDias)
+        nombre: formData.nombre,
+        descripcion: formData.descripcion || null,
+        precio: formData.precio ? parseFloat(formData.precio) : null
       };
 
       if (selectedServicio) {
-        await serviciosService.update(selectedServicio.servicioId, payload);
+        await serviciosService.update(selectedServicio.servicioID, payload);
         showAlert('success', 'Servicio actualizado exitosamente');
       } else {
         await serviciosService.create(payload);
@@ -123,16 +106,14 @@ const Servicios = () => {
     setFormData({
       nombre: servicio.nombre,
       descripcion: servicio.descripcion || '',
-      precio: servicio.precio.toString(),
-      duracionDias: servicio.duracionDias.toString(),
-      categoria: servicio.categoria || ''
+      precio: servicio.precio?.toString() || ''
     });
     setModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await serviciosService.delete(selectedServicio.servicioId);
+      await serviciosService.delete(selectedServicio.servicioID);
       showAlert('success', 'Servicio eliminado exitosamente');
       setDeleteModalOpen(false);
       setSelectedServicio(null);
@@ -146,9 +127,7 @@ const Servicios = () => {
     setFormData({
       nombre: '',
       descripcion: '',
-      precio: '',
-      duracionDias: '',
-      categoria: ''
+      precio: ''
     });
     setErrors({});
     setSelectedServicio(null);
@@ -174,16 +153,10 @@ const Servicios = () => {
       )
     },
     { key: 'descripcion', label: 'Descripción', render: (row) => row.descripcion || '-' },
-    { key: 'categoria', label: 'Categoría', render: (row) => row.categoria || '-' },
     { 
       key: 'precio', 
       label: 'Precio',
-      render: (row) => <span className="font-semibold text-green-600">{formatCurrency(row.precio)}</span>
-    },
-    { 
-      key: 'duracionDias', 
-      label: 'Duración',
-      render: (row) => `${row.duracionDias} días`
+      render: (row) => row.precio ? <span className="font-semibold text-green-600">{formatCurrency(row.precio)}</span> : '-'
     },
     {
       key: 'actions',
@@ -261,34 +234,16 @@ const Servicios = () => {
             value={formData.descripcion}
             onChange={handleChange}
           />
-          <Select
-            label="Categoría"
-            name="categoria"
-            value={formData.categoria}
+          <Input
+            label="Precio (C$)"
+            type="number"
+            step="0.01"
+            name="precio"
+            value={formData.precio}
             onChange={handleChange}
-            options={categorias}
+            error={errors.precio}
+            required
           />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Precio (€)"
-              type="number"
-              step="0.01"
-              name="precio"
-              value={formData.precio}
-              onChange={handleChange}
-              error={errors.precio}
-              required
-            />
-            <Input
-              label="Duración (días)"
-              type="number"
-              name="duracionDias"
-              value={formData.duracionDias}
-              onChange={handleChange}
-              error={errors.duracionDias}
-              required
-            />
-          </div>
           <div className="flex gap-3 justify-end pt-4">
             <Button
               type="button"

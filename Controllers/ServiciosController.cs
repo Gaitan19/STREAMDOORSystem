@@ -33,6 +33,7 @@ namespace STREAMDOORSystem.Controllers
                         ServicioID = s.ServicioID,
                         Nombre = s.Nombre,
                         Descripcion = s.Descripcion,
+                        Precio = s.Precio,
                         Activo = s.Activo
                     })
                     .ToListAsync();
@@ -64,6 +65,7 @@ namespace STREAMDOORSystem.Controllers
                     ServicioID = servicio.ServicioID,
                     Nombre = servicio.Nombre,
                     Descripcion = servicio.Descripcion,
+                    Precio = servicio.Precio,
                     Activo = servicio.Activo
                 };
 
@@ -90,6 +92,7 @@ namespace STREAMDOORSystem.Controllers
                 {
                     Nombre = crearServicioDto.Nombre,
                     Descripcion = crearServicioDto.Descripcion,
+                    Precio = crearServicioDto.Precio,
                     Activo = true
                 };
 
@@ -101,6 +104,7 @@ namespace STREAMDOORSystem.Controllers
                     ServicioID = servicio.ServicioID,
                     Nombre = servicio.Nombre,
                     Descripcion = servicio.Descripcion,
+                    Precio = servicio.Precio,
                     Activo = servicio.Activo
                 };
 
@@ -132,6 +136,7 @@ namespace STREAMDOORSystem.Controllers
 
                 servicio.Nombre = crearServicioDto.Nombre;
                 servicio.Descripcion = crearServicioDto.Descripcion;
+                servicio.Precio = crearServicioDto.Precio;
 
                 _context.Servicios.Update(servicio);
                 await _context.SaveChangesAsync();
