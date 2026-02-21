@@ -41,13 +41,48 @@ BEGIN
     CREATE TABLE Clientes (
         ClienteID INT PRIMARY KEY IDENTITY(1,1),
         Nombre NVARCHAR(100) NOT NULL,
+        SegundoNombre NVARCHAR(100) NULL,
         Apellido NVARCHAR(100) NOT NULL,
-        WhatsApp NVARCHAR(20) NOT NULL,
-        Correo NVARCHAR(100) NULL,
-        Direccion NVARCHAR(255) NULL,
+        SegundoApellido NVARCHAR(100) NULL,
+        Telefono NVARCHAR(20) NOT NULL,
         FechaRegistro DATETIME DEFAULT GETDATE(),
         Activo BIT DEFAULT 1
     );
+END
+GO
+
+-- Migración: Actualizar tabla Clientes existente
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Clientes')
+BEGIN
+    -- Renombrar WhatsApp a Telefono si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'WhatsApp')
+    BEGIN
+        EXEC sp_rename 'Clientes.WhatsApp', 'Telefono', 'COLUMN';
+    END
+
+    -- Agregar SegundoNombre si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'SegundoNombre')
+    BEGIN
+        ALTER TABLE Clientes ADD SegundoNombre NVARCHAR(100) NULL;
+    END
+
+    -- Agregar SegundoApellido si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'SegundoApellido')
+    BEGIN
+        ALTER TABLE Clientes ADD SegundoApellido NVARCHAR(100) NULL;
+    END
+
+    -- Eliminar Correo si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'Correo')
+    BEGIN
+        ALTER TABLE Clientes DROP COLUMN Correo;
+    END
+
+    -- Eliminar Direccion si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'Direccion')
+    BEGIN
+        ALTER TABLE Clientes DROP COLUMN Direccion;
+    END
 END
 GO
 

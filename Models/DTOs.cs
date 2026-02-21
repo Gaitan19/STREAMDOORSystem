@@ -39,10 +39,10 @@ namespace STREAMDOORSystem.Models.DTOs
     {
         public int ClienteID { get; set; }
         public string Nombre { get; set; } = string.Empty;
+        public string? SegundoNombre { get; set; }
         public string Apellido { get; set; } = string.Empty;
-        public string WhatsApp { get; set; } = string.Empty;
-        public string? Correo { get; set; }
-        public string? Direccion { get; set; }
+        public string? SegundoApellido { get; set; }
+        public string Telefono { get; set; } = string.Empty;
         public DateTime FechaRegistro { get; set; }
         public bool Activo { get; set; }
     }
@@ -50,10 +50,10 @@ namespace STREAMDOORSystem.Models.DTOs
     public class CrearClienteDTO
     {
         public string Nombre { get; set; } = string.Empty;
+        public string? SegundoNombre { get; set; }
         public string Apellido { get; set; } = string.Empty;
-        public string WhatsApp { get; set; } = string.Empty;
-        public string? Correo { get; set; }
-        public string? Direccion { get; set; }
+        public string? SegundoApellido { get; set; }
+        public string Telefono { get; set; } = string.Empty;
     }
 
     // DTOs de Servicio

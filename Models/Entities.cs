@@ -39,19 +39,19 @@ namespace STREAMDOORSystem.Models
         [MaxLength(100)]
         public string Nombre { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string? SegundoNombre { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string Apellido { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string? SegundoApellido { get; set; }
+
         [Required]
         [MaxLength(20)]
-        public string WhatsApp { get; set; } = string.Empty;
-
-        [MaxLength(100)]
-        public string? Correo { get; set; }
-
-        [MaxLength(255)]
-        public string? Direccion { get; set; }
+        public string Telefono { get; set; } = string.Empty;
 
         public DateTime FechaRegistro { get; set; } = DateTime.Now;
 

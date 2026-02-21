@@ -31,10 +31,10 @@ namespace STREAMDOORSystem.Controllers
                     {
                         ClienteID = c.ClienteID,
                         Nombre = c.Nombre,
+                        SegundoNombre = c.SegundoNombre,
                         Apellido = c.Apellido,
-                        WhatsApp = c.WhatsApp,
-                        Correo = c.Correo,
-                        Direccion = c.Direccion,
+                        SegundoApellido = c.SegundoApellido,
+                        Telefono = c.Telefono,
                         FechaRegistro = c.FechaRegistro,
                         Activo = c.Activo
                     })
@@ -65,10 +65,10 @@ namespace STREAMDOORSystem.Controllers
                 {
                     ClienteID = cliente.ClienteID,
                     Nombre = cliente.Nombre,
+                    SegundoNombre = cliente.SegundoNombre,
                     Apellido = cliente.Apellido,
-                    WhatsApp = cliente.WhatsApp,
-                    Correo = cliente.Correo,
-                    Direccion = cliente.Direccion,
+                    SegundoApellido = cliente.SegundoApellido,
+                    Telefono = cliente.Telefono,
                     FechaRegistro = cliente.FechaRegistro,
                     Activo = cliente.Activo
                 };
@@ -95,10 +95,10 @@ namespace STREAMDOORSystem.Controllers
                 var cliente = new Cliente
                 {
                     Nombre = crearClienteDto.Nombre,
+                    SegundoNombre = crearClienteDto.SegundoNombre,
                     Apellido = crearClienteDto.Apellido,
-                    WhatsApp = crearClienteDto.WhatsApp,
-                    Correo = crearClienteDto.Correo,
-                    Direccion = crearClienteDto.Direccion,
+                    SegundoApellido = crearClienteDto.SegundoApellido,
+                    Telefono = crearClienteDto.Telefono,
                     FechaRegistro = DateTime.Now,
                     Activo = true
                 };
@@ -110,10 +110,10 @@ namespace STREAMDOORSystem.Controllers
                 {
                     ClienteID = cliente.ClienteID,
                     Nombre = cliente.Nombre,
+                    SegundoNombre = cliente.SegundoNombre,
                     Apellido = cliente.Apellido,
-                    WhatsApp = cliente.WhatsApp,
-                    Correo = cliente.Correo,
-                    Direccion = cliente.Direccion,
+                    SegundoApellido = cliente.SegundoApellido,
+                    Telefono = cliente.Telefono,
                     FechaRegistro = cliente.FechaRegistro,
                     Activo = cliente.Activo
                 };
@@ -145,10 +145,10 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 cliente.Nombre = crearClienteDto.Nombre;
+                cliente.SegundoNombre = crearClienteDto.SegundoNombre;
                 cliente.Apellido = crearClienteDto.Apellido;
-                cliente.WhatsApp = crearClienteDto.WhatsApp;
-                cliente.Correo = crearClienteDto.Correo;
-                cliente.Direccion = crearClienteDto.Direccion;
+                cliente.SegundoApellido = crearClienteDto.SegundoApellido;
+                cliente.Telefono = crearClienteDto.Telefono;
 
                 _context.Clientes.Update(cliente);
                 await _context.SaveChangesAsync();
