@@ -132,10 +132,10 @@ const Cuentas = () => {
   const handleEdit = (cuenta) => {
     setSelectedCuenta(cuenta);
     setFormData({
-      clienteId: cuenta.clienteId.toString(),
-      servicioId: cuenta.servicioId.toString(),
-      usuario: cuenta.usuario,
-      password: cuenta.password,
+      clienteId: cuenta.clienteId?.toString() || '',
+      servicioId: cuenta.servicioId?.toString() || '',
+      usuario: cuenta.usuario || '',
+      password: cuenta.password || '',
       perfilNombre: cuenta.perfilNombre || ''
     });
     setModalOpen(true);
@@ -287,8 +287,8 @@ const Cuentas = () => {
             onChange={handleChange}
             error={errors.clienteId}
             options={clientes.map(c => ({
-              value: c.clienteId.toString(),
-              label: `${c.nombre} ${c.apellido}`
+              value: c.clienteId?.toString() || '',
+              label: `${c.nombre || ''} ${c.apellido || ''}`
             }))}
             required
           />
@@ -300,8 +300,8 @@ const Cuentas = () => {
             onChange={handleChange}
             error={errors.servicioId}
             options={servicios.map(s => ({
-              value: s.servicioId.toString(),
-              label: s.nombre
+              value: s.servicioId?.toString() || '',
+              label: s.nombre || 'Sin nombre'
             }))}
             required
           />

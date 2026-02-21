@@ -172,7 +172,7 @@ const Ventas = () => {
     const today = new Date().toISOString().split('T')[0];
     setRenovarData({
       nuevaFechaInicio: today,
-      nuevoMonto: venta.monto.toString()
+      nuevoMonto: venta.monto?.toString() || ''
     });
     setRenovarModalOpen(true);
   };
@@ -180,11 +180,11 @@ const Ventas = () => {
   const handleEdit = (venta) => {
     setSelectedVenta(venta);
     setFormData({
-      clienteId: venta.clienteId.toString(),
-      servicioId: venta.servicioId.toString(),
-      medioPagoId: venta.medioPagoId.toString(),
-      fechaInicio: venta.fechaInicio.split('T')[0],
-      monto: venta.monto.toString(),
+      clienteId: venta.clienteId?.toString() || '',
+      servicioId: venta.servicioId?.toString() || '',
+      medioPagoId: venta.medioPagoId?.toString() || '',
+      fechaInicio: venta.fechaInicio?.split('T')[0] || '',
+      monto: venta.monto?.toString() || '',
       notas: venta.notas || ''
     });
     setModalOpen(true);
@@ -389,8 +389,8 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.clienteId}
             options={clientes.map(c => ({
-              value: c.clienteId.toString(),
-              label: `${c.nombre} ${c.apellido}`
+              value: c.clienteId?.toString() || '',
+              label: `${c.nombre || ''} ${c.apellido || ''}`
             }))}
             required
           />
@@ -402,8 +402,8 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.servicioId}
             options={servicios.map(s => ({
-              value: s.servicioId.toString(),
-              label: `${s.nombre} - ${formatCurrency(s.precio)}`
+              value: s.servicioId?.toString() || '',
+              label: `${s.nombre || 'Sin nombre'} - ${formatCurrency(s.precio || 0)}`
             }))}
             required
           />
@@ -415,8 +415,8 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.medioPagoId}
             options={mediosPago.map(m => ({
-              value: m.medioPagoId.toString(),
-              label: m.nombre
+              value: m.medioPagoId?.toString() || '',
+              label: m.nombre || 'Sin nombre'
             }))}
             required
           />
