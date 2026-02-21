@@ -176,12 +176,15 @@ namespace STREAMDOORSystem.Models.DTOs
     public class CrearVentaDTO
     {
         public int ClienteID { get; set; }
-        public int CuentaID { get; set; }
+        public int? CuentaID { get; set; }  // Opcional: si no se proporciona, usar ServicioID
+        public int? ServicioID { get; set; }  // Usado si CuentaID no está presente
         public int? PerfilID { get; set; }
+        public int? MedioPagoID { get; set; }  // Medio de pago usado
         public DateTime FechaInicio { get; set; }
         public int Duracion { get; set; }
         public decimal Monto { get; set; }
         public string Moneda { get; set; } = "C$";
+        public string? Notas { get; set; }
     }
 
     public class RenovarVentaDTO

@@ -29,6 +29,7 @@ const Ventas = () => {
     servicioId: '',
     medioPagoId: '',
     fechaInicio: '',
+    duracion: '30',  // Duración por defecto: 30 días
     monto: '',
     notas: ''
   });
@@ -115,6 +116,12 @@ const Ventas = () => {
       newErrors.fechaInicio = 'La fecha de inicio es requerida';
     }
 
+    if (!formData.duracion) {
+      newErrors.duracion = 'La duración es requerida';
+    } else if (isNaN(formData.duracion) || parseInt(formData.duracion) <= 0) {
+      newErrors.duracion = 'La duración debe ser mayor a 0';
+    }
+
     if (!formData.monto) {
       newErrors.monto = 'El monto es requerido';
     } else if (isNaN(formData.monto) || parseFloat(formData.monto) <= 0) {
@@ -132,11 +139,13 @@ const Ventas = () => {
 
     try {
       const payload = {
-        ...formData,
-        clienteId: parseInt(formData.clienteId),
-        servicioId: parseInt(formData.servicioId),
-        medioPagoId: parseInt(formData.medioPagoId),
-        monto: parseFloat(formData.monto)
+        clienteID: parseInt(formData.clienteId),
+        servicioID: parseInt(formData.servicioId),
+        medioPagoID: parseInt(formData.medioPagoId),
+        fechaInicio: formData.fechaInicio,
+        duracion: parseInt(formData.duracion),
+        monto: parseFloat(formData.monto),
+        notas: formData.notas || null
       };
 
       if (selectedVenta) {
@@ -212,6 +221,7 @@ const Ventas = () => {
       servicioId: '',
       medioPagoId: '',
       fechaInicio: '',
+      duracion: '30',
       monto: '',
       notas: ''
     });
@@ -442,7 +452,17 @@ const Ventas = () => {
               required
             />
             <Input
-              label="Monto (€)"
+              label="Duración (días)"
+              type="number"
+              name="duracion"
+              value={formData.duracion}
+              onChange={handleChange}
+              error={errors.duracion}
+              placeholder="Ej: 30"
+              required
+            />
+            <Input
+              label="Monto (C$)"
               type="number"
               step="0.01"
               name="monto"

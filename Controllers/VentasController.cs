@@ -158,11 +158,36 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(new { message = "El cliente especificado no existe" });
                 }
 
-                // Verificar que la cuenta exista
-                var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.CuentaID == crearVentaDto.CuentaID && c.Activo);
-                if (!cuentaExiste)
+                int cuentaID;
+
+                // Si no se proporciona CuentaID, buscar una cuenta disponible del servicio especificado
+                if (!crearVentaDto.CuentaID.HasValue && crearVentaDto.ServicioID.HasValue)
                 {
-                    return BadRequest(new { message = "La cuenta especificada no existe" });
+                    // Buscar una cuenta disponible del servicio
+                    var cuentaDisponible = await _context.Cuentas
+                        .Where(c => c.ServicioID == crearVentaDto.ServicioID && c.Activo && c.Estado == "Disponible")
+                        .FirstOrDefaultAsync();
+
+                    if (cuentaDisponible == null)
+                    {
+                        return BadRequest(new { message = "No hay cuentas disponibles para el servicio seleccionado" });
+                    }
+
+                    cuentaID = cuentaDisponible.CuentaID;
+                }
+                else if (crearVentaDto.CuentaID.HasValue)
+                {
+                    // Verificar que la cuenta exista
+                    var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.CuentaID == crearVentaDto.CuentaID && c.Activo);
+                    if (!cuentaExiste)
+                    {
+                        return BadRequest(new { message = "La cuenta especificada no existe" });
+                    }
+                    cuentaID = crearVentaDto.CuentaID.Value;
+                }
+                else
+                {
+                    return BadRequest(new { message = "Debe proporcionar CuentaID o ServicioID" });
                 }
 
                 // Verificar que el perfil exista si se proporciona
@@ -180,7 +205,7 @@ namespace STREAMDOORSystem.Controllers
                 var venta = new Venta
                 {
                     ClienteID = crearVentaDto.ClienteID,
-                    CuentaID = crearVentaDto.CuentaID,
+                    CuentaID = cuentaID,
                     PerfilID = crearVentaDto.PerfilID,
                     FechaInicio = crearVentaDto.FechaInicio,
                     FechaFin = fechaFin,
@@ -194,8 +219,26 @@ namespace STREAMDOORSystem.Controllers
                 _context.Ventas.Add(venta);
                 await _context.SaveChangesAsync();
 
+                // Registrar el pago si se proporciona medio de pago
+                if (crearVentaDto.MedioPagoID.HasValue)
+                {
+                    var pago = new Pago
+                    {
+                        VentaID = venta.VentaID,
+                        MedioPagoID = crearVentaDto.MedioPagoID.Value,
+                        Monto = crearVentaDto.Monto,
+                        Moneda = crearVentaDto.Moneda,
+                        FechaPago = crearVentaDto.FechaInicio,
+                        Referencia = $"Venta #{venta.VentaID}",
+                        Notas = crearVentaDto.Notas,
+                        FechaCreacion = DateTime.Now
+                    };
+                    _context.Pagos.Add(pago);
+                    await _context.SaveChangesAsync();
+                }
+
                 var cliente = await _context.Clientes.FindAsync(crearVentaDto.ClienteID);
-                var cuenta = await _context.Cuentas.Include(c => c.Servicio).FirstOrDefaultAsync(c => c.CuentaID == crearVentaDto.CuentaID);
+                var cuenta = await _context.Cuentas.Include(c => c.Servicio).FirstOrDefaultAsync(c => c.CuentaID == cuentaID);
 
                 var ventaDto = new VentaDTO
                 {
