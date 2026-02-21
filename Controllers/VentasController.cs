@@ -300,7 +300,7 @@ namespace STREAMDOORSystem.Controllers
                 var fechaFin = crearVentaDto.FechaInicio.AddDays(crearVentaDto.Duracion);
 
                 venta.ClienteID = crearVentaDto.ClienteID;
-                venta.CuentaID = crearVentaDto.CuentaID;
+                venta.CuentaID = (int)crearVentaDto.CuentaID;
                 venta.PerfilID = crearVentaDto.PerfilID;
                 venta.FechaInicio = crearVentaDto.FechaInicio;
                 venta.FechaFin = fechaFin;
