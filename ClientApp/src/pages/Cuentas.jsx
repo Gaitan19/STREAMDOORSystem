@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, CreditCard, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, CreditCard, Copy, Eye, Users, Key } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,7 +8,9 @@ import Select from '../components/Select';
 import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
+import PerfilesModal from '../components/PerfilesModal';
 import { cuentasService, serviciosService } from '../services/apiService';
+import { formatDate, getEstadoColor, copyToClipboard, getRowColorClass, generatePassword } from '../utils/helpers';
 
 const Cuentas = () => {
   const [cuentas, setCuentas] = useState([]);
@@ -17,15 +19,22 @@ const Cuentas = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [perfilesModalOpen, setPerfilesModalOpen] = useState(false);
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [selectedCuenta, setSelectedCuenta] = useState(null);
+  const [selectedCuentaForPerfiles, setSelectedCuentaForPerfiles] = useState(null);
   const [alert, setAlert] = useState(null);
   const [correos, setCorreos] = useState([]);
+  const [correosDisponibles, setCorreosDisponibles] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('todas');
   const [formData, setFormData] = useState({
     servicioID: '',
     correoID: '',
     tipoCuenta: 'Propia',
     numeroPerfiles: 1,
-    perfiles: []
+    fechaFinalizacion: '',
+    email: '',
+    password: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -33,18 +42,30 @@ const Cuentas = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (filtro = 'todas') => {
     try {
       setLoading(true);
-      const [cuentasData, serviciosData, correosData] = await Promise.all([
-        cuentasService.getAll(),
+      const [serviciosData, correosData, correosDispData] = await Promise.all([
         serviciosService.getAll(),
-        fetch('/api/correos', { credentials: 'include' }).then(r => r.json())
+        fetch('/api/correos', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/cuentas/correos/disponibles', { credentials: 'include' }).then(r => r.json())
       ]);
+      
+      // Load cuentas based on filter
+      let cuentasData;
+      if (filtro === 'todas') {
+        cuentasData = await cuentasService.getAll();
+      } else {
+        cuentasData = await fetch(`/api/cuentas/filtro/${filtro}`, { 
+          credentials: 'include' 
+        }).then(r => r.json());
+      }
+      
       setCuentas(cuentasData);
       setFilteredCuentas(cuentasData);
       setServicios(serviciosData);
       setCorreos(correosData);
+      setCorreosDisponibles(correosDispData);
     } catch {
       showAlert('error', 'Error al cargar datos');
     } finally {
@@ -66,18 +87,24 @@ const Cuentas = () => {
     setFilteredCuentas(filtered);
   };
 
-  const handleGeneratePassword = () => {
-    // This function is no longer needed - passwords are in Correos table
-    showAlert('info', 'Las contraseñas se gestionan en el módulo de Correos');
+  const handleCopyToClipboard = async (text, field) => {
+    try {
+      const message = await copyToClipboard(text, field);
+      showAlert('success', message);
+    } catch (error) {
+      showAlert('error', error.message);
+    }
   };
 
-  const handleCopyToClipboard = (text, field) => {
-    if (!text) {
-      showAlert('error', `No hay ${field.toLowerCase()} para copiar`);
-      return;
-    }
-    navigator.clipboard.writeText(text);
-    showAlert('success', `${field} copiado al portapapeles`);
+  const handleGeneratePassword = () => {
+    const newPassword = generatePassword(16);
+    setFormData(prev => ({ ...prev, password: newPassword }));
+    showAlert('success', 'Contraseña generada');
+  };
+
+  const handleFiltroChange = (filtro) => {
+    setFiltroEstado(filtro);
+    loadData(filtro);
   };
 
   const validate = () => {
@@ -87,8 +114,17 @@ const Cuentas = () => {
       newErrors.servicioID = 'El servicio es requerido';
     }
 
-    if (formData.tipoCuenta === 'Terceros' && !formData.correoID) {
-      newErrors.correoID = 'El correo es requerido para cuentas de terceros';
+    if (formData.tipoCuenta === 'Propia' && !formData.correoID) {
+      newErrors.correoID = 'Debe seleccionar un correo para cuentas propias';
+    }
+
+    if (formData.tipoCuenta === 'Terceros') {
+      if (!formData.email) {
+        newErrors.email = 'El email es requerido para cuentas de terceros';
+      }
+      if (!formData.password) {
+        newErrors.password = 'La contraseña es requerida para cuentas de terceros';
+      }
     }
 
     if (!formData.numeroPerfiles || formData.numeroPerfiles < 1) {
@@ -107,14 +143,21 @@ const Cuentas = () => {
     try {
       const payload = {
         ServicioID: parseInt(formData.servicioID),
-        CorreoID: formData.correoID ? parseInt(formData.correoID) : null,
         TipoCuenta: formData.tipoCuenta,
         NumeroPerfiles: parseInt(formData.numeroPerfiles),
-        Perfiles: formData.perfiles.length > 0 ? formData.perfiles.map(p => ({
-          NumeroPerfil: p.numeroPerfil,
-          PIN: p.pin
-        })) : null
+        FechaFinalizacion: formData.fechaFinalizacion || null
       };
+
+      // For Propia accounts, use selected CorreoID
+      if (formData.tipoCuenta === 'Propia') {
+        payload.CorreoID = formData.correoID ? parseInt(formData.correoID) : null;
+      } 
+      // For Terceros accounts, send Email and Password for backend to create Correo
+      else if (formData.tipoCuenta === 'Terceros') {
+        payload.Email = formData.email;
+        payload.Password = formData.password;
+        payload.CorreoID = null;
+      }
 
       if (selectedCuenta) {
         await cuentasService.update(selectedCuenta.cuentaID, payload);
@@ -126,9 +169,13 @@ const Cuentas = () => {
       
       setModalOpen(false);
       resetForm();
-      loadData();
+      loadData(filtroEstado);
     } catch (error) {
-      showAlert('error', error.response?.data?.message || 'Error al guardar cuenta');
+      const errorMsg = error.response?.data?.message || 'Error al guardar cuenta';
+      showAlert('error', errorMsg);
+      if (errorMsg.includes('correo')) {
+        setErrors({ email: errorMsg });
+      }
     }
   };
 
@@ -139,7 +186,9 @@ const Cuentas = () => {
       correoID: cuenta.correoID?.toString() || '',
       tipoCuenta: cuenta.tipoCuenta || 'Propia',
       numeroPerfiles: cuenta.numeroPerfiles || 1,
-      perfiles: []
+      fechaFinalizacion: cuenta.fechaFinalizacion ? cuenta.fechaFinalizacion.split('T')[0] : '',
+      email: '',
+      password: ''
     });
     setModalOpen(true);
   };
@@ -150,7 +199,7 @@ const Cuentas = () => {
       showAlert('success', 'Cuenta eliminada exitosamente');
       setDeleteModalOpen(false);
       setSelectedCuenta(null);
-      loadData();
+      loadData(filtroEstado);
     } catch (error) {
       showAlert('error', error.response?.data?.message || 'Error al eliminar cuenta');
     }
@@ -162,10 +211,22 @@ const Cuentas = () => {
       correoID: '',
       tipoCuenta: 'Propia',
       numeroPerfiles: 1,
-      perfiles: []
+      fechaFinalizacion: '',
+      email: '',
+      password: ''
     });
     setErrors({});
     setSelectedCuenta(null);
+  };
+
+  const handleVerPerfiles = (cuenta) => {
+    setSelectedCuentaForPerfiles(cuenta);
+    setPerfilesModalOpen(true);
+  };
+
+  const handleVerDetalles = (cuenta) => {
+    setSelectedCuenta(cuenta);
+    setDetallesModalOpen(true);
   };
 
   const handleChange = (e) => {
@@ -204,7 +265,7 @@ const Cuentas = () => {
               </button>
             </>
           ) : (
-            <span className="text-gray-400 text-sm">Cuenta propia</span>
+            <span className="text-gray-400 text-sm">-</span>
           )}
         </div>
       )
@@ -222,7 +283,7 @@ const Cuentas = () => {
     },
     { 
       key: 'numeroPerfiles', 
-      label: 'Perfiles',
+      label: 'Perfiles (Disp/Total)',
       render: (row) => (
         <div className="text-center">
           <span className="text-sm font-medium">{row.perfilesDisponibles || 0}</span>
@@ -231,32 +292,48 @@ const Cuentas = () => {
       )
     },
     { 
+      key: 'fechaFinalizacion', 
+      label: 'Vencimiento',
+      render: (row) => (
+        <div className="text-sm">
+          {row.fechaFinalizacion ? formatDate(row.fechaFinalizacion) : <span className="text-gray-400">Sin fecha</span>}
+        </div>
+      )
+    },
+    { 
       key: 'estado', 
       label: 'Estado',
-      render: (row) => {
-        const colors = {
-          'Disponible': 'bg-green-100 text-green-800',
-          'Ocupada': 'bg-yellow-100 text-yellow-800',
-          'Vencida': 'bg-red-100 text-red-800',
-          'Inactiva': 'bg-gray-100 text-gray-800'
-        };
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[row.estado] || 'bg-gray-100 text-gray-800'}`}>
-            {row.estado}
-          </span>
-        );
-      }
+      render: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(row.estado)}`}>
+          {row.estado}
+        </span>
+      )
     },
     {
       key: 'actions',
       label: 'Acciones',
       render: (row) => (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <button
             onClick={() => handleEdit(row)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Editar"
           >
             <Edit size={18} />
+          </button>
+          <button
+            onClick={() => handleVerPerfiles(row)}
+            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            title="Ver Perfiles"
+          >
+            <Users size={18} />
+          </button>
+          <button
+            onClick={() => handleVerDetalles(row)}
+            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            title="Ver Detalles"
+          >
+            <Eye size={18} />
           </button>
           <button
             onClick={() => {
@@ -264,6 +341,7 @@ const Cuentas = () => {
               setDeleteModalOpen(true);
             }}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar"
           >
             <Trash2 size={18} />
           </button>
@@ -294,8 +372,23 @@ const Cuentas = () => {
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <Card>
-        <div className="mb-4">
-          <SearchBar onSearch={handleSearch} placeholder="Buscar por email, servicio o estado..." />
+        <div className="mb-4 flex gap-4 items-center">
+          <div className="flex-1">
+            <SearchBar onSearch={handleSearch} placeholder="Buscar por email, servicio o estado..." />
+          </div>
+          <div className="w-64">
+            <select
+              value={filtroEstado}
+              onChange={(e) => handleFiltroChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="todas">Todas las cuentas</option>
+              <option value="disponibles">✅ Disponibles</option>
+              <option value="no-disponibles">⛔ No Disponibles</option>
+              <option value="vencidas">🔴 Vencidas</option>
+              <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
+            </select>
+          </div>
         </div>
         <Table columns={columns} data={filteredCuentas} loading={loading} />
       </Card>
@@ -307,6 +400,7 @@ const Cuentas = () => {
           resetForm();
         }}
         title={selectedCuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Select
@@ -330,27 +424,101 @@ const Cuentas = () => {
             value={formData.tipoCuenta}
             onChange={handleChange}
             options={[
-              { value: 'Propia', label: 'Propia' },
-              { value: 'Terceros', label: 'Terceros' }
+              { value: 'Propia', label: '🏢 Propia (Cuenta del negocio)' },
+              { value: 'Terceros', label: '👤 Terceros (Cuenta externa)' }
             ]}
             required
           />
 
-          {formData.tipoCuenta === 'Terceros' && (
-            <Select
-              label="Correo (Email + Contraseña)"
-              name="correoID"
-              value={formData.correoID}
-              onChange={handleChange}
-              error={errors.correoID}
-              options={correos
-                .filter(c => c.correoID != null)
-                .map(c => ({
-                  value: c.correoID.toString(),
-                  label: c.email || 'Sin email'
-                }))}
-              required={formData.tipoCuenta === 'Terceros'}
-            />
+          {/* Dynamic fields based on TipoCuenta */}
+          {formData.tipoCuenta === 'Propia' ? (
+            <>
+              <Select
+                label="Correo Disponible"
+                name="correoID"
+                value={formData.correoID}
+                onChange={(e) => {
+                  handleChange(e);
+                  // Find selected correo to show password
+                  const selectedCorreo = correosDisponibles.find(c => c.correoID === parseInt(e.target.value));
+                  if (selectedCorreo) {
+                    setFormData(prev => ({ ...prev, email: selectedCorreo.email, password: selectedCorreo.password }));
+                  }
+                }}
+                error={errors.correoID}
+                options={correosDisponibles
+                  .filter(c => c.correoID != null)
+                  .map(c => ({
+                    value: c.correoID.toString(),
+                    label: c.email || 'Sin email'
+                  }))}
+                required
+              />
+              
+              {formData.correoID && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-medium text-blue-900">Credenciales del Correo Seleccionado:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-blue-800 font-mono">{formData.email}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyToClipboard(formData.email, 'Email')}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-blue-800 font-mono">{formData.password}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyToClipboard(formData.password, 'Contraseña')}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Input
+                label="Email (para la cuenta de terceros)"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                placeholder="correo@ejemplo.com"
+                required
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    name="password"
+                    type="text"
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={errors.password}
+                    placeholder="Contraseña de la cuenta"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleGeneratePassword}
+                  >
+                    <Key size={16} />
+                  </Button>
+                </div>
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+              </div>
+            </>
           )}
 
           <Input
@@ -364,12 +532,22 @@ const Cuentas = () => {
             required
           />
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+          <Input
+            label="Fecha de Finalización (opcional)"
+            name="fechaFinalizacion"
+            type="date"
+            value={formData.fechaFinalizacion}
+            onChange={handleChange}
+            error={errors.fechaFinalizacion}
+          />
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
             <p className="font-medium mb-1">ℹ️ Información</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
-              <li><strong>Cuenta Propia:</strong> Cuenta creada por el negocio</li>
-              <li><strong>Cuenta de Terceros:</strong> Usa credenciales de la tabla Correos</li>
-              <li>Los perfiles específicos (PIN, número) se asignan al vender</li>
+              <li><strong>Cuenta Propia:</strong> Usa correos disponibles (no usados por otras cuentas)</li>
+              <li><strong>Cuenta de Terceros:</strong> Registra email y contraseña manualmente</li>
+              <li>Los perfiles se crean automáticamente. Edítelos luego con "Ver Perfiles"</li>
+              <li>La fecha de finalización es opcional (útil para control de vencimientos)</li>
             </ul>
           </div>
 
@@ -418,6 +596,86 @@ const Cuentas = () => {
             Eliminar
           </Button>
         </div>
+      </Modal>
+
+      {/* Perfiles Modal */}
+      <PerfilesModal
+        isOpen={perfilesModalOpen}
+        onClose={() => {
+          setPerfilesModalOpen(false);
+          setSelectedCuentaForPerfiles(null);
+          loadData(filtroEstado); // Reload to update disponibles count
+        }}
+        cuentaId={selectedCuentaForPerfiles?.cuentaID}
+        cuentaNombre={selectedCuentaForPerfiles?.nombreServicio || 'Cuenta'}
+      />
+
+      {/* Detalles Modal */}
+      <Modal
+        isOpen={detallesModalOpen}
+        onClose={() => {
+          setDetallesModalOpen(false);
+          setSelectedCuenta(null);
+        }}
+        title="Detalles de la Cuenta"
+        size="lg"
+      >
+        {selectedCuenta && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Servicio</label>
+                <p className="text-base font-semibold">{selectedCuenta.nombreServicio}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Tipo de Cuenta</label>
+                <p className="text-base">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    selectedCuenta.tipoCuenta === 'Propia' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {selectedCuenta.tipoCuenta}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Email</label>
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-mono">{selectedCuenta.email || 'N/A'}</p>
+                  {selectedCuenta.email && (
+                    <button
+                      onClick={() => handleCopyToClipboard(selectedCuenta.email, 'Email')}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Estado</label>
+                <p className="text-base">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(selectedCuenta.estado)}`}>
+                    {selectedCuenta.estado}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Perfiles</label>
+                <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Fecha de Creación</label>
+                <p className="text-base">{formatDate(selectedCuenta.fechaCreacion)}</p>
+              </div>
+              {selectedCuenta.fechaFinalizacion && (
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600">Fecha de Finalización</label>
+                  <p className="text-base">{formatDate(selectedCuenta.fechaFinalizacion)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
