@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, CreditCard, RefreshCw, Copy, User } from 'lucide-react';
+import { Plus, Edit, Trash2, CreditCard, Copy } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,25 +8,24 @@ import Select from '../components/Select';
 import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
-import { cuentasService, clientesService, serviciosService } from '../services/apiService';
-import { generatePassword } from '../utils/helpers';
+import { cuentasService, serviciosService } from '../services/apiService';
 
 const Cuentas = () => {
   const [cuentas, setCuentas] = useState([]);
   const [filteredCuentas, setFilteredCuentas] = useState([]);
-  const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedCuenta, setSelectedCuenta] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [correos, setCorreos] = useState([]);
   const [formData, setFormData] = useState({
-    clienteId: '',
-    servicioId: '',
-    usuario: '',
-    password: '',
-    perfilNombre: ''
+    servicioID: '',
+    correoID: '',
+    tipoCuenta: 'Propia',
+    numeroPerfiles: 1,
+    perfiles: []
   });
   const [errors, setErrors] = useState({});
 
@@ -37,15 +36,15 @@ const Cuentas = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [cuentasData, clientesData, serviciosData] = await Promise.all([
+      const [cuentasData, serviciosData, correosData] = await Promise.all([
         cuentasService.getAll(),
-        clientesService.getAll(),
-        serviciosService.getAll()
+        serviciosService.getAll(),
+        fetch('/api/correos', { credentials: 'include' }).then(r => r.json())
       ]);
       setCuentas(cuentasData);
       setFilteredCuentas(cuentasData);
-      setClientes(clientesData);
       setServicios(serviciosData);
+      setCorreos(correosData);
     } catch {
       showAlert('error', 'Error al cargar datos');
     } finally {
@@ -60,20 +59,23 @@ const Cuentas = () => {
 
   const handleSearch = (searchTerm) => {
     const filtered = cuentas.filter(cuenta =>
-      cuenta.usuario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.clienteNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.servicioNombre?.toLowerCase().includes(searchTerm.toLowerCase())
+      cuenta.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cuenta.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredCuentas(filtered);
   };
 
   const handleGeneratePassword = () => {
-    const password = generatePassword();
-    setFormData(prev => ({ ...prev, password }));
-    showAlert('success', 'Contraseña generada automáticamente');
+    // This function is no longer needed - passwords are in Correos table
+    showAlert('info', 'Las contraseñas se gestionan en el módulo de Correos');
   };
 
   const handleCopyToClipboard = (text, field) => {
+    if (!text) {
+      showAlert('error', `No hay ${field.toLowerCase()} para copiar`);
+      return;
+    }
     navigator.clipboard.writeText(text);
     showAlert('success', `${field} copiado al portapapeles`);
   };
@@ -81,20 +83,16 @@ const Cuentas = () => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.clienteId) {
-      newErrors.clienteId = 'El cliente es requerido';
+    if (!formData.servicioID) {
+      newErrors.servicioID = 'El servicio es requerido';
     }
 
-    if (!formData.servicioId) {
-      newErrors.servicioId = 'El servicio es requerido';
+    if (formData.tipoCuenta === 'Terceros' && !formData.correoID) {
+      newErrors.correoID = 'El correo es requerido para cuentas de terceros';
     }
 
-    if (!formData.usuario?.trim()) {
-      newErrors.usuario = 'El usuario es requerido';
-    }
-
-    if (!formData.password?.trim()) {
-      newErrors.password = 'La contraseña es requerida';
+    if (!formData.numeroPerfiles || formData.numeroPerfiles < 1) {
+      newErrors.numeroPerfiles = 'Debe tener al menos 1 perfil';
     }
 
     setErrors(newErrors);
@@ -108,13 +106,18 @@ const Cuentas = () => {
 
     try {
       const payload = {
-        ...formData,
-        clienteId: parseInt(formData.clienteId),
-        servicioId: parseInt(formData.servicioId)
+        ServicioID: parseInt(formData.servicioID),
+        CorreoID: formData.correoID ? parseInt(formData.correoID) : null,
+        TipoCuenta: formData.tipoCuenta,
+        NumeroPerfiles: parseInt(formData.numeroPerfiles),
+        Perfiles: formData.perfiles.length > 0 ? formData.perfiles.map(p => ({
+          NumeroPerfil: p.numeroPerfil,
+          PIN: p.pin
+        })) : null
       };
 
       if (selectedCuenta) {
-        await cuentasService.update(selectedCuenta.cuentaId, payload);
+        await cuentasService.update(selectedCuenta.cuentaID, payload);
         showAlert('success', 'Cuenta actualizada exitosamente');
       } else {
         await cuentasService.create(payload);
@@ -132,18 +135,18 @@ const Cuentas = () => {
   const handleEdit = (cuenta) => {
     setSelectedCuenta(cuenta);
     setFormData({
-      clienteId: cuenta.clienteId?.toString() || '',
-      servicioId: cuenta.servicioId?.toString() || '',
-      usuario: cuenta.usuario || '',
-      password: cuenta.password || '',
-      perfilNombre: cuenta.perfilNombre || ''
+      servicioID: cuenta.servicioID?.toString() || '',
+      correoID: cuenta.correoID?.toString() || '',
+      tipoCuenta: cuenta.tipoCuenta || 'Propia',
+      numeroPerfiles: cuenta.numeroPerfiles || 1,
+      perfiles: []
     });
     setModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await cuentasService.delete(selectedCuenta.cuentaId);
+      await cuentasService.delete(selectedCuenta.cuentaID);
       showAlert('success', 'Cuenta eliminada exitosamente');
       setDeleteModalOpen(false);
       setSelectedCuenta(null);
@@ -155,11 +158,11 @@ const Cuentas = () => {
 
   const resetForm = () => {
     setFormData({
-      clienteId: '',
-      servicioId: '',
-      usuario: '',
-      password: '',
-      perfilNombre: ''
+      servicioID: '',
+      correoID: '',
+      tipoCuenta: 'Propia',
+      numeroPerfiles: 1,
+      perfiles: []
     });
     setErrors({});
     setSelectedCuenta(null);
@@ -175,49 +178,75 @@ const Cuentas = () => {
 
   const columns = [
     { 
-      key: 'clienteNombre', 
-      label: 'Cliente',
+      key: 'nombreServicio', 
+      label: 'Servicio',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <User size={16} className="text-gray-600" />
-          <span>{row.clienteNombre || 'N/A'}</span>
-        </div>
-      )
-    },
-    { key: 'servicioNombre', label: 'Servicio' },
-    { 
-      key: 'usuario', 
-      label: 'Usuario',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <code className="bg-gray-100 px-2 py-1 rounded text-sm">{row.usuario}</code>
-          <button
-            onClick={() => handleCopyToClipboard(row.usuario, 'Usuario')}
-            className="p-1 text-gray-600 hover:text-blue-600"
-            title="Copiar usuario"
-          >
-            <Copy size={16} />
-          </button>
+          <CreditCard size={16} className="text-blue-600" />
+          <span className="font-medium">{row.nombreServicio || 'N/A'}</span>
         </div>
       )
     },
     { 
-      key: 'password', 
-      label: 'Contraseña',
+      key: 'email', 
+      label: 'Email',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <code className="bg-gray-100 px-2 py-1 rounded text-sm">••••••••</code>
-          <button
-            onClick={() => handleCopyToClipboard(row.password, 'Contraseña')}
-            className="p-1 text-gray-600 hover:text-blue-600"
-            title="Copiar contraseña"
-          >
-            <Copy size={16} />
-          </button>
+          {row.email ? (
+            <>
+              <code className="bg-gray-100 px-2 py-1 rounded text-sm">{row.email}</code>
+              <button
+                onClick={() => handleCopyToClipboard(row.email, 'Email')}
+                className="p-1 text-gray-600 hover:text-blue-600"
+                title="Copiar email"
+              >
+                <Copy size={16} />
+              </button>
+            </>
+          ) : (
+            <span className="text-gray-400 text-sm">Cuenta propia</span>
+          )}
         </div>
       )
     },
-    { key: 'perfilNombre', label: 'Perfil', render: (row) => row.perfilNombre || '-' },
+    { 
+      key: 'tipoCuenta', 
+      label: 'Tipo',
+      render: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.tipoCuenta === 'Propia' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {row.tipoCuenta}
+        </span>
+      )
+    },
+    { 
+      key: 'numeroPerfiles', 
+      label: 'Perfiles',
+      render: (row) => (
+        <div className="text-center">
+          <span className="text-sm font-medium">{row.perfilesDisponibles || 0}</span>
+          <span className="text-gray-400 text-xs"> / {row.numeroPerfiles || 0}</span>
+        </div>
+      )
+    },
+    { 
+      key: 'estado', 
+      label: 'Estado',
+      render: (row) => {
+        const colors = {
+          'Disponible': 'bg-green-100 text-green-800',
+          'Ocupada': 'bg-yellow-100 text-yellow-800',
+          'Vencida': 'bg-red-100 text-red-800',
+          'Inactiva': 'bg-gray-100 text-gray-800'
+        };
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[row.estado] || 'bg-gray-100 text-gray-800'}`}>
+            {row.estado}
+          </span>
+        );
+      }
+    },
     {
       key: 'actions',
       label: 'Acciones',
@@ -266,7 +295,7 @@ const Cuentas = () => {
 
       <Card>
         <div className="mb-4">
-          <SearchBar onSearch={handleSearch} placeholder="Buscar por usuario, cliente o servicio..." />
+          <SearchBar onSearch={handleSearch} placeholder="Buscar por email, servicio o estado..." />
         </div>
         <Table columns={columns} data={filteredCuentas} loading={loading} />
       </Card>
@@ -281,28 +310,13 @@ const Cuentas = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Select
-            label="Cliente"
-            name="clienteId"
-            value={formData.clienteId}
-            onChange={handleChange}
-            error={errors.clienteId}
-            options={clientes
-              .filter(c => c.clienteID != null) // Filter out null/undefined only
-              .map(c => ({
-                value: c.clienteID.toString(),
-                label: `${c.nombre || ''} ${c.apellido || ''}`.trim() || 'Sin nombre'
-              }))}
-            required
-          />
-
-          <Select
             label="Servicio"
-            name="servicioId"
-            value={formData.servicioId}
+            name="servicioID"
+            value={formData.servicioID}
             onChange={handleChange}
-            error={errors.servicioId}
+            error={errors.servicioID}
             options={servicios
-              .filter(s => s.servicioID != null) // Filter out null/undefined only
+              .filter(s => s.servicioID != null)
               .map(s => ({
                 value: s.servicioID.toString(),
                 label: s.nombre || 'Sin nombre'
@@ -310,55 +324,54 @@ const Cuentas = () => {
             required
           />
 
-          <Input
-            label="Usuario"
-            name="usuario"
-            value={formData.usuario}
+          <Select
+            label="Tipo de Cuenta"
+            name="tipoCuenta"
+            value={formData.tipoCuenta}
             onChange={handleChange}
-            error={errors.usuario}
+            options={[
+              { value: 'Propia', label: 'Propia' },
+              { value: 'Terceros', label: 'Terceros' }
+            ]}
             required
           />
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Contraseña <span className="text-red-500">*</span>
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGeneratePassword}
-                className="flex items-center gap-1"
-              >
-                <RefreshCw size={14} />
-                Generar
-              </Button>
-            </div>
-            <Input
-              name="password"
-              value={formData.password}
+          {formData.tipoCuenta === 'Terceros' && (
+            <Select
+              label="Correo (Email + Contraseña)"
+              name="correoID"
+              value={formData.correoID}
               onChange={handleChange}
-              error={errors.password}
+              error={errors.correoID}
+              options={correos
+                .filter(c => c.correoID != null)
+                .map(c => ({
+                  value: c.correoID.toString(),
+                  label: c.email || 'Sin email'
+                }))}
+              required={formData.tipoCuenta === 'Terceros'}
             />
-            {formData.password && (
-              <button
-                type="button"
-                onClick={() => handleCopyToClipboard(formData.password, 'Contraseña')}
-                className="text-xs text-blue-600 hover:text-blue-700 mt-1 flex items-center gap-1"
-              >
-                <Copy size={12} />
-                Copiar contraseña
-              </button>
-            )}
-          </div>
+          )}
 
           <Input
-            label="Nombre del Perfil"
-            name="perfilNombre"
-            value={formData.perfilNombre}
+            label="Número de Perfiles"
+            name="numeroPerfiles"
+            type="number"
+            min="1"
+            value={formData.numeroPerfiles}
             onChange={handleChange}
+            error={errors.numeroPerfiles}
+            required
           />
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            <p className="font-medium mb-1">ℹ️ Información</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li><strong>Cuenta Propia:</strong> Cuenta creada por el negocio</li>
+              <li><strong>Cuenta de Terceros:</strong> Usa credenciales de la tabla Correos</li>
+              <li>Los perfiles específicos (PIN, número) se asignan al vender</li>
+            </ul>
+          </div>
 
           <div className="flex gap-3 justify-end pt-4">
             <Button
