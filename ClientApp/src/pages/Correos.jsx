@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Mail, RefreshCw, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, Mail, RefreshCw, Copy, Key } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,7 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { correosService } from '../services/apiService';
-import { generateEmail, generatePassword, validateEmail } from '../utils/helpers';
+import { generatePassword, validateEmail } from '../utils/helpers';
 
 const Correos = () => {
   const [correos, setCorreos] = useState([]);
@@ -20,12 +20,9 @@ const Correos = () => {
   const [alert, setAlert] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    proveedor: ''
+    password: ''
   });
   const [errors, setErrors] = useState({});
-
-  const proveedores = ['Gmail', 'Outlook', 'Yahoo', 'Hotmail', 'Otro'];
 
   useEffect(() => {
     loadCorreos();
@@ -51,17 +48,15 @@ const Correos = () => {
 
   const handleSearch = (searchTerm) => {
     const filtered = correos.filter(correo =>
-      correo.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      correo.proveedor?.toLowerCase().includes(searchTerm.toLowerCase())
+      correo.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredCorreos(filtered);
   };
 
-  const handleGenerateCredentials = () => {
-    const email = generateEmail('usuario');
-    const password = generatePassword();
-    setFormData(prev => ({ ...prev, email, password }));
-    showAlert('success', 'Credenciales generadas automáticamente');
+  const handleGeneratePassword = () => {
+    const password = generatePassword(16); // 16 caracteres por defecto
+    setFormData(prev => ({ ...prev, password }));
+    showAlert('success', 'Contraseña generada automáticamente');
   };
 
   const handleCopyToClipboard = (text, field) => {
@@ -80,8 +75,20 @@ const Correos = () => {
 
     if (!formData.password?.trim()) {
       newErrors.password = 'La contraseña es requerida';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
+    } else if (formData.password.length < 10) {
+      newErrors.password = 'La contraseña debe tener al menos 10 caracteres';
+    } else if (formData.password.length > 60) {
+      newErrors.password = 'La contraseña no puede exceder 60 caracteres';
+    } else {
+      // Validar requisitos de seguridad
+      const hasUpperCase = /[A-Z]/.test(formData.password);
+      const hasLowerCase = /[a-z]/.test(formData.password);
+      const hasNumber = /\d/.test(formData.password);
+      const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(formData.password);
+      
+      if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecial) {
+        newErrors.password = 'La contraseña debe contener mayúsculas, minúsculas, números y símbolos';
+      }
     }
 
     setErrors(newErrors);
@@ -95,7 +102,7 @@ const Correos = () => {
 
     try {
       if (selectedCorreo) {
-        await correosService.update(selectedCorreo.correoId, formData);
+        await correosService.update(selectedCorreo.correoID, formData);
         showAlert('success', 'Correo actualizado exitosamente');
       } else {
         await correosService.create(formData);
@@ -106,7 +113,8 @@ const Correos = () => {
       resetForm();
       loadCorreos();
     } catch (error) {
-      showAlert('error', error.response?.data?.message || 'Error al guardar correo');
+      const errorMessage = error.response?.data?.message || 'Error al guardar correo';
+      showAlert('error', errorMessage);
     }
   };
 
@@ -114,15 +122,14 @@ const Correos = () => {
     setSelectedCorreo(correo);
     setFormData({
       email: correo.email,
-      password: correo.password,
-      proveedor: correo.proveedor || ''
+      password: correo.password
     });
     setModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await correosService.delete(selectedCorreo.correoId);
+      await correosService.delete(selectedCorreo.correoID);
       showAlert('success', 'Correo eliminado exitosamente');
       setDeleteModalOpen(false);
       setSelectedCorreo(null);
@@ -135,8 +142,7 @@ const Correos = () => {
   const resetForm = () => {
     setFormData({
       email: '',
-      password: '',
-      proveedor: ''
+      password: ''
     });
     setErrors({});
     setSelectedCorreo(null);
@@ -176,11 +182,6 @@ const Correos = () => {
           </button>
         </div>
       )
-    },
-    { 
-      key: 'proveedor', 
-      label: 'Proveedor',
-      render: (row) => row.proveedor || '-'
     },
     {
       key: 'actions',
@@ -230,7 +231,7 @@ const Correos = () => {
 
       <Card>
         <div className="mb-4">
-          <SearchBar onSearch={handleSearch} placeholder="Buscar por email o proveedor..." />
+          <SearchBar onSearch={handleSearch} placeholder="Buscar por email..." />
         </div>
         <Table columns={columns} data={filteredCorreos} loading={loading} />
       </Card>
@@ -247,19 +248,29 @@ const Correos = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-900">Generar Credenciales</p>
-                <p className="text-xs text-blue-700 mt-1">Genera automáticamente email y contraseña</p>
+                <p className="text-sm font-medium text-blue-900">Generar Contraseña Segura</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Genera automáticamente una contraseña que cumple con los requisitos de seguridad
+                </p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleGenerateCredentials}
+                onClick={handleGeneratePassword}
                 className="flex items-center gap-2"
               >
-                <RefreshCw size={16} />
+                <Key size={16} />
                 Generar
               </Button>
+            </div>
+            <div className="mt-3 text-xs text-blue-700">
+              <p className="font-medium mb-1">Requisitos:</p>
+              <ul className="list-disc list-inside space-y-0.5 ml-2">
+                <li>10-60 caracteres</li>
+                <li>Incluye mayúsculas, minúsculas, números y símbolos</li>
+                <li>No incluye el símbolo ~</li>
+              </ul>
             </div>
           </div>
 
@@ -271,6 +282,7 @@ const Correos = () => {
               value={formData.email}
               onChange={handleChange}
               error={errors.email}
+              placeholder="usuario@ejemplo.com"
               required
             />
             {formData.email && (
@@ -293,6 +305,7 @@ const Correos = () => {
               value={formData.password}
               onChange={handleChange}
               error={errors.password}
+              placeholder="Mínimo 10 caracteres"
               required
             />
             {formData.password && (
@@ -305,23 +318,6 @@ const Correos = () => {
                 Copiar contraseña
               </button>
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proveedor
-            </label>
-            <select
-              name="proveedor"
-              value={formData.proveedor}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Seleccione un proveedor</option>
-              {proveedores.map(prov => (
-                <option key={prov} value={prov}>{prov}</option>
-              ))}
-            </select>
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

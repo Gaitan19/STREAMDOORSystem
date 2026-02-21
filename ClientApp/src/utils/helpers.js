@@ -1,22 +1,53 @@
-export const generatePassword = (length = 12) => {
+export const generatePassword = (length = 16) => {
+  // Requisitos de contraseña:
+  // - Longitud: 10-60 caracteres
+  // - Al menos 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
+  // - No incluir ~
+  // - No contraseñas simples
+  
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
-  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?'; // Sin ~
   
-  const allChars = uppercase + lowercase + numbers + symbols;
+  // Validar longitud
+  const validLength = Math.max(10, Math.min(60, length));
+  
+  // Contraseñas simples a evitar
+  const weakPasswords = [
+    '12345678', '123456789', '1234567890', 
+    'password', 'Password', 'PASSWORD',
+    'qwerty', 'Qwerty', 'QWERTY',
+    'abcdefgh', 'Abcdefgh', 'ABCDEFGH'
+  ];
+  
   let password = '';
+  let attempts = 0;
+  const maxAttempts = 10;
   
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += symbols[Math.floor(Math.random() * symbols.length)];
+  // Generar contraseña válida
+  do {
+    password = '';
+    
+    // Asegurar al menos 1 de cada tipo
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Completar el resto de la longitud
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = password.length; i < validLength; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Mezclar caracteres
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    attempts++;
+    
+  } while (weakPasswords.includes(password) && attempts < maxAttempts);
   
-  for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
-  }
-  
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+  return password;
 };
 
 export const generateEmail = (baseName) => {

@@ -101,6 +101,13 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Verificar si el email ya existe
+                var emailExiste = await _context.Correos.AnyAsync(c => c.Email == crearCorreoDto.Email && c.Activo);
+                if (emailExiste)
+                {
+                    return BadRequest(new { message = $"El correo '{crearCorreoDto.Email}' ya está registrado en el sistema" });
+                }
+
                 var correo = new Correo
                 {
                     Email = crearCorreoDto.Email,
@@ -152,6 +159,11 @@ namespace STREAMDOORSystem.Controllers
 
                 return CreatedAtAction(nameof(GetCorreo), new { id = correo.CorreoID }, correoDto);
             }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true || 
+                                               ex.InnerException?.Message.Contains("duplicate") == true)
+            {
+                return BadRequest(new { message = $"El correo '{crearCorreoDto.Email}' ya está registrado en el sistema" });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error al crear correo", error = ex.Message });
@@ -174,6 +186,17 @@ namespace STREAMDOORSystem.Controllers
                 if (correo == null || !correo.Activo)
                 {
                     return NotFound(new { message = "Correo no encontrado" });
+                }
+
+                // Verificar si el email ya existe (excluyendo el correo actual)
+                var emailExiste = await _context.Correos.AnyAsync(c => 
+                    c.Email == crearCorreoDto.Email && 
+                    c.CorreoID != id && 
+                    c.Activo);
+                
+                if (emailExiste)
+                {
+                    return BadRequest(new { message = $"El correo '{crearCorreoDto.Email}' ya está registrado en el sistema" });
                 }
 
                 correo.Email = crearCorreoDto.Email;
@@ -211,6 +234,11 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 return NoContent();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true || 
+                                               ex.InnerException?.Message.Contains("duplicate") == true)
+            {
+                return BadRequest(new { message = $"El correo '{crearCorreoDto.Email}' ya está registrado en el sistema" });
             }
             catch (Exception ex)
             {
