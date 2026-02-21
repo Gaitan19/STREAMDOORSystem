@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
 import { authService } from '../services/apiService';
 
 const AuthContext = createContext(null);
@@ -10,16 +9,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = () => {
-      const token = Cookies.get('authToken');
-      const userData = Cookies.get('user');
+      // Check localStorage for user data (HttpOnly cookie cannot be read by JS)
+      const userData = localStorage.getItem('user');
       
-      if (token && userData) {
+      if (userData) {
         try {
           setUser(JSON.parse(userData));
         } catch (error) {
           console.error('Failed to parse user data:', error);
-          Cookies.remove('authToken');
-          Cookies.remove('user');
+          localStorage.removeItem('user');
         }
       }
       setLoading(false);
@@ -32,10 +30,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(email, password);
       // Backend returns: { UsuarioID, Nombre, Correo, Token }
+      // Note: Token is set as HttpOnly cookie by backend, we only store user data
       const { Token, ...usuario } = response;
       
-      Cookies.set('authToken', Token, { expires: 7 });
-      Cookies.set('user', JSON.stringify(usuario), { expires: 7 });
+      // Store user data in localStorage (HttpOnly cookie is handled by backend)
+      localStorage.setItem('user', JSON.stringify(usuario));
       setUser(usuario);
       
       return { success: true };
@@ -47,9 +46,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    Cookies.remove('authToken');
-    Cookies.remove('user');
+  const logout = async () => {
+    try {
+      // Call backend to clear HttpOnly cookie
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('user');
     setUser(null);
   };
 
