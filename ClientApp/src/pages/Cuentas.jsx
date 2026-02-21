@@ -287,7 +287,7 @@ const Cuentas = () => {
             onChange={handleChange}
             error={errors.clienteId}
             options={clientes
-              .filter(c => c.clienteId) // Filter out invalid entries
+              .filter(c => c.clienteId != null) // Filter out null/undefined only
               .map(c => ({
                 value: c.clienteId.toString(),
                 label: `${c.nombre || ''} ${c.apellido || ''}`.trim() || 'Sin nombre'
@@ -302,7 +302,7 @@ const Cuentas = () => {
             onChange={handleChange}
             error={errors.servicioId}
             options={servicios
-              .filter(s => s.servicioId) // Filter out invalid entries
+              .filter(s => s.servicioId != null) // Filter out null/undefined only
               .map(s => ({
                 value: s.servicioId.toString(),
                 label: s.nombre || 'Sin nombre'
