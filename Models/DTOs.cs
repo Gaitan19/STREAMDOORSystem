@@ -106,6 +106,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int PerfilesDisponibles { get; set; }
         public string Estado { get; set; } = string.Empty;
         public DateTime FechaCreacion { get; set; }
+        public DateTime? FechaFinalizacion { get; set; }
     }
 
     public class CrearCuentaDTO
@@ -114,6 +115,9 @@ namespace STREAMDOORSystem.Models.DTOs
         public int? CorreoID { get; set; }
         public string TipoCuenta { get; set; } = "Propia";
         public int NumeroPerfiles { get; set; } = 1;
+        public DateTime? FechaFinalizacion { get; set; }
+        public string? Email { get; set; }  // For TipoCuenta "Terceros"
+        public string? Password { get; set; }  // For TipoCuenta "Terceros"
         public List<PerfilDTO>? Perfiles { get; set; }
     }
 

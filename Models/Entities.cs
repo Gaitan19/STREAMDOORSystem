@@ -123,6 +123,9 @@ namespace STREAMDOORSystem.Models
 
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
+        [Column(TypeName = "datetime")]
+        public DateTime? FechaFinalizacion { get; set; }
+
         public bool Activo { get; set; } = true;
 
         [ForeignKey("ServicioID")]
