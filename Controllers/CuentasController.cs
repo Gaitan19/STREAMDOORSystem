@@ -40,7 +40,8 @@ namespace STREAMDOORSystem.Controllers
                         NumeroPerfiles = c.NumeroPerfiles,
                         PerfilesDisponibles = c.PerfilesDisponibles,
                         Estado = c.Estado,
-                        FechaCreacion = c.FechaCreacion
+                        FechaCreacion = c.FechaCreacion,
+                        FechaFinalizacion = c.FechaFinalizacion
                     })
                     .ToListAsync();
 
@@ -79,7 +80,8 @@ namespace STREAMDOORSystem.Controllers
                     NumeroPerfiles = cuenta.NumeroPerfiles,
                     PerfilesDisponibles = cuenta.PerfilesDisponibles,
                     Estado = cuenta.Estado,
-                    FechaCreacion = cuenta.FechaCreacion
+                    FechaCreacion = cuenta.FechaCreacion,
+                    FechaFinalizacion = cuenta.FechaFinalizacion
                 };
 
                 return Ok(cuentaDto);
@@ -127,14 +129,32 @@ namespace STREAMDOORSystem.Controllers
                     PerfilesDisponibles = crearCuentaDto.NumeroPerfiles,
                     Estado = "Disponible",
                     FechaCreacion = DateTime.Now,
+                    FechaFinalizacion = crearCuentaDto.FechaFinalizacion,
                     Activo = true
                 };
 
                 _context.Cuentas.Add(cuenta);
                 await _context.SaveChangesAsync();
 
+                // Auto-crear perfiles basados en NumeroPerfiles si no se proporcionan
+                if (crearCuentaDto.Perfiles == null || crearCuentaDto.Perfiles.Count == 0)
+                {
+                    for (int i = 1; i <= crearCuentaDto.NumeroPerfiles; i++)
+                    {
+                        var perfil = new Perfil
+                        {
+                            CuentaID = cuenta.CuentaID,
+                            NumeroPerfil = i,
+                            PIN = null,
+                            Estado = "Disponible",
+                            Activo = true
+                        };
+                        _context.Perfiles.Add(perfil);
+                    }
+                    await _context.SaveChangesAsync();
+                }
                 // Crear perfiles si se proporcionan
-                if (crearCuentaDto.Perfiles != null && crearCuentaDto.Perfiles.Count > 0)
+                else if (crearCuentaDto.Perfiles != null && crearCuentaDto.Perfiles.Count > 0)
                 {
                     foreach (var perfilDto in crearCuentaDto.Perfiles)
                     {
@@ -152,17 +172,21 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 var servicio = await _context.Servicios.FindAsync(crearCuentaDto.ServicioID);
+                var correo = crearCuentaDto.CorreoID.HasValue ? await _context.Correos.FindAsync(crearCuentaDto.CorreoID) : null;
+                
                 var cuentaDto = new CuentaDTO
                 {
                     CuentaID = cuenta.CuentaID,
                     ServicioID = cuenta.ServicioID,
                     NombreServicio = servicio!.Nombre,
                     CorreoID = cuenta.CorreoID,
+                    Email = correo?.Email,
                     TipoCuenta = cuenta.TipoCuenta,
                     NumeroPerfiles = cuenta.NumeroPerfiles,
                     PerfilesDisponibles = cuenta.PerfilesDisponibles,
                     Estado = cuenta.Estado,
-                    FechaCreacion = cuenta.FechaCreacion
+                    FechaCreacion = cuenta.FechaCreacion,
+                    FechaFinalizacion = cuenta.FechaFinalizacion
                 };
 
                 return CreatedAtAction(nameof(GetCuenta), new { id = cuenta.CuentaID }, cuentaDto);
@@ -212,6 +236,7 @@ namespace STREAMDOORSystem.Controllers
                 cuenta.CorreoID = crearCuentaDto.CorreoID;
                 cuenta.TipoCuenta = crearCuentaDto.TipoCuenta;
                 cuenta.NumeroPerfiles = crearCuentaDto.NumeroPerfiles;
+                cuenta.FechaFinalizacion = crearCuentaDto.FechaFinalizacion;
 
                 _context.Cuentas.Update(cuenta);
                 await _context.SaveChangesAsync();
@@ -247,6 +272,130 @@ namespace STREAMDOORSystem.Controllers
             {
                 return StatusCode(500, new { message = "Error al eliminar cuenta", error = ex.Message });
             }
+        }
+
+        // GET: api/Cuentas/correos/disponibles
+        [HttpGet("correos/disponibles")]
+        public async Task<ActionResult<IEnumerable<CorreoDTO>>> GetCorreosDisponibles()
+        {
+            try
+            {
+                // Get all CorreoIDs that are used by active accounts
+                var correosUsados = await _context.Cuentas
+                    .Where(c => c.Activo && c.CorreoID.HasValue)
+                    .Select(c => c.CorreoID!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Get correos not in the used list
+                var correosDisponibles = await _context.Correos
+                    .Where(c => c.Activo && !correosUsados.Contains(c.CorreoID))
+                    .Select(c => new CorreoDTO
+                    {
+                        CorreoID = c.CorreoID,
+                        Email = c.Email,
+                        Password = c.Password,
+                        FechaCreacion = c.FechaCreacion,
+                        Notas = c.Notas,
+                        Activo = c.Activo
+                    })
+                    .ToListAsync();
+
+                return Ok(correosDisponibles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener correos disponibles", error = ex.Message });
+            }
+        }
+
+        // GET: api/Cuentas/filtro/{filtro}
+        [HttpGet("filtro/{filtro}")]
+        public async Task<ActionResult<IEnumerable<CuentaDTO>>> GetCuentasPorFiltro(string filtro)
+        {
+            try
+            {
+                var cuentas = await _context.Cuentas
+                    .Where(c => c.Activo)
+                    .Include(c => c.Servicio)
+                    .Include(c => c.Correo)
+                    .ToListAsync();
+
+                var perfilesDict = await _context.Perfiles
+                    .Where(p => p.Activo)
+                    .GroupBy(p => p.CuentaID)
+                    .ToDictionaryAsync(
+                        g => g.Key,
+                        g => g.ToList()
+                    );
+
+                // Calculate Estado for each account
+                foreach (var cuenta in cuentas)
+                {
+                    var perfiles = perfilesDict.ContainsKey(cuenta.CuentaID) 
+                        ? perfilesDict[cuenta.CuentaID] 
+                        : new List<Perfil>();
+                    cuenta.Estado = CalcularEstado(cuenta, perfiles);
+                }
+
+                // Filter based on filtro parameter
+                var cuentasFiltradas = filtro.ToLower() switch
+                {
+                    "disponibles" => cuentas.Where(c => c.Estado == "Disponible"),
+                    "no-disponibles" => cuentas.Where(c => c.Estado == "No Disponible"),
+                    "vencidas" => cuentas.Where(c => c.Estado == "Vencida"),
+                    "proximas-a-vencer" => cuentas.Where(c => c.Estado == "Próxima a Vencer"),
+                    _ => cuentas
+                };
+
+                var cuentasDto = cuentasFiltradas.Select(c => new CuentaDTO
+                {
+                    CuentaID = c.CuentaID,
+                    ServicioID = c.ServicioID,
+                    NombreServicio = c.Servicio!.Nombre,
+                    CorreoID = c.CorreoID,
+                    Email = c.Correo != null ? c.Correo.Email : null,
+                    TipoCuenta = c.TipoCuenta,
+                    NumeroPerfiles = c.NumeroPerfiles,
+                    PerfilesDisponibles = c.PerfilesDisponibles,
+                    Estado = c.Estado,
+                    FechaCreacion = c.FechaCreacion,
+                    FechaFinalizacion = c.FechaFinalizacion
+                }).ToList();
+
+                return Ok(cuentasDto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al filtrar cuentas", error = ex.Message });
+            }
+        }
+
+        // Helper method to calculate Estado
+        private string CalcularEstado(Cuenta cuenta, List<Perfil> perfiles)
+        {
+            // 1. Check if expired
+            if (cuenta.FechaFinalizacion.HasValue && cuenta.FechaFinalizacion.Value < DateTime.Now)
+            {
+                return "Vencida";
+            }
+
+            // 2. Check if close to expiration (5 days)
+            if (cuenta.FechaFinalizacion.HasValue && 
+                cuenta.FechaFinalizacion.Value <= DateTime.Now.AddDays(5) &&
+                cuenta.FechaFinalizacion.Value >= DateTime.Now)
+            {
+                return "Próxima a Vencer";
+            }
+
+            // 3. Check if all profiles are occupied
+            if (perfiles.Any() && perfiles.All(p => p.Estado == "Ocupado"))
+            {
+                return "No Disponible";
+            }
+
+            // 4. Otherwise available
+            return "Disponible";
         }
     }
 }
