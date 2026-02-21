@@ -23,11 +23,12 @@ GO
 -- ============================================
 -- Insertar Usuario Administrador por Defecto
 -- ============================================
--- IMPORTANTE: No se incluye un usuario administrador por defecto por seguridad.
--- Debe crear el primer usuario administrador usando la API:
--- POST /api/usuarios
--- Body: { "nombre": "Administrador", "correo": "admin@streamdoor.com", "password": "TuContraseñaSegura123!" }
--- La contraseña será automáticamente hasheada por el sistema usando BCrypt.
+-- Usuario: admin@streamdoor.com
+-- Contraseña: 123
+-- IMPORTANTE: Cambiar esta contraseña después del primer login por seguridad
+INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash) VALUES
+('Administrador', 'admin@streamdoor.com', NULL, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+GO
 
 -- ============================================
 -- Insertar Medios de Pago de Ejemplo
