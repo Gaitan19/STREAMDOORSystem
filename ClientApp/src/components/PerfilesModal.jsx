@@ -101,12 +101,9 @@ const PerfilesModal = ({ isOpen, onClose, cuentaId, cuentaNombre }) => {
       
       const method = editingId ? 'PUT' : 'POST';
       
-      const payload = editingId ? {
+      const payload = {
         ...formData,
-        numeroPerfil: parseInt(formData.numeroPerfil)
-      } : {
-        ...formData,
-        cuentaID: cuentaId,
+        cuentaID: cuentaId,  // Include cuentaID for both POST and PUT
         numeroPerfil: parseInt(formData.numeroPerfil)
       };
 
