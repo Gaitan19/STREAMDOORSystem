@@ -24,10 +24,10 @@ GO
 -- Insertar Usuario Administrador por Defecto
 -- ============================================
 -- Usuario: admin@streamdoor.com
--- Contraseña: 123
+-- Contraseña: 1234567890
 -- IMPORTANTE: Cambiar esta contraseña después del primer login por seguridad
 INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash) VALUES
-('Administrador', 'admin@streamdoor.com', NULL, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+('Administrador', 'admin@streamdoor.com', NULL, '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
 GO
 
 -- ============================================

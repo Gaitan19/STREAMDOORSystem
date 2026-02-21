@@ -5,7 +5,7 @@
   "type": "module",
   "proxy": "https://localhost:44447",
   "scripts": {
-    "start": "vite --port 44447",
+    "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

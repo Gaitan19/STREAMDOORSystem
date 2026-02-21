@@ -39,7 +39,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Frontend build output
-wwwroot/
+wwwroot/*
+!wwwroot/index.html
 ClientApp/dist/
 ClientApp/build/
 
