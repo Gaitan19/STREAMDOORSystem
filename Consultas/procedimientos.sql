@@ -53,14 +53,14 @@ GO
 -- Crear Cliente
 CREATE OR ALTER PROCEDURE sp_CrearCliente
     @Nombre NVARCHAR(100),
+    @SegundoNombre NVARCHAR(100) = NULL,
     @Apellido NVARCHAR(100),
-    @WhatsApp NVARCHAR(20),
-    @Correo NVARCHAR(100) = NULL,
-    @Direccion NVARCHAR(255) = NULL
+    @SegundoApellido NVARCHAR(100) = NULL,
+    @Telefono NVARCHAR(20)
 AS
 BEGIN
-    INSERT INTO Clientes (Nombre, Apellido, WhatsApp, Correo, Direccion)
-    VALUES (@Nombre, @Apellido, @WhatsApp, @Correo, @Direccion);
+    INSERT INTO Clientes (Nombre, SegundoNombre, Apellido, SegundoApellido, Telefono)
+    VALUES (@Nombre, @SegundoNombre, @Apellido, @SegundoApellido, @Telefono);
     
     SELECT SCOPE_IDENTITY() AS ClienteID;
 END
@@ -70,18 +70,18 @@ GO
 CREATE OR ALTER PROCEDURE sp_ActualizarCliente
     @ClienteID INT,
     @Nombre NVARCHAR(100),
+    @SegundoNombre NVARCHAR(100) = NULL,
     @Apellido NVARCHAR(100),
-    @WhatsApp NVARCHAR(20),
-    @Correo NVARCHAR(100) = NULL,
-    @Direccion NVARCHAR(255) = NULL
+    @SegundoApellido NVARCHAR(100) = NULL,
+    @Telefono NVARCHAR(20)
 AS
 BEGIN
     UPDATE Clientes
     SET Nombre = @Nombre,
+        SegundoNombre = @SegundoNombre,
         Apellido = @Apellido,
-        WhatsApp = @WhatsApp,
-        Correo = @Correo,
-        Direccion = @Direccion
+        SegundoApellido = @SegundoApellido,
+        Telefono = @Telefono
     WHERE ClienteID = @ClienteID;
 END
 GO
@@ -90,7 +90,7 @@ GO
 CREATE OR ALTER PROCEDURE sp_ListarClientes
 AS
 BEGIN
-    SELECT ClienteID, Nombre, Apellido, WhatsApp, Correo, Direccion, FechaRegistro, Activo
+    SELECT ClienteID, Nombre, SegundoNombre, Apellido, SegundoApellido, Telefono, FechaRegistro, Activo
     FROM Clientes
     WHERE Activo = 1
     ORDER BY Nombre, Apellido;
@@ -103,7 +103,7 @@ CREATE OR ALTER PROCEDURE sp_ObtenerClienteConHistorial
 AS
 BEGIN
     -- Datos del cliente
-    SELECT ClienteID, Nombre, Apellido, WhatsApp, Correo, Direccion, FechaRegistro, Activo
+    SELECT ClienteID, Nombre, SegundoNombre, Apellido, SegundoApellido, Telefono, FechaRegistro, Activo
     FROM Clientes
     WHERE ClienteID = @ClienteID;
     
