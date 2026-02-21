@@ -114,6 +114,8 @@ const Correos = () => {
       loadCorreos();
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Error al guardar correo';
+      // Mostrar error en el formulario
+      setErrors({ email: errorMessage });
       showAlert('error', errorMessage);
     }
   };
