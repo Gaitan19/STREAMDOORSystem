@@ -8,16 +8,16 @@ GO
 -- ============================================
 -- Insertar Servicios de Streaming
 -- ============================================
-INSERT INTO Servicios (Nombre, Descripcion) VALUES
-('Netflix', 'Servicio de streaming de películas y series'),
-('Prime Video', 'Servicio de streaming de Amazon'),
-('Disney+', 'Servicio de streaming de Disney'),
-('HBO Max', 'Servicio de streaming de HBO'),
-('Spotify', 'Servicio de streaming de música'),
-('YouTube Premium', 'Servicio de streaming de videos sin anuncios'),
-('Apple TV+', 'Servicio de streaming de Apple'),
-('Paramount+', 'Servicio de streaming de Paramount'),
-('Star+', 'Servicio de streaming de Star');
+INSERT INTO Servicios (Nombre, Descripcion, Precio) VALUES
+('Netflix', 'Servicio de streaming de películas y series', 150.00),
+('Prime Video', 'Servicio de streaming de Amazon', 140.00),
+('Disney+', 'Servicio de streaming de Disney', 130.00),
+('HBO Max', 'Servicio de streaming de HBO', 120.00),
+('Spotify', 'Servicio de streaming de música', 110.00),
+('YouTube Premium', 'Servicio de streaming de videos sin anuncios', 100.00),
+('Apple TV+', 'Servicio de streaming de Apple', 150.00),
+('Paramount+', 'Servicio de streaming de Paramount', 140.00),
+('Star+', 'Servicio de streaming de Star', 130.00);
 GO
 
 
