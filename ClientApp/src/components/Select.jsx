@@ -7,8 +7,11 @@ const Select = ({
   value,
   onChange,
   name,
-  ...props 
+  ...otherProps 
 }) => {
+  // Remove name, value, onChange from otherProps to prevent conflicts
+  const { name: _, value: __, onChange: ___, ...props } = otherProps;
+  
   return (
     <div className={className}>
       {label && (
@@ -18,13 +21,13 @@ const Select = ({
         </label>
       )}
       <select
+        {...props}
         name={name}
         value={value || ''}
         onChange={onChange}
         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
           error ? 'border-red-500' : 'border-gray-300'
         }`}
-        {...props}
       >
         <option value="">Seleccione una opción</option>
         {options.map((option) => (
