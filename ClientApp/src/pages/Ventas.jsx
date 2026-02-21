@@ -393,9 +393,9 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.clienteId}
             options={clientes
-              .filter(c => c.clienteId != null) // Filter out null/undefined only
+              .filter(c => c.clienteID != null) // Filter out null/undefined only
               .map(c => ({
-                value: c.clienteId.toString(),
+                value: c.clienteID.toString(),
                 label: `${c.nombre || ''} ${c.apellido || ''}`.trim() || 'Sin nombre'
               }))}
             required
@@ -408,9 +408,9 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.servicioId}
             options={servicios
-              .filter(s => s.servicioId != null) // Filter out null/undefined only
+              .filter(s => s.servicioID != null) // Filter out null/undefined only
               .map(s => ({
-                value: s.servicioId.toString(),
+                value: s.servicioID.toString(),
                 label: `${s.nombre || 'Sin nombre'} - ${formatCurrency(s.precio || 0)}`
               }))}
             required
@@ -423,9 +423,9 @@ const Ventas = () => {
             onChange={handleChange}
             error={errors.medioPagoId}
             options={mediosPago
-              .filter(m => m.medioPagoId != null) // Filter out null/undefined only
+              .filter(m => m.medioPagoID != null) // Filter out null/undefined only
               .map(m => ({
-                value: m.medioPagoId.toString(),
+                value: m.medioPagoID.toString(),
                 label: m.nombre || 'Sin nombre'
               }))}
             required
