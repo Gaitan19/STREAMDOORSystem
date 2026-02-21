@@ -388,10 +388,12 @@ const Ventas = () => {
             value={formData.clienteId}
             onChange={handleChange}
             error={errors.clienteId}
-            options={clientes.map(c => ({
-              value: c.clienteId?.toString() || '',
-              label: `${c.nombre || ''} ${c.apellido || ''}`
-            }))}
+            options={clientes
+              .filter(c => c.clienteId) // Filter out invalid entries
+              .map(c => ({
+                value: c.clienteId.toString(),
+                label: `${c.nombre || ''} ${c.apellido || ''}`.trim() || 'Sin nombre'
+              }))}
             required
           />
 
@@ -401,10 +403,12 @@ const Ventas = () => {
             value={formData.servicioId}
             onChange={handleChange}
             error={errors.servicioId}
-            options={servicios.map(s => ({
-              value: s.servicioId?.toString() || '',
-              label: `${s.nombre || 'Sin nombre'} - ${formatCurrency(s.precio || 0)}`
-            }))}
+            options={servicios
+              .filter(s => s.servicioId) // Filter out invalid entries
+              .map(s => ({
+                value: s.servicioId.toString(),
+                label: `${s.nombre || 'Sin nombre'} - ${formatCurrency(s.precio || 0)}`
+              }))}
             required
           />
 
@@ -414,10 +418,12 @@ const Ventas = () => {
             value={formData.medioPagoId}
             onChange={handleChange}
             error={errors.medioPagoId}
-            options={mediosPago.map(m => ({
-              value: m.medioPagoId?.toString() || '',
-              label: m.nombre || 'Sin nombre'
-            }))}
+            options={mediosPago
+              .filter(m => m.medioPagoId) // Filter out invalid entries
+              .map(m => ({
+                value: m.medioPagoId.toString(),
+                label: m.nombre || 'Sin nombre'
+              }))}
             required
           />
 

@@ -286,10 +286,12 @@ const Cuentas = () => {
             value={formData.clienteId}
             onChange={handleChange}
             error={errors.clienteId}
-            options={clientes.map(c => ({
-              value: c.clienteId?.toString() || '',
-              label: `${c.nombre || ''} ${c.apellido || ''}`
-            }))}
+            options={clientes
+              .filter(c => c.clienteId) // Filter out invalid entries
+              .map(c => ({
+                value: c.clienteId.toString(),
+                label: `${c.nombre || ''} ${c.apellido || ''}`.trim() || 'Sin nombre'
+              }))}
             required
           />
 
@@ -299,10 +301,12 @@ const Cuentas = () => {
             value={formData.servicioId}
             onChange={handleChange}
             error={errors.servicioId}
-            options={servicios.map(s => ({
-              value: s.servicioId?.toString() || '',
-              label: s.nombre || 'Sin nombre'
-            }))}
+            options={servicios
+              .filter(s => s.servicioId) // Filter out invalid entries
+              .map(s => ({
+                value: s.servicioId.toString(),
+                label: s.nombre || 'Sin nombre'
+              }))}
             required
           />
 
