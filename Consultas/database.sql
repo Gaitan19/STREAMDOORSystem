@@ -145,6 +145,20 @@ BEGIN
 END
 GO
 
+-- Migración: Actualizar tabla Cuentas existente
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    -- Agregar FechaFinalizacion si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'FechaFinalizacion')
+    BEGIN
+        ALTER TABLE Cuentas ADD FechaFinalizacion DATETIME NULL;
+        PRINT 'Column FechaFinalizacion added to Cuentas table.';
+    END
+END
+GO
+
 -- ============================================
 -- Tabla: Perfiles de Cuentas (para cuentas de terceros)
 -- ============================================
