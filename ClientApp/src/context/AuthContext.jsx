@@ -31,9 +31,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      const { token, usuario } = response;
+      // Backend returns: { UsuarioID, Nombre, Correo, Token }
+      const { Token, ...usuario } = response;
       
-      Cookies.set('authToken', token, { expires: 7 });
+      Cookies.set('authToken', Token, { expires: 7 });
       Cookies.set('user', JSON.stringify(usuario), { expires: 7 });
       setUser(usuario);
       
