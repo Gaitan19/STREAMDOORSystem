@@ -88,6 +88,16 @@ export const formatCurrency = (amount, moneda = 'C$') => {
 
 export const getEstadoColor = (estado) => {
   switch (estado) {
+    case 'Disponible':
+      return 'bg-green-100 text-green-800';
+    case 'Próxima a Vencer':
+      return 'bg-orange-100 text-orange-800';
+    case 'Vencida':
+      return 'bg-red-100 text-red-800';
+    case 'No Disponible':
+      return 'bg-gray-100 text-gray-800';
+    case 'Ocupada':
+      return 'bg-blue-100 text-blue-800';
     case 'Activo':
       return 'bg-green-100 text-green-800';
     case 'ProximoVencer':
@@ -103,12 +113,51 @@ export const getEstadoColor = (estado) => {
 
 export const getEstadoBadge = (estado) => {
   const labels = {
+    'Disponible': 'Disponible',
+    'Próxima a Vencer': 'Próxima a Vencer',
+    'Vencida': 'Vencida',
+    'No Disponible': 'No Disponible',
+    'Ocupada': 'Ocupada',
     'Activo': 'Activo',
     'ProximoVencer': 'Próximo a Vencer',
     'Vencido': 'Vencido',
     'Cancelado': 'Cancelado'
   };
   return labels[estado] || estado;
+};
+
+export const copyToClipboard = async (text, field = 'Texto') => {
+  if (!text) {
+    throw new Error(`No hay ${field.toLowerCase()} para copiar`);
+  }
+  await navigator.clipboard.writeText(text);
+  return `${field} copiado al portapapeles`;
+};
+
+export const calculateDaysUntilExpiration = (fechaFinalizacion) => {
+  if (!fechaFinalizacion) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiration = new Date(fechaFinalizacion);
+  expiration.setHours(0, 0, 0, 0);
+  const diffTime = expiration - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+export const getRowColorClass = (estado) => {
+  switch (estado) {
+    case 'Vencida':
+      return 'bg-red-50 hover:bg-red-100';
+    case 'Próxima a Vencer':
+      return 'bg-orange-50 hover:bg-orange-100';
+    case 'Disponible':
+      return 'bg-green-50 hover:bg-green-100';
+    case 'No Disponible':
+      return 'bg-gray-50 hover:bg-gray-100';
+    default:
+      return 'hover:bg-gray-50';
+  }
 };
 
 export const validateEmail = (email) => {
