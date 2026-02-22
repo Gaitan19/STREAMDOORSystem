@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Mail, RefreshCw, Copy, Key } from 'lucide-react';
+import { Plus, Edit, Trash2, Mail, RefreshCw, Copy, Key, Eye, EyeOff } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -19,6 +19,7 @@ const Correos = () => {
   const [selectedCorreo, setSelectedCorreo] = useState(null);
   const [alert, setAlert] = useState(null);
   const [filter, setFilter] = useState('activos'); // 'activos' | 'inactivos'
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -166,6 +167,7 @@ const Correos = () => {
     });
     setErrors({});
     setSelectedCorreo(null);
+    setShowPassword(false);
   };
 
   const handleChange = (e) => {
@@ -184,6 +186,13 @@ const Correos = () => {
         <div className="flex items-center gap-2">
           <Mail size={16} className="text-blue-600" />
           <span className="font-medium">{row.email}</span>
+          <button
+            onClick={() => handleCopyToClipboard(row.email, 'Email')}
+            className="p-1 text-gray-600 hover:text-blue-600"
+            title="Copiar email"
+          >
+            <Copy size={16} />
+          </button>
         </div>
       )
     },
@@ -302,6 +311,19 @@ const Correos = () => {
         title={selectedCorreo ? 'Editar Correo' : 'Nuevo Correo'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Error message display */}
+          {errors.email && errors.email.includes('ya está registrado') && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-red-800">Error al registrar correo</p>
+                <p className="text-sm text-red-700 mt-1">{errors.email}</p>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -338,7 +360,7 @@ const Correos = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              error={errors.email}
+              error={errors.email && !errors.email.includes('ya está registrado') ? errors.email : ''}
               placeholder="usuario@ejemplo.com"
               required
             />
@@ -355,16 +377,33 @@ const Correos = () => {
           </div>
 
           <div>
-            <Input
-              label="Contraseña"
-              type="text"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Mínimo 10 caracteres"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Mínimo 10 caracteres"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            )}
             {formData.password && (
               <button
                 type="button"

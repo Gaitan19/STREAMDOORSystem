@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, UserCog, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCog, Mail, Eye, EyeOff } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -20,6 +20,7 @@ const Usuarios = () => {
   const [selectedUsuario, setSelectedUsuario] = useState(null);
   const [alert, setAlert] = useState(null);
   const [filter, setFilter] = useState('activos'); // 'activos' | 'inactivos'
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
@@ -161,6 +162,7 @@ const Usuarios = () => {
     });
     setErrors({});
     setSelectedUsuario(null);
+    setShowPassword(false);
   };
 
   const handleChange = (e) => {
@@ -331,15 +333,36 @@ const Usuarios = () => {
             placeholder="8888-8888"
           />
 
-          <Input
-            label={selectedUsuario ? 'Contraseña (dejar en blanco para mantener la actual)' : 'Contraseña'}
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            required={!selectedUsuario}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {selectedUsuario ? 'Contraseña (dejar en blanco para mantener la actual)' : 'Contraseña'}
+              {!selectedUsuario && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="••••••••"
+                required={!selectedUsuario}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            )}
+          </div>
 
           <div className="flex gap-3 justify-end pt-4">
             <Button
