@@ -21,17 +21,13 @@ const Usuarios = () => {
   const [alert, setAlert] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
-    email: '',
-    password: '',
-    rol: 'Usuario'
+    correo: '',
+    telefono: '',
+    password: ''
   });
   const [errors, setErrors] = useState({});
 
-  const roles = [
-    { value: 'Administrador', label: 'Administrador' },
-    { value: 'Usuario', label: 'Usuario' },
-    { value: 'Vendedor', label: 'Vendedor' }
-  ];
+
 
   useEffect(() => {
     loadUsuarios();
@@ -57,9 +53,8 @@ const Usuarios = () => {
 
   const handleSearch = (searchTerm) => {
     const filtered = usuarios.filter(usuario =>
-      usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      usuario.rol?.toLowerCase().includes(searchTerm.toLowerCase())
+      usuario.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.correo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsuarios(filtered);
   };
@@ -71,10 +66,10 @@ const Usuarios = () => {
       newErrors.nombre = 'El nombre es requerido';
     }
 
-    if (!formData.email?.trim()) {
-      newErrors.email = 'El email es requerido';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Email inválido';
+    if (!formData.correo?.trim()) {
+      newErrors.correo = 'El correo es requerido';
+    } else if (!validateEmail(formData.correo)) {
+      newErrors.correo = 'Correo inválido';
     }
 
     if (!selectedUsuario && !formData.password?.trim()) {
@@ -101,7 +96,7 @@ const Usuarios = () => {
       }
 
       if (selectedUsuario) {
-        await usuariosService.update(selectedUsuario.usuarioId, payload);
+        await usuariosService.update(selectedUsuario.usuarioID, payload);
         showAlert('success', 'Usuario actualizado exitosamente');
       } else {
         await usuariosService.create(payload);
@@ -120,16 +115,16 @@ const Usuarios = () => {
     setSelectedUsuario(usuario);
     setFormData({
       nombre: usuario.nombre,
-      email: usuario.email,
-      password: '',
-      rol: usuario.rol || 'Usuario'
+      correo: usuario.correo,
+      telefono: usuario.telefono || '',
+      password: ''
     });
     setModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await usuariosService.delete(selectedUsuario.usuarioId);
+      await usuariosService.delete(selectedUsuario.usuarioID);
       showAlert('success', 'Usuario eliminado exitosamente');
       setDeleteModalOpen(false);
       setSelectedUsuario(null);
@@ -142,9 +137,9 @@ const Usuarios = () => {
   const resetForm = () => {
     setFormData({
       nombre: '',
-      email: '',
-      password: '',
-      rol: 'Usuario'
+      correo: '',
+      telefono: '',
+      password: ''
     });
     setErrors({});
     setSelectedUsuario(null);
@@ -158,16 +153,7 @@ const Usuarios = () => {
     }
   };
 
-  const getRolColor = (rol) => {
-    switch (rol) {
-      case 'Administrador':
-        return 'bg-purple-100 text-purple-800';
-      case 'Vendedor':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   const columns = [
     { 
@@ -181,21 +167,21 @@ const Usuarios = () => {
       )
     },
     { 
-      key: 'email', 
-      label: 'Email',
+      key: 'correo', 
+      label: 'Correo Electrónico',
       render: (row) => (
         <div className="flex items-center gap-2">
           <Mail size={16} className="text-gray-400" />
-          {row.email}
+          {row.correo}
         </div>
       )
     },
     { 
-      key: 'rol', 
-      label: 'Rol',
+      key: 'telefono', 
+      label: 'Teléfono',
       render: (row) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRolColor(row.rol)}`}>
-          {row.rol || 'Usuario'}
+        <span className="text-gray-600">
+          {row.telefono || '-'}
         </span>
       )
     },
@@ -247,7 +233,7 @@ const Usuarios = () => {
 
       <Card>
         <div className="mb-4">
-          <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre, email o rol..." />
+          <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre o correo..." />
         </div>
         <Table columns={columns} data={filteredUsuarios} loading={loading} />
       </Card>
@@ -272,13 +258,22 @@ const Usuarios = () => {
           />
 
           <Input
-            label="Email"
+            label="Correo Electrónico"
             type="email"
-            name="email"
-            value={formData.email}
+            name="correo"
+            value={formData.correo}
             onChange={handleChange}
-            error={errors.email}
+            error={errors.correo}
             required
+          />
+
+          <Input
+            label="Teléfono (opcional)"
+            type="tel"
+            name="telefono"
+            value={formData.telefono}
+            onChange={handleChange}
+            placeholder="8888-8888"
           />
 
           <Input
@@ -289,15 +284,6 @@ const Usuarios = () => {
             onChange={handleChange}
             error={errors.password}
             required={!selectedUsuario}
-          />
-
-          <Select
-            label="Rol"
-            name="rol"
-            value={formData.rol}
-            onChange={handleChange}
-            options={roles}
-            required
           />
 
           <div className="flex gap-3 justify-end pt-4">

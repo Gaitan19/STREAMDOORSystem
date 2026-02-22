@@ -92,6 +92,12 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Verificar que la contraseña está presente para creación
+                if (string.IsNullOrEmpty(crearUsuarioDto.Password))
+                {
+                    return BadRequest(new { message = "La contraseña es requerida" });
+                }
+
                 // Verificar si el usuario ya existe
                 var usuarioExistente = await _context.Usuarios
                     .FirstOrDefaultAsync(u => u.Correo == crearUsuarioDto.Correo);
