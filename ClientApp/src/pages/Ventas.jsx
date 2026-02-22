@@ -8,7 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
-import { ventasService, clientesService, cuentasService, mediosPagoService } from '../services/apiService';
+import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService } from '../services/apiService';
 import { formatDate, formatCurrency } from '../utils/helpers';
 
 const Ventas = () => {
@@ -26,12 +26,14 @@ const Ventas = () => {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [searchingClientes, setSearchingClientes] = useState(false);
   
-  // Available accounts and medios de pago
+  // Available servicios, accounts and medios de pago
+  const [serviciosDisponibles, setServiciosDisponibles] = useState([]);
   const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
   
   // Service selection cart
   const [serviciosCart, setServiciosCart] = useState([]);
+  const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
   const [perfilesDisponibles, setPerfilesDisponibles] = useState([]);
   const [perfilSeleccionado, setPerfilSeleccionado] = useState(null);
@@ -70,8 +72,12 @@ const Ventas = () => {
 
   const loadCuentasDisponibles = async () => {
     try {
-      const cuentas = await cuentasService.getDisponibles();
+      const [cuentas, servicios] = await Promise.all([
+        cuentasService.getDisponibles(),
+        serviciosService.getAll()
+      ]);
       setCuentasDisponibles(cuentas);
+      setServiciosDisponibles(servicios.filter(s => s.activo));
     } catch (error) {
       console.error('Error al cargar cuentas disponibles:', error);
       showAlert('error', 'Error al cargar cuentas disponibles');
@@ -117,6 +123,13 @@ const Ventas = () => {
     setClienteSearchResults([]);
   };
 
+  const handleServicioSelect = (servicio) => {
+    setServicioSeleccionado(servicio);
+    setCuentaSeleccionada(null);
+    setPerfilSeleccionado(null);
+    setPerfilesDisponibles([]);
+  };
+
   const handleCuentaSelect = async (cuenta) => {
     setCuentaSeleccionada(cuenta);
     setPerfilSeleccionado(null);
@@ -132,6 +145,11 @@ const Ventas = () => {
   };
 
   const handleAgregarServicio = () => {
+    if (!servicioSeleccionado) {
+      showAlert('error', 'Seleccione un servicio');
+      return;
+    }
+    
     if (!cuentaSeleccionada) {
       showAlert('error', 'Seleccione una cuenta');
       return;
@@ -152,14 +170,15 @@ const Ventas = () => {
     const nuevoServicio = {
       cuentaID: cuentaSeleccionada.cuentaID,
       perfilID: perfilSeleccionado.perfilID,
-      servicioID: cuentaSeleccionada.servicioID,
-      nombreServicio: cuentaSeleccionada.nombreServicio,
+      servicioID: servicioSeleccionado.servicioID,
+      nombreServicio: servicioSeleccionado.nombre,
       codigoCuenta: cuentaSeleccionada.codigoCuenta,
       numeroPerfil: perfilSeleccionado.numeroPerfil,
-      precio: cuentaSeleccionada.precio || 0
+      precio: servicioSeleccionado.precio || 0
     };
     
     setServiciosCart([...serviciosCart, nuevoServicio]);
+    setServicioSeleccionado(null);
     setCuentaSeleccionada(null);
     setPerfilSeleccionado(null);
     setPerfilesDisponibles([]);
@@ -179,6 +198,7 @@ const Ventas = () => {
     setClienteSearch('');
     setClienteSearchResults([]);
     setServiciosCart([]);
+    setServicioSeleccionado(null);
     setCuentaSeleccionada(null);
     setPerfilSeleccionado(null);
     setPerfilesDisponibles([]);
@@ -413,7 +433,29 @@ const Ventas = () => {
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold mb-4">Agregar Servicios</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Servicio *
+                </label>
+                <select
+                  value={servicioSeleccionado?.servicioID || ''}
+                  onChange={(e) => {
+                    const servicio = serviciosDisponibles.find(s => s.servicioID === parseInt(e.target.value));
+                    if (servicio) handleServicioSelect(servicio);
+                    else handleServicioSelect(null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Seleccionar servicio...</option>
+                  {serviciosDisponibles.map((servicio) => (
+                    <option key={servicio.servicioID} value={servicio.servicioID}>
+                      {servicio.nombre} - {formatCurrency(servicio.precio, 'C$')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cuenta
@@ -421,17 +463,23 @@ const Ventas = () => {
                 <select
                   value={cuentaSeleccionada?.cuentaID || ''}
                   onChange={(e) => {
-                    const cuenta = cuentasDisponibles.find(c => c.cuentaID === parseInt(e.target.value));
+                    const cuenta = cuentasDisponibles
+                      .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                      .find(c => c.cuentaID === parseInt(e.target.value));
                     if (cuenta) handleCuentaSelect(cuenta);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  disabled={!servicioSeleccionado}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
                 >
                   <option value="">Seleccionar cuenta...</option>
-                  {cuentasDisponibles.map((cuenta) => (
-                    <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                      {cuenta.nombreServicio} - {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
-                    </option>
-                  ))}
+                  {cuentasDisponibles
+                    .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                    .map((cuenta) => (
+                      <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
+                        {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                      </option>
+                    ))
+                  }
                 </select>
               </div>
 
