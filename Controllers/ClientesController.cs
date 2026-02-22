@@ -185,5 +185,48 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { message = "Error al eliminar cliente", error = ex.Message });
             }
         }
+
+        // GET: api/Clientes/search?q=searchterm
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<ClienteDTO>>> SearchClientes([FromQuery] string q)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(q))
+                {
+                    return BadRequest(new { message = "El término de búsqueda no puede estar vacío" });
+                }
+
+                var searchTerm = q.ToLower().Trim();
+
+                var clientes = await _context.Clientes
+                    .Where(c => c.Activo && (
+                        c.Nombre.ToLower().Contains(searchTerm) ||
+                        (c.SegundoNombre != null && c.SegundoNombre.ToLower().Contains(searchTerm)) ||
+                        c.Apellido.ToLower().Contains(searchTerm) ||
+                        (c.SegundoApellido != null && c.SegundoApellido.ToLower().Contains(searchTerm)) ||
+                        c.Telefono.Contains(searchTerm)
+                    ))
+                    .Select(c => new ClienteDTO
+                    {
+                        ClienteID = c.ClienteID,
+                        Nombre = c.Nombre,
+                        SegundoNombre = c.SegundoNombre,
+                        Apellido = c.Apellido,
+                        SegundoApellido = c.SegundoApellido,
+                        Telefono = c.Telefono,
+                        FechaRegistro = c.FechaRegistro,
+                        Activo = c.Activo
+                    })
+                    .Take(10)  // Limit to 10 results for autocomplete
+                    .ToListAsync();
+
+                return Ok(clientes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al buscar clientes", error = ex.Message });
+            }
+        }
     }
 }

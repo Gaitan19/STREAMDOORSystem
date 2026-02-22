@@ -484,5 +484,78 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { message = "Error al verificar estados", error = ex.Message });
             }
         }
+
+        // GET: api/Cuentas/disponibles
+        [HttpGet("disponibles")]
+        public async Task<ActionResult<IEnumerable<CuentaDTO>>> GetCuentasDisponibles()
+        {
+            try
+            {
+                var cuentas = await _context.Cuentas
+                    .Where(c => c.Activo && c.Estado == "Disponible")
+                    .Include(c => c.Servicio)
+                    .Include(c => c.Correo)
+                    .Include(c => c.Perfiles.Where(p => p.Activo))
+                    .Select(c => new CuentaDTO
+                    {
+                        CuentaID = c.CuentaID,
+                        ServicioID = c.ServicioID,
+                        NombreServicio = c.Servicio!.Nombre,
+                        CodigoCuenta = c.CodigoCuenta,
+                        TipoCuenta = c.TipoCuenta,
+                        NumeroPerfiles = c.Perfiles.Count(p => p.Activo),
+                        PerfilesDisponibles = c.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
+                        Estado = c.Estado,
+                        FechaCreacion = c.FechaCreacion,
+                        FechaFinalizacion = c.FechaFinalizacion,
+                        Activo = c.Activo
+                    })
+                    .OrderBy(c => c.NombreServicio)
+                    .ThenBy(c => c.CodigoCuenta)
+                    .ToListAsync();
+
+                return Ok(cuentas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener cuentas disponibles", error = ex.Message });
+            }
+        }
+
+        // GET: api/Cuentas/5/perfiles-disponibles
+        [HttpGet("{id}/perfiles-disponibles")]
+        public async Task<ActionResult<IEnumerable<PerfilDTO>>> GetPerfilesDisponibles(int id)
+        {
+            try
+            {
+                var cuenta = await _context.Cuentas
+                    .Include(c => c.Perfiles.Where(p => p.Activo && p.Estado == "Disponible"))
+                    .FirstOrDefaultAsync(c => c.CuentaID == id && c.Activo);
+
+                if (cuenta == null)
+                {
+                    return NotFound(new { message = "Cuenta no encontrada" });
+                }
+
+                var perfiles = cuenta.Perfiles
+                    .Select(p => new PerfilDTO
+                    {
+                        PerfilID = p.PerfilID,
+                        CuentaID = p.CuentaID,
+                        NumeroPerfil = p.NumeroPerfil,
+                        PIN = p.PIN,
+                        Estado = p.Estado,
+                        Activo = p.Activo
+                    })
+                    .OrderBy(p => p.NumeroPerfil)
+                    .ToList();
+
+                return Ok(perfiles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener perfiles disponibles", error = ex.Message });
+            }
+        }
     }
 }

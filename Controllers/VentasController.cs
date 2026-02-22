@@ -27,23 +27,36 @@ namespace STREAMDOORSystem.Controllers
             {
                 var ventas = await _context.Ventas
                     .Include(v => v.Cliente)
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
                     .Select(v => new VentaDTO
                     {
                         VentaID = v.VentaID,
                         ClienteID = v.ClienteID,
                         NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
-                        CuentaID = v.CuentaID,
-                        NombreServicio = v.Cuenta!.Servicio!.Nombre,
-                        PerfilID = v.PerfilID,
                         FechaInicio = v.FechaInicio,
                         FechaFin = v.FechaFin,
                         Duracion = v.Duracion,
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays
+                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        Detalles = v.Detalles.Select(d => new VentaDetalleDTO
+                        {
+                            VentaDetalleID = d.VentaDetalleID,
+                            VentaID = d.VentaID,
+                            CuentaID = d.CuentaID,
+                            CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                            PerfilID = d.PerfilID,
+                            NumeroPerfil = d.Perfil!.NumeroPerfil,
+                            ServicioID = d.ServicioID,
+                            NombreServicio = d.Cuenta.Servicio!.Nombre,
+                            PrecioUnitario = d.PrecioUnitario,
+                            FechaAsignacion = d.FechaAsignacion
+                        }).ToList()
                     })
                     .ToListAsync();
 
@@ -63,8 +76,11 @@ namespace STREAMDOORSystem.Controllers
             {
                 var venta = await _context.Ventas
                     .Include(v => v.Cliente)
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
                     .FirstOrDefaultAsync(v => v.VentaID == id);
 
                 if (venta == null)
@@ -77,16 +93,26 @@ namespace STREAMDOORSystem.Controllers
                     VentaID = venta.VentaID,
                     ClienteID = venta.ClienteID,
                     NombreCliente = venta.Cliente!.Nombre + " " + venta.Cliente.Apellido,
-                    CuentaID = venta.CuentaID,
-                    NombreServicio = venta.Cuenta!.Servicio!.Nombre,
-                    PerfilID = venta.PerfilID,
                     FechaInicio = venta.FechaInicio,
                     FechaFin = venta.FechaFin,
                     Duracion = venta.Duracion,
                     Monto = venta.Monto,
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
-                    DiasRestantes = (int)(venta.FechaFin - DateTime.Now).TotalDays
+                    DiasRestantes = (int)(venta.FechaFin - DateTime.Now).TotalDays,
+                    Detalles = venta.Detalles.Select(d => new VentaDetalleDTO
+                    {
+                        VentaDetalleID = d.VentaDetalleID,
+                        VentaID = d.VentaID,
+                        CuentaID = d.CuentaID,
+                        CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                        PerfilID = d.PerfilID,
+                        NumeroPerfil = d.Perfil!.NumeroPerfil,
+                        ServicioID = d.ServicioID,
+                        NombreServicio = d.Cuenta.Servicio!.Nombre,
+                        PrecioUnitario = d.PrecioUnitario,
+                        FechaAsignacion = d.FechaAsignacion
+                    }).ToList()
                 };
 
                 return Ok(ventaDto);
@@ -112,23 +138,36 @@ namespace STREAMDOORSystem.Controllers
                 var ventas = await _context.Ventas
                     .Where(v => v.ClienteID == clienteId)
                     .Include(v => v.Cliente)
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
                     .Select(v => new VentaDTO
                     {
                         VentaID = v.VentaID,
                         ClienteID = v.ClienteID,
                         NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
-                        CuentaID = v.CuentaID,
-                        NombreServicio = v.Cuenta!.Servicio!.Nombre,
-                        PerfilID = v.PerfilID,
                         FechaInicio = v.FechaInicio,
                         FechaFin = v.FechaFin,
                         Duracion = v.Duracion,
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays
+                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        Detalles = v.Detalles.Select(d => new VentaDetalleDTO
+                        {
+                            VentaDetalleID = d.VentaDetalleID,
+                            VentaID = d.VentaID,
+                            CuentaID = d.CuentaID,
+                            CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                            PerfilID = d.PerfilID,
+                            NumeroPerfil = d.Perfil!.NumeroPerfil,
+                            ServicioID = d.ServicioID,
+                            NombreServicio = d.Cuenta.Servicio!.Nombre,
+                            PrecioUnitario = d.PrecioUnitario,
+                            FechaAsignacion = d.FechaAsignacion
+                        }).ToList()
                     })
                     .ToListAsync();
 
@@ -151,6 +190,12 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Validar que hay al menos un servicio
+                if (crearVentaDto.Detalles == null || crearVentaDto.Detalles.Count == 0)
+                {
+                    return BadRequest(new { message = "Debe seleccionar al menos un servicio" });
+                }
+
                 // Verificar que el cliente exista
                 var clienteExiste = await _context.Clientes.AnyAsync(c => c.ClienteID == crearVentaDto.ClienteID && c.Activo);
                 if (!clienteExiste)
@@ -158,65 +203,89 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(new { message = "El cliente especificado no existe" });
                 }
 
-                int cuentaID;
-
-                // Si no se proporciona CuentaID, buscar una cuenta disponible del servicio especificado
-                if (!crearVentaDto.CuentaID.HasValue && crearVentaDto.ServicioID.HasValue)
+                // Validar que FechaFin sea mayor que FechaInicio
+                var fechaInicio = DateTime.Now;
+                if (crearVentaDto.FechaFin <= fechaInicio)
                 {
-                    // Buscar una cuenta disponible del servicio
-                    var cuentaDisponible = await _context.Cuentas
-                        .Where(c => c.ServicioID == crearVentaDto.ServicioID && c.Activo && c.Estado == "Disponible")
-                        .FirstOrDefaultAsync();
+                    return BadRequest(new { message = "La fecha de finalización debe ser mayor que la fecha actual" });
+                }
 
-                    if (cuentaDisponible == null)
+                // Validar que todos los perfiles estén disponibles
+                foreach (var detalle in crearVentaDto.Detalles)
+                {
+                    var perfil = await _context.Perfiles
+                        .Include(p => p.Cuenta)
+                        .FirstOrDefaultAsync(p => p.PerfilID == detalle.PerfilID && p.Activo);
+
+                    if (perfil == null)
                     {
-                        return BadRequest(new { message = "No hay cuentas disponibles para el servicio seleccionado" });
+                        return BadRequest(new { message = $"El perfil {detalle.PerfilID} no existe" });
                     }
 
-                    cuentaID = cuentaDisponible.CuentaID;
-                }
-                else if (crearVentaDto.CuentaID.HasValue)
-                {
-                    // Verificar que la cuenta exista
-                    var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.CuentaID == crearVentaDto.CuentaID && c.Activo);
-                    if (!cuentaExiste)
+                    if (perfil.Estado != "Disponible")
                     {
-                        return BadRequest(new { message = "La cuenta especificada no existe" });
+                        return BadRequest(new { message = $"El perfil {perfil.NumeroPerfil} no está disponible" });
                     }
-                    cuentaID = crearVentaDto.CuentaID.Value;
-                }
-                else
-                {
-                    return BadRequest(new { message = "Debe proporcionar CuentaID o ServicioID" });
-                }
 
-                // Verificar que el perfil exista si se proporciona
-                if (crearVentaDto.PerfilID.HasValue)
-                {
-                    var perfilExiste = await _context.Perfiles.AnyAsync(p => p.PerfilID == crearVentaDto.PerfilID && p.Activo);
-                    if (!perfilExiste)
+                    // Verificar que la cuenta existe y está disponible
+                    if (perfil.CuentaID != detalle.CuentaID)
                     {
-                        return BadRequest(new { message = "El perfil especificado no existe" });
+                        return BadRequest(new { message = $"El perfil {perfil.NumeroPerfil} no pertenece a la cuenta seleccionada" });
                     }
                 }
 
-                var fechaFin = crearVentaDto.FechaInicio.AddDays(crearVentaDto.Duracion);
+                // Calcular el monto total basado en los precios de los servicios
+                decimal montoTotal = 0;
+                var detallesLista = new List<VentaDetalle>();
 
+                foreach (var detalleDto in crearVentaDto.Detalles)
+                {
+                    var servicio = await _context.Servicios.FindAsync(detalleDto.ServicioID);
+                    if (servicio == null || !servicio.Activo)
+                    {
+                        return BadRequest(new { message = $"El servicio {detalleDto.ServicioID} no existe o no está activo" });
+                    }
+
+                    var precioUnitario = servicio.Precio ?? 0;
+                    montoTotal += precioUnitario;
+
+                    detallesLista.Add(new VentaDetalle
+                    {
+                        CuentaID = detalleDto.CuentaID,
+                        PerfilID = detalleDto.PerfilID,
+                        ServicioID = detalleDto.ServicioID,
+                        PrecioUnitario = precioUnitario,
+                        FechaAsignacion = DateTime.Now
+                    });
+                }
+
+                // Crear la venta
                 var venta = new Venta
                 {
                     ClienteID = crearVentaDto.ClienteID,
-                    CuentaID = cuentaID,
-                    PerfilID = crearVentaDto.PerfilID,
-                    FechaInicio = crearVentaDto.FechaInicio,
-                    FechaFin = fechaFin,
-                    Duracion = crearVentaDto.Duracion,
-                    Monto = crearVentaDto.Monto,
+                    FechaInicio = fechaInicio,
+                    FechaFin = crearVentaDto.FechaFin,
+                    Duracion = (int)(crearVentaDto.FechaFin - fechaInicio).TotalDays,
+                    Monto = montoTotal,
                     Moneda = crearVentaDto.Moneda,
                     Estado = "Activo",
-                    FechaCreacion = DateTime.Now
+                    FechaCreacion = DateTime.Now,
+                    Detalles = detallesLista
                 };
 
                 _context.Ventas.Add(venta);
+
+                // Marcar todos los perfiles como "Ocupado"
+                foreach (var detalleDto in crearVentaDto.Detalles)
+                {
+                    var perfil = await _context.Perfiles.FindAsync(detalleDto.PerfilID);
+                    if (perfil != null)
+                    {
+                        perfil.Estado = "Ocupado";
+                        _context.Perfiles.Update(perfil);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 // Registrar el pago si se proporciona medio de pago
@@ -226,9 +295,9 @@ namespace STREAMDOORSystem.Controllers
                     {
                         VentaID = venta.VentaID,
                         MedioPagoID = crearVentaDto.MedioPagoID.Value,
-                        Monto = crearVentaDto.Monto,
+                        Monto = montoTotal,
                         Moneda = crearVentaDto.Moneda,
-                        FechaPago = crearVentaDto.FechaInicio,
+                        FechaPago = fechaInicio,
                         Referencia = $"Venta #{venta.VentaID}",
                         Notas = crearVentaDto.Notas,
                         FechaCreacion = DateTime.Now
@@ -237,24 +306,41 @@ namespace STREAMDOORSystem.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                var cliente = await _context.Clientes.FindAsync(crearVentaDto.ClienteID);
-                var cuenta = await _context.Cuentas.Include(c => c.Servicio).FirstOrDefaultAsync(c => c.CuentaID == cuentaID);
+                // Recargar la venta con todas las relaciones para el DTO de respuesta
+                var ventaCreada = await _context.Ventas
+                    .Include(v => v.Cliente)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
+                    .FirstOrDefaultAsync(v => v.VentaID == venta.VentaID);
 
                 var ventaDto = new VentaDTO
                 {
-                    VentaID = venta.VentaID,
-                    ClienteID = venta.ClienteID,
-                    NombreCliente = cliente!.Nombre + " " + cliente.Apellido,
-                    CuentaID = venta.CuentaID,
-                    NombreServicio = cuenta!.Servicio!.Nombre,
-                    PerfilID = venta.PerfilID,
-                    FechaInicio = venta.FechaInicio,
-                    FechaFin = venta.FechaFin,
-                    Duracion = venta.Duracion,
-                    Monto = venta.Monto,
-                    Moneda = venta.Moneda,
-                    Estado = venta.Estado,
-                    DiasRestantes = crearVentaDto.Duracion
+                    VentaID = ventaCreada!.VentaID,
+                    ClienteID = ventaCreada.ClienteID,
+                    NombreCliente = ventaCreada.Cliente!.Nombre + " " + ventaCreada.Cliente.Apellido,
+                    FechaInicio = ventaCreada.FechaInicio,
+                    FechaFin = ventaCreada.FechaFin,
+                    Duracion = ventaCreada.Duracion,
+                    Monto = ventaCreada.Monto,
+                    Moneda = ventaCreada.Moneda,
+                    Estado = ventaCreada.Estado,
+                    DiasRestantes = (int)(ventaCreada.FechaFin - DateTime.Now).TotalDays,
+                    Detalles = ventaCreada.Detalles.Select(d => new VentaDetalleDTO
+                    {
+                        VentaDetalleID = d.VentaDetalleID,
+                        VentaID = d.VentaID,
+                        CuentaID = d.CuentaID,
+                        CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                        PerfilID = d.PerfilID,
+                        NumeroPerfil = d.Perfil!.NumeroPerfil,
+                        ServicioID = d.ServicioID,
+                        NombreServicio = d.Cuenta.Servicio!.Nombre,
+                        PrecioUnitario = d.PrecioUnitario,
+                        FechaAsignacion = d.FechaAsignacion
+                    }).ToList()
                 };
 
                 return CreatedAtAction(nameof(GetVenta), new { id = venta.VentaID }, ventaDto);
@@ -265,75 +351,36 @@ namespace STREAMDOORSystem.Controllers
             }
         }
 
-        // PUT: api/Ventas/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateVenta(int id, [FromBody] CrearVentaDTO crearVentaDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var venta = await _context.Ventas.FindAsync(id);
-
-                if (venta == null)
-                {
-                    return NotFound(new { message = "Venta no encontrada" });
-                }
-
-                // Verificar que el cliente exista
-                var clienteExiste = await _context.Clientes.AnyAsync(c => c.ClienteID == crearVentaDto.ClienteID && c.Activo);
-                if (!clienteExiste)
-                {
-                    return BadRequest(new { message = "El cliente especificado no existe" });
-                }
-
-                // Verificar que la cuenta exista
-                var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.CuentaID == crearVentaDto.CuentaID && c.Activo);
-                if (!cuentaExiste)
-                {
-                    return BadRequest(new { message = "La cuenta especificada no existe" });
-                }
-
-                var fechaFin = crearVentaDto.FechaInicio.AddDays(crearVentaDto.Duracion);
-
-                venta.ClienteID = crearVentaDto.ClienteID;
-                venta.CuentaID = (int)crearVentaDto.CuentaID;
-                venta.PerfilID = crearVentaDto.PerfilID;
-                venta.FechaInicio = crearVentaDto.FechaInicio;
-                venta.FechaFin = fechaFin;
-                venta.Duracion = crearVentaDto.Duracion;
-                venta.Monto = crearVentaDto.Monto;
-                venta.Moneda = crearVentaDto.Moneda;
-
-                _context.Ventas.Update(venta);
-                await _context.SaveChangesAsync();
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error al actualizar venta", error = ex.Message });
-            }
-        }
-
         // DELETE: api/Ventas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVenta(int id)
         {
             try
             {
-                var venta = await _context.Ventas.FindAsync(id);
+                var venta = await _context.Ventas
+                    .Include(v => v.Detalles)
+                    .FirstOrDefaultAsync(v => v.VentaID == id);
 
                 if (venta == null)
                 {
                     return NotFound(new { message = "Venta no encontrada" });
                 }
 
+                // Marcar la venta como cancelada
                 venta.Estado = "Cancelada";
                 _context.Ventas.Update(venta);
+
+                // Liberar los perfiles (marcarlos como Disponible nuevamente)
+                foreach (var detalle in venta.Detalles)
+                {
+                    var perfil = await _context.Perfiles.FindAsync(detalle.PerfilID);
+                    if (perfil != null && perfil.Estado == "Ocupado")
+                    {
+                        perfil.Estado = "Disponible";
+                        _context.Perfiles.Update(perfil);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 return NoContent();
@@ -341,74 +388,6 @@ namespace STREAMDOORSystem.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error al eliminar venta", error = ex.Message });
-            }
-        }
-
-        // POST: api/Ventas/renovar
-        [HttpPost("renovar")]
-        public async Task<ActionResult<VentaDTO>> RenovarVenta([FromBody] RenovarVentaDTO renovarVentaDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var ventaOriginal = await _context.Ventas
-                    .Include(v => v.Cliente)
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
-                    .FirstOrDefaultAsync(v => v.VentaID == renovarVentaDto.VentaID);
-
-                if (ventaOriginal == null)
-                {
-                    return NotFound(new { message = "Venta no encontrada" });
-                }
-
-                // Crear nueva venta con fecha inicio en la fecha fin de la anterior
-                var nuevaFechaInicio = ventaOriginal.FechaFin;
-                var nuevaFechaFin = nuevaFechaInicio.AddDays(renovarVentaDto.Duracion);
-
-                var ventaNueva = new Venta
-                {
-                    ClienteID = ventaOriginal.ClienteID,
-                    CuentaID = ventaOriginal.CuentaID,
-                    PerfilID = ventaOriginal.PerfilID,
-                    FechaInicio = nuevaFechaInicio,
-                    FechaFin = nuevaFechaFin,
-                    Duracion = renovarVentaDto.Duracion,
-                    Monto = ventaOriginal.Monto,
-                    Moneda = ventaOriginal.Moneda,
-                    Estado = "Activo",
-                    FechaCreacion = DateTime.Now
-                };
-
-                _context.Ventas.Add(ventaNueva);
-                await _context.SaveChangesAsync();
-
-                var ventaDto = new VentaDTO
-                {
-                    VentaID = ventaNueva.VentaID,
-                    ClienteID = ventaNueva.ClienteID,
-                    NombreCliente = ventaOriginal.Cliente!.Nombre + " " + ventaOriginal.Cliente.Apellido,
-                    CuentaID = ventaNueva.CuentaID,
-                    NombreServicio = ventaOriginal.Cuenta!.Servicio!.Nombre,
-                    PerfilID = ventaNueva.PerfilID,
-                    FechaInicio = ventaNueva.FechaInicio,
-                    FechaFin = ventaNueva.FechaFin,
-                    Duracion = ventaNueva.Duracion,
-                    Monto = ventaNueva.Monto,
-                    Moneda = ventaNueva.Moneda,
-                    Estado = ventaNueva.Estado,
-                    DiasRestantes = renovarVentaDto.Duracion
-                };
-
-                return Ok(ventaDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error al renovar venta", error = ex.Message });
             }
         }
     }
