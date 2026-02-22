@@ -545,6 +545,9 @@ const Ventas = () => {
                 </div>
               </div>
             )}
+            {errors.servicios && (
+              <p className="mt-2 text-sm text-red-600">{errors.servicios}</p>
+            )}
           </div>
 
           {/* Step 2: Assign Accounts to Services */}
@@ -686,10 +689,6 @@ const Ventas = () => {
               </div>
             </div>
           )}
-            {errors.servicios && (
-              <p className="mt-2 text-sm text-red-600">{errors.servicios}</p>
-            )}
-          </div>
 
           {/* Fecha Fin */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
