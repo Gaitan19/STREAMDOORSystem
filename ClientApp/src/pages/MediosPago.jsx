@@ -18,9 +18,11 @@ const MediosPago = () => {
   const [selectedMedioPago, setSelectedMedioPago] = useState(null);
   const [alert, setAlert] = useState(null);
   const [formData, setFormData] = useState({
+    tipo: 'Banco',
     nombre: '',
-    descripcion: '',
-    activo: true
+    numeroCuenta: '',
+    beneficiario: '',
+    moneda: 'C$'
   });
   const [errors, setErrors] = useState({});
 
@@ -49,7 +51,8 @@ const MediosPago = () => {
   const handleSearch = (searchTerm) => {
     const filtered = mediosPago.filter(medio =>
       medio.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      medio.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+      medio.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      medio.beneficiario?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredMediosPago(filtered);
   };
@@ -72,7 +75,7 @@ const MediosPago = () => {
 
     try {
       if (selectedMedioPago) {
-        await mediosPagoService.update(selectedMedioPago.medioPagoId, formData);
+        await mediosPagoService.update(selectedMedioPago.medioPagoID, formData);
         showAlert('success', 'Medio de pago actualizado exitosamente');
       } else {
         await mediosPagoService.create(formData);
@@ -90,16 +93,18 @@ const MediosPago = () => {
   const handleEdit = (medioPago) => {
     setSelectedMedioPago(medioPago);
     setFormData({
+      tipo: medioPago.tipo || 'Banco',
       nombre: medioPago.nombre,
-      descripcion: medioPago.descripcion || '',
-      activo: medioPago.activo ?? true
+      numeroCuenta: medioPago.numeroCuenta || '',
+      beneficiario: medioPago.beneficiario || '',
+      moneda: medioPago.moneda || 'C$'
     });
     setModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await mediosPagoService.delete(selectedMedioPago.medioPagoId);
+      await mediosPagoService.delete(selectedMedioPago.medioPagoID);
       showAlert('success', 'Medio de pago eliminado exitosamente');
       setDeleteModalOpen(false);
       setSelectedMedioPago(null);
@@ -111,9 +116,11 @@ const MediosPago = () => {
 
   const resetForm = () => {
     setFormData({
+      tipo: 'Banco',
       nombre: '',
-      descripcion: '',
-      activo: true
+      numeroCuenta: '',
+      beneficiario: '',
+      moneda: 'C$'
     });
     setErrors({});
     setSelectedMedioPago(null);
@@ -132,30 +139,36 @@ const MediosPago = () => {
 
   const columns = [
     { 
-      key: 'nombre', 
-      label: 'Nombre',
+      key: 'tipo', 
+      label: 'Tipo',
       render: (row) => (
         <div className="flex items-center gap-2">
           <Wallet size={16} className="text-blue-600" />
-          <span className="font-medium">{row.nombre}</span>
+          <span className="font-medium">{row.tipo}</span>
         </div>
       )
     },
     { 
-      key: 'descripcion', 
-      label: 'Descripción',
-      render: (row) => row.descripcion || '-'
+      key: 'nombre', 
+      label: 'Nombre',
+      render: (row) => row.nombre
     },
     { 
-      key: 'activo', 
-      label: 'Estado',
+      key: 'numeroCuenta', 
+      label: 'Número de Cuenta',
+      render: (row) => row.numeroCuenta || '-'
+    },
+    { 
+      key: 'beneficiario', 
+      label: 'Beneficiario',
+      render: (row) => row.beneficiario || '-'
+    },
+    { 
+      key: 'moneda', 
+      label: 'Moneda',
       render: (row) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          row.activo 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-gray-100 text-gray-800'
-        }`}>
-          {row.activo ? 'Activo' : 'Inactivo'}
+        <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs font-medium">
+          {row.moneda}
         </span>
       )
     },
@@ -222,6 +235,24 @@ const MediosPago = () => {
         size="sm"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tipo <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="tipo"
+              value={formData.tipo}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Banco">Banco</option>
+              <option value="Billetera Móvil">Billetera Móvil</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
           <Input
             label="Nombre"
             name="nombre"
@@ -231,31 +262,36 @@ const MediosPago = () => {
             required
           />
 
+          <Input
+            label="Número de Cuenta"
+            name="numeroCuenta"
+            value={formData.numeroCuenta}
+            onChange={handleChange}
+            placeholder="Opcional"
+          />
+
+          <Input
+            label="Beneficiario"
+            name="beneficiario"
+            value={formData.beneficiario}
+            onChange={handleChange}
+            placeholder="Opcional"
+          />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción
+              Moneda <span className="text-red-500">*</span>
             </label>
-            <textarea
-              name="descripcion"
-              value={formData.descripcion}
+            <select
+              name="moneda"
+              value={formData.moneda}
               onChange={handleChange}
-              rows={3}
+              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="activo"
-              name="activo"
-              checked={formData.activo}
-              onChange={handleChange}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-            />
-            <label htmlFor="activo" className="text-sm font-medium text-gray-700">
-              Activo
-            </label>
+            >
+              <option value="C$">C$ (Córdobas)</option>
+              <option value="USD">USD (Dólares)</option>
+            </select>
           </div>
 
           <div className="flex gap-3 justify-end pt-4">
