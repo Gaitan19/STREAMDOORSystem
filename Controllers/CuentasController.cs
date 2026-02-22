@@ -452,23 +452,27 @@ namespace STREAMDOORSystem.Controllers
                 // Get all "Disponible" accounts
                 var cuentasDisponibles = await _context.Cuentas
                     .Where(c => c.Activo && c.Estado == "Disponible")
-                    .Include(c => c.Perfiles)
+                    .Include(c => c.Perfiles.Where(p => p.Activo))
                     .ToListAsync();
 
                 int actualizadas = 0;
                 foreach (var cuenta in cuentasDisponibles)
                 {
-                    var perfiles = cuenta.Perfiles.Where(p => p.Activo).ToList();
+                    var perfiles = cuenta.Perfiles.ToList();
                     var nuevoEstado = CalcularEstado(cuenta, perfiles);
                     
                     if (nuevoEstado != cuenta.Estado)
                     {
                         cuenta.Estado = nuevoEstado;
+                        _context.Entry(cuenta).Property(c => c.Estado).IsModified = true;
                         actualizadas++;
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                if (actualizadas > 0)
+                {
+                    await _context.SaveChangesAsync();
+                }
                 
                 return Ok(new { 
                     message = $"{actualizadas} cuenta(s) actualizada(s)", 
