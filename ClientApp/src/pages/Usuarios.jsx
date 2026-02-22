@@ -116,7 +116,14 @@ const Usuarios = () => {
       resetForm();
       loadUsuarios();
     } catch (error) {
-      showAlert('error', error.response?.data?.message || 'Error al guardar usuario');
+      const errorMessage = error.response?.data?.message || 'Error al guardar usuario';
+      
+      // Si el error es de correo duplicado, mostrarlo en el formulario
+      if (errorMessage.includes('ya está registrado') || errorMessage.includes('duplicado')) {
+        setErrors(prev => ({ ...prev, correo: errorMessage }));
+      } else {
+        showAlert('error', errorMessage);
+      }
     }
   };
 
@@ -305,6 +312,29 @@ const Usuarios = () => {
         size="sm"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Error alert for duplicate correo */}
+          {errors.correo && errors.correo.includes('ya está registrado') && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="font-medium text-red-800">Error al registrar usuario</p>
+                <p className="text-sm text-red-700 mt-1">{errors.correo}</p>
+              </div>
+            </div>
+          )}
+          
           <Input
             label="Nombre"
             name="nombre"
@@ -320,7 +350,7 @@ const Usuarios = () => {
             name="correo"
             value={formData.correo}
             onChange={handleChange}
-            error={errors.correo}
+            error={!errors.correo?.includes('ya está registrado') ? errors.correo : ''}
             required
           />
 
