@@ -9,8 +9,8 @@ GO
 -- ============================================
 -- Insertar Usuario Administrador
 -- ============================================
-INSERT INTO Usuarios (UsuarioID, Nombre, Correo, Telefono, PasswordHash, Activo)
-VALUES (1, 'admin', 'admin@gmail.com', '87549961',
+INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash, Activo)
+VALUES ('admin', 'admin@gmail.com', '87549961',
 '$2a$11$f8XpVC0..VXSJYscHvg7LeT0/Ep8v8U/hhWHqW7IAQz2R1YN6booO', 1);
 GO
 
