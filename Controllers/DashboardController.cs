@@ -42,14 +42,12 @@ namespace STREAMDOORSystem.Controllers
                     .CountAsync();
 
                 // Servicios más vendidos
-                var serviciosMasVendidos = await _context.Ventas
-                    .Where(v => v.Estado == "Activo")
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
-                    .GroupBy(v => v.Cuenta!.Servicio!.Nombre)
+                var serviciosMasVendidos = await _context.VentasDetalles
+                    .Include(vd => vd.Servicio)
+                    .GroupBy(vd => vd.Servicio!.Nombre)
                     .Select(g => new ServicioMasVendidoDTO
                     {
-                        Nombre = g.Key,
+                        Nombre = g.Key!,
                         Cantidad = g.Count()
                     })
                     .OrderByDescending(s => s.Cantidad)
@@ -60,13 +58,13 @@ namespace STREAMDOORSystem.Controllers
                 var alertasVencimiento = await _context.Ventas
                     .Where(v => v.Estado == "Activo" && v.FechaFin > hoy && v.FechaFin <= hoy.AddDays(30))
                     .Include(v => v.Cliente)
-                    .Include(v => v.Cuenta)
-                    .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                    .ThenInclude(d => d.Servicio)
                     .Select(v => new AlertaVencimientoDTO
                     {
                         VentaID = v.VentaID,
                         Cliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
-                        Servicio = v.Cuenta!.Servicio!.Nombre,
+                        Servicio = string.Join(", ", v.Detalles.Select(d => d.Servicio!.Nombre)),
                         FechaFin = v.FechaFin,
                         DiasRestantes = (int)(v.FechaFin - hoy).TotalDays
                     })

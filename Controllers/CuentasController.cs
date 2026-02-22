@@ -507,8 +507,7 @@ namespace STREAMDOORSystem.Controllers
                         PerfilesDisponibles = c.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
                         Estado = c.Estado,
                         FechaCreacion = c.FechaCreacion,
-                        FechaFinalizacion = c.FechaFinalizacion,
-                        Activo = c.Activo
+                        FechaFinalizacion = c.FechaFinalizacion
                     })
                     .OrderBy(c => c.NombreServicio)
                     .ThenBy(c => c.CodigoCuenta)

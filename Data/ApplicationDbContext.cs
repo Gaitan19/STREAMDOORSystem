@@ -18,6 +18,7 @@ namespace STREAMDOORSystem.Data
         public DbSet<Perfil> Perfiles { get; set; }
         public DbSet<MedioPago> MediosPago { get; set; }
         public DbSet<Venta> Ventas { get; set; }
+        public DbSet<VentaDetalle> VentasDetalles { get; set; }
         public DbSet<Pago> Pagos { get; set; }
         public DbSet<CorreoServicio> CorreosServicios { get; set; }
 
