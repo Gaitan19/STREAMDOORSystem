@@ -315,24 +315,27 @@ const Cuentas = () => {
     { 
       key: 'email', 
       label: 'Email',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          {row.email ? (
-            <>
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm">{row.email}</code>
-              <button
-                onClick={() => handleCopyToClipboard(row.email, 'Email')}
-                className="p-1 text-gray-600 hover:text-blue-600"
-                title="Copiar email"
-              >
-                <Copy size={16} />
-              </button>
-            </>
-          ) : (
-            <span className="text-gray-400 text-sm">-</span>
-          )}
-        </div>
-      )
+      render: (row) => {
+        const email = row.tipoCuenta === 'Terceros' ? row.correoTerceros : row.email;
+        return (
+          <div className="flex items-center gap-2">
+            {email ? (
+              <>
+                <code className="bg-gray-100 px-2 py-1 rounded text-sm">{email}</code>
+                <button
+                  onClick={() => handleCopyToClipboard(email, 'Email')}
+                  className="p-1 text-gray-600 hover:text-blue-600"
+                  title="Copiar email"
+                >
+                  <Copy size={16} />
+                </button>
+              </>
+            ) : (
+              <span className="text-gray-400 text-sm">-</span>
+            )}
+          </div>
+        );
+      }
     },
     { 
       key: 'tipoCuenta', 
@@ -731,7 +734,7 @@ const Cuentas = () => {
           loadData(filtroEstado); // Reload to update disponibles count
         }}
         cuentaId={selectedCuentaForPerfiles?.cuentaID}
-        cuentaNombre={selectedCuentaForPerfiles?.nombreServicio || 'Cuenta'}
+        cuentaNombre={`Perfiles - ${selectedCuentaForPerfiles?.nombreServicio || ''} - ${selectedCuentaForPerfiles?.codigoCuenta || ''}`}
       />
 
       {/* Detalles Modal */}
@@ -781,7 +784,9 @@ const Cuentas = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Perfiles</label>
-                  <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
+                  <p className="text-base">
+                    {perfilesDetalles.filter(p => p.estado === 'Disponible').length} disponibles / {perfilesDetalles.length} total
+                  </p>
                 </div>
               </div>
             </div>

@@ -186,6 +186,7 @@ namespace STREAMDOORSystem.Controllers
                 perfil.CuentaID = crearPerfilDto.CuentaID;
                 perfil.NumeroPerfil = crearPerfilDto.NumeroPerfil;
                 perfil.PIN = crearPerfilDto.PIN;
+                perfil.Estado = crearPerfilDto.Estado;
 
                 _context.Perfiles.Update(perfil);
                 await _context.SaveChangesAsync();

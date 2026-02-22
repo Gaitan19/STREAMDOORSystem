@@ -104,7 +104,8 @@ const PerfilesModal = ({ isOpen, onClose, cuentaId, cuentaNombre }) => {
       const payload = {
         ...formData,
         cuentaID: cuentaId,  // Include cuentaID for both POST and PUT
-        numeroPerfil: parseInt(formData.numeroPerfil)
+        numeroPerfil: parseInt(formData.numeroPerfil),
+        estado: formData.estado  // ✅ Include estado in payload
       };
 
       const response = await fetch(url, {

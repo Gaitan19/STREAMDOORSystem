@@ -142,6 +142,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int CuentaID { get; set; }
         public int NumeroPerfil { get; set; }
         public string? PIN { get; set; }
+        public string Estado { get; set; } = "Disponible";
     }
 
     // DTOs de Medio de Pago
