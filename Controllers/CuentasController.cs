@@ -29,26 +29,30 @@ namespace STREAMDOORSystem.Controllers
                     .Where(c => c.Activo)
                     .Include(c => c.Servicio)
                     .Include(c => c.Correo)
-                    .Select(c => new CuentaDTO
-                    {
-                        CuentaID = c.CuentaID,
-                        ServicioID = c.ServicioID,
-                        NombreServicio = c.Servicio!.Nombre,
-                        CorreoID = c.CorreoID,
-                        Email = c.Correo != null ? c.Correo.Email : null,
-                        TipoCuenta = c.TipoCuenta,
-                        NumeroPerfiles = c.NumeroPerfiles,
-                        PerfilesDisponibles = c.PerfilesDisponibles,
-                        Estado = c.Estado,
-                        FechaCreacion = c.FechaCreacion,
-                        FechaFinalizacion = c.FechaFinalizacion,
-                        Password = c.Password,
-                        CorreoTerceros = c.CorreoTerceros,
-                        CodigoCuenta = c.CodigoCuenta
-                    })
+                    .Include(c => c.Perfiles) // Include profiles to calculate counts
                     .ToListAsync();
 
-                return Ok(cuentas);
+                var cuentasDto = cuentas.Select(c => new CuentaDTO
+                {
+                    CuentaID = c.CuentaID,
+                    ServicioID = c.ServicioID,
+                    NombreServicio = c.Servicio!.Nombre,
+                    CorreoID = c.CorreoID,
+                    Email = c.Correo != null ? c.Correo.Email : null,
+                    TipoCuenta = c.TipoCuenta,
+                    // Calculate NumeroPerfiles from actual profile count
+                    NumeroPerfiles = c.Perfiles.Count(p => p.Activo),
+                    // Calculate PerfilesDisponibles from actual available profiles
+                    PerfilesDisponibles = c.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
+                    Estado = c.Estado,
+                    FechaCreacion = c.FechaCreacion,
+                    FechaFinalizacion = c.FechaFinalizacion,
+                    Password = c.Password,
+                    CorreoTerceros = c.CorreoTerceros,
+                    CodigoCuenta = c.CodigoCuenta
+                }).ToList();
+
+                return Ok(cuentasDto);
             }
             catch (Exception ex)
             {
@@ -65,6 +69,7 @@ namespace STREAMDOORSystem.Controllers
                 var cuenta = await _context.Cuentas
                     .Include(c => c.Servicio)
                     .Include(c => c.Correo)
+                    .Include(c => c.Perfiles) // Include profiles to calculate counts
                     .FirstOrDefaultAsync(c => c.CuentaID == id && c.Activo);
 
                 if (cuenta == null)
@@ -80,8 +85,10 @@ namespace STREAMDOORSystem.Controllers
                     CorreoID = cuenta.CorreoID,
                     Email = cuenta.Correo != null ? cuenta.Correo.Email : null,
                     TipoCuenta = cuenta.TipoCuenta,
-                    NumeroPerfiles = cuenta.NumeroPerfiles,
-                    PerfilesDisponibles = cuenta.PerfilesDisponibles,
+                    // Calculate NumeroPerfiles from actual profile count
+                    NumeroPerfiles = cuenta.Perfiles.Count(p => p.Activo),
+                    // Calculate PerfilesDisponibles from actual available profiles
+                    PerfilesDisponibles = cuenta.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
                     Estado = cuenta.Estado,
                     FechaCreacion = cuenta.FechaCreacion,
                     FechaFinalizacion = cuenta.FechaFinalizacion,
@@ -357,22 +364,31 @@ namespace STREAMDOORSystem.Controllers
                     _ => cuentas
                 };
 
-                var cuentasDto = cuentasFiltradas.Select(c => new CuentaDTO
+                var cuentasDto = cuentasFiltradas.Select(c =>
                 {
-                    CuentaID = c.CuentaID,
-                    ServicioID = c.ServicioID,
-                    NombreServicio = c.Servicio!.Nombre,
-                    CorreoID = c.CorreoID,
-                    Email = c.Correo != null ? c.Correo.Email : null,
-                    TipoCuenta = c.TipoCuenta,
-                    NumeroPerfiles = c.NumeroPerfiles,
-                    PerfilesDisponibles = c.PerfilesDisponibles,
-                    Estado = c.Estado,
-                    FechaCreacion = c.FechaCreacion,
-                    FechaFinalizacion = c.FechaFinalizacion,
-                    Password = c.Password,
-                    CorreoTerceros = c.CorreoTerceros,
-                    CodigoCuenta = c.CodigoCuenta
+                    var perfiles = perfilesDict.ContainsKey(c.CuentaID) 
+                        ? perfilesDict[c.CuentaID] 
+                        : new List<Perfil>();
+                    
+                    return new CuentaDTO
+                    {
+                        CuentaID = c.CuentaID,
+                        ServicioID = c.ServicioID,
+                        NombreServicio = c.Servicio!.Nombre,
+                        CorreoID = c.CorreoID,
+                        Email = c.Correo != null ? c.Correo.Email : null,
+                        TipoCuenta = c.TipoCuenta,
+                        // Calculate NumeroPerfiles from actual profile count
+                        NumeroPerfiles = perfiles.Count,
+                        // Calculate PerfilesDisponibles from actual available profiles
+                        PerfilesDisponibles = perfiles.Count(p => p.Estado == "Disponible"),
+                        Estado = c.Estado,
+                        FechaCreacion = c.FechaCreacion,
+                        FechaFinalizacion = c.FechaFinalizacion,
+                        Password = c.Password,
+                        CorreoTerceros = c.CorreoTerceros,
+                        CodigoCuenta = c.CodigoCuenta
+                    };
                 }).ToList();
 
                 return Ok(cuentasDto);

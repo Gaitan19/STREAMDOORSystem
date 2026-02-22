@@ -745,7 +745,7 @@ const Cuentas = () => {
           setSelectedCuenta(null);
           setPerfilesDetalles([]);
         }}
-        title="Detalles de la Cuenta"
+        title={selectedCuenta ? `Detalles de la Cuenta - ${selectedCuenta.nombreServicio} - ${selectedCuenta.codigoCuenta}` : "Detalles de la Cuenta"}
         size="lg"
       >
         {selectedCuenta && (
