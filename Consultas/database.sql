@@ -156,6 +156,42 @@ BEGIN
         ALTER TABLE Cuentas ADD FechaFinalizacion DATETIME NULL;
         PRINT 'Column FechaFinalizacion added to Cuentas table.';
     END
+    
+    -- Agregar Password si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'Password')
+    BEGIN
+        ALTER TABLE Cuentas ADD Password NVARCHAR(100) NULL;
+        PRINT 'Column Password added to Cuentas table.';
+    END
+    
+    -- Agregar CorreoTerceros si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'CorreoTerceros')
+    BEGIN
+        ALTER TABLE Cuentas ADD CorreoTerceros NVARCHAR(100) NULL;
+        PRINT 'Column CorreoTerceros added to Cuentas table.';
+    END
+    
+    -- Agregar CodigoCuenta si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'CodigoCuenta')
+    BEGIN
+        ALTER TABLE Cuentas ADD CodigoCuenta NVARCHAR(10) NULL;
+        PRINT 'Column CodigoCuenta added to Cuentas table.';
+    END
+    
+    -- Agregar constraint UNIQUE a CodigoCuenta si no existe
+    IF NOT EXISTS (SELECT * FROM sys.indexes 
+                   WHERE name = 'UQ_Cuentas_CodigoCuenta' 
+                   AND object_id = OBJECT_ID('Cuentas'))
+    BEGIN
+        ALTER TABLE Cuentas ADD CONSTRAINT UQ_Cuentas_CodigoCuenta UNIQUE (CodigoCuenta);
+        PRINT 'UNIQUE constraint added to CodigoCuenta column.';
+    END
 END
 GO
 

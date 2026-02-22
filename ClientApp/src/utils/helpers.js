@@ -190,3 +190,20 @@ export const calculateDaysUntil = (dateString) => {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
+
+// Generate unique account code (CodigoCuenta)
+// Format: 2 letters from service name + 6 random numbers
+// Example: "NE192599" for Netflix
+export const generateCodigoCuenta = (servicioNombre) => {
+  if (!servicioNombre || servicioNombre.length < 2) {
+    throw new Error('El nombre del servicio debe tener al menos 2 caracteres');
+  }
+  
+  // Extract first 2 letters and convert to uppercase
+  const prefix = servicioNombre.substring(0, 2).toUpperCase();
+  
+  // Generate 6 random digits
+  const randomNum = Math.floor(100000 + Math.random() * 900000); // 100000-999999
+  
+  return `${prefix}${randomNum}`;
+};

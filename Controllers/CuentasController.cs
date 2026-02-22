@@ -41,7 +41,10 @@ namespace STREAMDOORSystem.Controllers
                         PerfilesDisponibles = c.PerfilesDisponibles,
                         Estado = c.Estado,
                         FechaCreacion = c.FechaCreacion,
-                        FechaFinalizacion = c.FechaFinalizacion
+                        FechaFinalizacion = c.FechaFinalizacion,
+                        Password = c.Password,
+                        CorreoTerceros = c.CorreoTerceros,
+                        CodigoCuenta = c.CodigoCuenta
                     })
                     .ToListAsync();
 
@@ -81,7 +84,10 @@ namespace STREAMDOORSystem.Controllers
                     PerfilesDisponibles = cuenta.PerfilesDisponibles,
                     Estado = cuenta.Estado,
                     FechaCreacion = cuenta.FechaCreacion,
-                    FechaFinalizacion = cuenta.FechaFinalizacion
+                    FechaFinalizacion = cuenta.FechaFinalizacion,
+                    Password = cuenta.Password,
+                    CorreoTerceros = cuenta.CorreoTerceros,
+                    CodigoCuenta = cuenta.CodigoCuenta
                 };
 
                 return Ok(cuentaDto);
@@ -130,6 +136,9 @@ namespace STREAMDOORSystem.Controllers
                     Estado = "Disponible",
                     FechaCreacion = DateTime.Now,
                     FechaFinalizacion = crearCuentaDto.FechaFinalizacion,
+                    Password = crearCuentaDto.Password,
+                    CorreoTerceros = crearCuentaDto.CorreoTerceros,
+                    CodigoCuenta = crearCuentaDto.CodigoCuenta,
                     Activo = true
                 };
 
@@ -360,7 +369,10 @@ namespace STREAMDOORSystem.Controllers
                     PerfilesDisponibles = c.PerfilesDisponibles,
                     Estado = c.Estado,
                     FechaCreacion = c.FechaCreacion,
-                    FechaFinalizacion = c.FechaFinalizacion
+                    FechaFinalizacion = c.FechaFinalizacion,
+                    Password = c.Password,
+                    CorreoTerceros = c.CorreoTerceros,
+                    CodigoCuenta = c.CodigoCuenta
                 }).ToList();
 
                 return Ok(cuentasDto);
@@ -396,6 +408,23 @@ namespace STREAMDOORSystem.Controllers
 
             // 4. Otherwise available
             return "Disponible";
+        }
+
+        // GET: api/cuentas/validar-codigo/{codigo}
+        [HttpGet("validar-codigo/{codigo}")]
+        public async Task<ActionResult<bool>> ValidarCodigoCuenta(string codigo)
+        {
+            try
+            {
+                var existe = await _context.Cuentas
+                    .AnyAsync(c => c.CodigoCuenta == codigo && c.Activo);
+                
+                return Ok(new { existe, disponible = !existe });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al validar código", error = ex.Message });
+            }
         }
     }
 }

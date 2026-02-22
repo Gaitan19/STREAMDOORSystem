@@ -126,6 +126,15 @@ namespace STREAMDOORSystem.Models
         [Column(TypeName = "datetime")]
         public DateTime? FechaFinalizacion { get; set; }
 
+        [MaxLength(100)]
+        public string? Password { get; set; }
+
+        [MaxLength(100)]
+        public string? CorreoTerceros { get; set; }
+
+        [MaxLength(10)]
+        public string? CodigoCuenta { get; set; }
+
         public bool Activo { get; set; } = true;
 
         [ForeignKey("ServicioID")]

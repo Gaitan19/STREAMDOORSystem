@@ -107,6 +107,9 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Estado { get; set; } = string.Empty;
         public DateTime FechaCreacion { get; set; }
         public DateTime? FechaFinalizacion { get; set; }
+        public string? Password { get; set; }
+        public string? CorreoTerceros { get; set; }
+        public string? CodigoCuenta { get; set; }
     }
 
     public class CrearCuentaDTO
@@ -116,8 +119,10 @@ namespace STREAMDOORSystem.Models.DTOs
         public string TipoCuenta { get; set; } = "Propia";
         public int NumeroPerfiles { get; set; } = 1;
         public DateTime? FechaFinalizacion { get; set; }
-        public string? Email { get; set; }  // For TipoCuenta "Terceros"
-        public string? Password { get; set; }  // For TipoCuenta "Terceros"
+        public string? Email { get; set; }  // For TipoCuenta "Terceros" (auto-creates Correo)
+        public string? Password { get; set; }  // Account password (both Propia & Terceros)
+        public string? CorreoTerceros { get; set; }  // Email for Terceros accounts
+        public string? CodigoCuenta { get; set; }  // Auto-generated account code
         public List<PerfilDTO>? Perfiles { get; set; }
     }
 
