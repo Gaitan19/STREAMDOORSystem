@@ -107,12 +107,15 @@ BEGIN
     FROM Clientes
     WHERE ClienteID = @ClienteID;
     
-    -- Historial de ventas
-    SELECT V.VentaID, S.Nombre AS Servicio, V.FechaInicio, V.FechaFin, V.Monto, V.Moneda, V.Estado
+    -- Historial de ventas (ahora con VentasDetalles)
+    SELECT V.VentaID, 
+           STRING_AGG(S.Nombre, ', ') AS Servicios,
+           V.FechaInicio, V.FechaFin, V.Monto, V.Moneda, V.Estado
     FROM Ventas V
-    INNER JOIN Cuentas C ON V.CuentaID = C.CuentaID
-    INNER JOIN Servicios S ON C.ServicioID = S.ServicioID
+    LEFT JOIN VentasDetalles VD ON V.VentaID = VD.VentaID
+    LEFT JOIN Servicios S ON VD.ServicioID = S.ServicioID
     WHERE V.ClienteID = @ClienteID
+    GROUP BY V.VentaID, V.FechaInicio, V.FechaFin, V.Monto, V.Moneda, V.Estado
     ORDER BY V.FechaInicio DESC;
     
     -- Pagos realizados
@@ -319,36 +322,21 @@ GO
 -- PROCEDIMIENTOS PARA VENTAS
 -- ============================================
 
--- Crear Venta
+-- Crear Venta (DEPRECATED - Use API endpoint instead for multi-service support)
+-- This stored procedure is kept for backward compatibility only
+-- New sales should use VentasDetalles table via the API
 CREATE OR ALTER PROCEDURE sp_CrearVenta
     @ClienteID INT,
-    @CuentaID INT,
-    @PerfilID INT = NULL,
     @FechaInicio DATETIME,
-    @Duracion INT,
+    @FechaFin DATETIME,
     @Monto DECIMAL(10,2),
     @Moneda NVARCHAR(10)
 AS
 BEGIN
-    DECLARE @FechaFin DATETIME;
-    SET @FechaFin = DATEADD(DAY, @Duracion, @FechaInicio);
-    
-    INSERT INTO Ventas (ClienteID, CuentaID, PerfilID, FechaInicio, FechaFin, Duracion, Monto, Moneda)
-    VALUES (@ClienteID, @CuentaID, @PerfilID, @FechaInicio, @FechaFin, @Duracion, @Monto, @Moneda);
-    
-    -- Actualizar estado de la cuenta
-    UPDATE Cuentas
-    SET PerfilesDisponibles = PerfilesDisponibles - 1,
-        Estado = CASE WHEN (PerfilesDisponibles - 1) = 0 THEN 'Ocupada' ELSE 'Disponible' END
-    WHERE CuentaID = @CuentaID;
-    
-    -- Si es un perfil específico, actualizarlo
-    IF @PerfilID IS NOT NULL
-    BEGIN
-        UPDATE Perfiles
-        SET Estado = 'Ocupado'
-        WHERE PerfilID = @PerfilID;
-    END
+    -- Simple venta creation without details
+    -- Details must be added via VentasDetalles table
+    INSERT INTO Ventas (ClienteID, FechaInicio, FechaFin, Monto, Moneda)
+    VALUES (@ClienteID, @FechaInicio, @FechaFin, @Monto, @Moneda);
     
     SELECT SCOPE_IDENTITY() AS VentaID;
 END
@@ -379,24 +367,25 @@ BEGIN
 END
 GO
 
--- Listar Ventas
+-- Listar Ventas (Updated for VentasDetalles)
 CREATE OR ALTER PROCEDURE sp_ListarVentas
 AS
 BEGIN
     SELECT V.VentaID, 
            C.Nombre + ' ' + C.Apellido AS Cliente,
-           S.Nombre AS Servicio,
+           STRING_AGG(S.Nombre, ', ') AS Servicios,
            V.FechaInicio, V.FechaFin, V.Duracion, V.Monto, V.Moneda, V.Estado,
            DATEDIFF(DAY, GETDATE(), V.FechaFin) AS DiasRestantes
     FROM Ventas V
     INNER JOIN Clientes C ON V.ClienteID = C.ClienteID
-    INNER JOIN Cuentas CU ON V.CuentaID = CU.CuentaID
-    INNER JOIN Servicios S ON CU.ServicioID = S.ServicioID
+    LEFT JOIN VentasDetalles VD ON V.VentaID = VD.VentaID
+    LEFT JOIN Servicios S ON VD.ServicioID = S.ServicioID
+    GROUP BY V.VentaID, C.Nombre, C.Apellido, V.FechaInicio, V.FechaFin, V.Duracion, V.Monto, V.Moneda, V.Estado
     ORDER BY V.FechaFin ASC;
 END
 GO
 
--- Actualizar Estados de Ventas
+-- Actualizar Estados de Ventas (Updated for VentasDetalles)
 CREATE OR ALTER PROCEDURE sp_ActualizarEstadosVentas
 AS
 BEGIN
@@ -411,22 +400,14 @@ BEGIN
     WHERE DATEDIFF(DAY, GETDATE(), FechaFin) BETWEEN 0 AND 3 
     AND Estado = 'Activo';
     
-    -- Actualizar estado de cuentas vencidas
-    UPDATE Cuentas
-    SET Estado = 'Vencida'
-    WHERE CuentaID IN (
-        SELECT DISTINCT CuentaID 
-        FROM Ventas 
-        WHERE Estado = 'Vencido'
-    );
-    
-    -- Actualizar estado de perfiles vencidos
+    -- Actualizar estado de perfiles vencidos (from VentasDetalles)
     UPDATE Perfiles
     SET Estado = 'Vencido'
     WHERE PerfilID IN (
-        SELECT DISTINCT PerfilID 
-        FROM Ventas 
-        WHERE Estado = 'Vencido' AND PerfilID IS NOT NULL
+        SELECT DISTINCT VD.PerfilID 
+        FROM VentasDetalles VD
+        INNER JOIN Ventas V ON VD.VentaID = V.VentaID
+        WHERE V.Estado = 'Vencido'
     );
 END
 GO
@@ -456,7 +437,7 @@ GO
 -- PROCEDIMIENTOS PARA DASHBOARD
 -- ============================================
 
--- Obtener Métricas del Dashboard
+-- Obtener Métricas del Dashboard (Updated for VentasDetalles)
 CREATE OR ALTER PROCEDURE sp_ObtenerMetricasDashboard
     @FechaInicio DATETIME = NULL,
     @FechaFin DATETIME = NULL
@@ -474,11 +455,11 @@ BEGIN
     FROM Ventas
     WHERE FechaCreacion BETWEEN @FechaInicio AND @FechaFin;
     
-    -- Servicios más vendidos
+    -- Servicios más vendidos (now from VentasDetalles)
     SELECT TOP 5 S.Nombre, COUNT(*) AS Cantidad
-    FROM Ventas V
-    INNER JOIN Cuentas C ON V.CuentaID = C.CuentaID
-    INNER JOIN Servicios S ON C.ServicioID = S.ServicioID
+    FROM VentasDetalles VD
+    INNER JOIN Ventas V ON VD.VentaID = V.VentaID
+    INNER JOIN Servicios S ON VD.ServicioID = S.ServicioID
     WHERE V.FechaCreacion BETWEEN @FechaInicio AND @FechaFin
     GROUP BY S.Nombre
     ORDER BY Cantidad DESC;
@@ -489,18 +470,19 @@ BEGIN
     WHERE DATEDIFF(DAY, GETDATE(), FechaFin) BETWEEN 0 AND 3
     AND Estado IN ('Activo', 'ProximoVencer');
     
-    -- Alertas de vencimiento
+    -- Alertas de vencimiento (with multiple services)
     SELECT V.VentaID, 
            C.Nombre + ' ' + C.Apellido AS Cliente,
-           S.Nombre AS Servicio,
+           STRING_AGG(S.Nombre, ', ') AS Servicios,
            V.FechaFin,
            DATEDIFF(DAY, GETDATE(), V.FechaFin) AS DiasRestantes
     FROM Ventas V
     INNER JOIN Clientes C ON V.ClienteID = C.ClienteID
-    INNER JOIN Cuentas CU ON V.CuentaID = CU.CuentaID
-    INNER JOIN Servicios S ON CU.ServicioID = S.ServicioID
+    LEFT JOIN VentasDetalles VD ON V.VentaID = VD.VentaID
+    LEFT JOIN Servicios S ON VD.ServicioID = S.ServicioID
     WHERE DATEDIFF(DAY, GETDATE(), V.FechaFin) BETWEEN 0 AND 3
     AND V.Estado IN ('Activo', 'ProximoVencer')
+    GROUP BY V.VentaID, C.Nombre, C.Apellido, V.FechaFin
     ORDER BY V.FechaFin ASC;
 END
 GO
