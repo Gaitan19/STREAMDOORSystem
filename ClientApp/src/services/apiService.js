@@ -44,6 +44,7 @@ export const authService = {
 export const clientesService = {
   getAll: () => apiClient.get('/clientes'),
   getById: (id) => apiClient.get(`/clientes/${id}`),
+  search: (query) => apiClient.get(`/clientes/search?q=${encodeURIComponent(query)}`),
   create: (data) => apiClient.post('/clientes', data),
   update: (id, data) => apiClient.put(`/clientes/${id}`, data),
   delete: (id) => apiClient.delete(`/clientes/${id}`),
@@ -72,6 +73,8 @@ export const cuentasService = {
   getById: (id) => apiClient.get(`/cuentas/${id}`),
   getByCliente: (clienteId) => apiClient.get(`/cuentas/cliente/${clienteId}`),
   getCorreosDisponibles: () => apiClient.get('/cuentas/correos/disponibles'),
+  getDisponibles: () => apiClient.get('/cuentas/disponibles'),
+  getPerfilesDisponibles: (id) => apiClient.get(`/cuentas/${id}/perfiles-disponibles`),
   getByFiltro: (filtro) => apiClient.get(`/cuentas/filtro/${filtro}`),
   validarCodigo: (codigo) => apiClient.get(`/cuentas/validar-codigo/${codigo}`),
   verificarEstados: () => apiClient.post('/cuentas/verificar-estados'),
