@@ -22,14 +22,20 @@ namespace STREAMDOORSystem.Controllers
             _authService = authService;
         }
 
-        // GET: api/Usuarios
+        // GET: api/Usuarios?includeInactive=false
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UsuarioDTO>>> GetUsuarios()
+        public async Task<ActionResult<IEnumerable<UsuarioDTO>>> GetUsuarios([FromQuery] bool includeInactive = false)
         {
             try
             {
-                var usuarios = await _context.Usuarios
-                    .Where(u => u.Activo)
+                var query = _context.Usuarios.AsQueryable();
+                
+                if (!includeInactive)
+                {
+                    query = query.Where(u => u.Activo);
+                }
+
+                var usuarios = await query
                     .Select(u => new UsuarioDTO
                     {
                         UsuarioID = u.UsuarioID,
@@ -210,6 +216,36 @@ namespace STREAMDOORSystem.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error al eliminar usuario", error = ex.Message });
+            }
+        }
+
+        // POST: api/Usuarios/5/reactivar
+        [HttpPost("{id}/reactivar")]
+        public async Task<IActionResult> ReactivarUsuario(int id)
+        {
+            try
+            {
+                var usuario = await _context.Usuarios.FindAsync(id);
+
+                if (usuario == null)
+                {
+                    return NotFound(new { message = "Usuario no encontrado" });
+                }
+
+                if (usuario.Activo)
+                {
+                    return BadRequest(new { message = "El usuario ya está activo" });
+                }
+
+                usuario.Activo = true;
+                _context.Usuarios.Update(usuario);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al reactivar usuario", error = ex.Message });
             }
         }
     }

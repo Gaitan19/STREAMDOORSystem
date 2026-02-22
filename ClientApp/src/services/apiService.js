@@ -58,12 +58,13 @@ export const serviciosService = {
 };
 
 export const correosService = {
-  getAll: () => apiClient.get('/correos'),
+  getAll: (includeInactive = false) => apiClient.get(`/correos?includeInactive=${includeInactive}`),
   getById: (id) => apiClient.get(`/correos/${id}`),
   create: (data) => apiClient.post('/correos', data),
   update: (id, data) => apiClient.put(`/correos/${id}`, data),
   delete: (id) => apiClient.delete(`/correos/${id}`),
   generateCredentials: () => apiClient.post('/correos/generar-credenciales'),
+  reactivate: (id) => apiClient.post(`/correos/${id}/reactivar`),
 };
 
 export const cuentasService = {
@@ -101,11 +102,12 @@ export const mediosPagoService = {
 };
 
 export const usuariosService = {
-  getAll: () => apiClient.get('/usuarios'),
+  getAll: (includeInactive = false) => apiClient.get(`/usuarios?includeInactive=${includeInactive}`),
   getById: (id) => apiClient.get(`/usuarios/${id}`),
   create: (data) => apiClient.post('/usuarios', data),
   update: (id, data) => apiClient.put(`/usuarios/${id}`, data),
   delete: (id) => apiClient.delete(`/usuarios/${id}`),
+  reactivate: (id) => apiClient.post(`/usuarios/${id}/reactivar`),
 };
 
 export const dashboardService = {

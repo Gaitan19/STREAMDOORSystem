@@ -20,14 +20,20 @@ namespace STREAMDOORSystem.Controllers
             _context = context;
         }
 
-        // GET: api/Correos
+        // GET: api/Correos?includeInactive=false
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CorreoDTO>>> GetCorreos()
+        public async Task<ActionResult<IEnumerable<CorreoDTO>>> GetCorreos([FromQuery] bool includeInactive = false)
         {
             try
             {
-                var correos = await _context.Correos
-                    .Where(c => c.Activo)
+                var query = _context.Correos.AsQueryable();
+                
+                if (!includeInactive)
+                {
+                    query = query.Where(c => c.Activo);
+                }
+
+                var correos = await query
                     .Select(c => new CorreoDTO
                     {
                         CorreoID = c.CorreoID,
@@ -268,6 +274,36 @@ namespace STREAMDOORSystem.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error al eliminar correo", error = ex.Message });
+            }
+        }
+
+        // POST: api/Correos/5/reactivar
+        [HttpPost("{id}/reactivar")]
+        public async Task<IActionResult> ReactivarCorreo(int id)
+        {
+            try
+            {
+                var correo = await _context.Correos.FindAsync(id);
+
+                if (correo == null)
+                {
+                    return NotFound(new { message = "Correo no encontrado" });
+                }
+
+                if (correo.Activo)
+                {
+                    return BadRequest(new { message = "El correo ya está activo" });
+                }
+
+                correo.Activo = true;
+                _context.Correos.Update(correo);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al reactivar correo", error = ex.Message });
             }
         }
 

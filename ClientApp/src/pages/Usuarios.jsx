@@ -19,6 +19,7 @@ const Usuarios = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [filter, setFilter] = useState('activos'); // 'activos' | 'inactivos'
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
@@ -31,14 +32,21 @@ const Usuarios = () => {
 
   useEffect(() => {
     loadUsuarios();
-  }, []);
+  }, [filter]);
 
   const loadUsuarios = async () => {
     try {
       setLoading(true);
-      const data = await usuariosService.getAll();
-      setUsuarios(data);
-      setFilteredUsuarios(data);
+      const includeInactive = filter === 'inactivos';
+      const data = await usuariosService.getAll(includeInactive);
+      
+      // Filter based on selection
+      const filtered = filter === 'activos' 
+        ? data.filter(u => u.activo)
+        : data.filter(u => !u.activo);
+        
+      setUsuarios(filtered);
+      setFilteredUsuarios(filtered);
     } catch {
       showAlert('error', 'Error al cargar usuarios');
     } finally {
@@ -134,6 +142,16 @@ const Usuarios = () => {
     }
   };
 
+  const handleReactivate = async (usuario) => {
+    try {
+      await usuariosService.reactivate(usuario.usuarioID);
+      showAlert('success', 'Usuario reactivado exitosamente');
+      loadUsuarios();
+    } catch (error) {
+      showAlert('error', error.response?.data?.message || 'Error al reactivar usuario');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       nombre: '',
@@ -185,26 +203,53 @@ const Usuarios = () => {
         </span>
       )
     },
+    { 
+      key: 'estado', 
+      label: 'Estado',
+      render: (row) => (
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          row.activo 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-gray-100 text-gray-800'
+        }`}>
+          {row.activo ? 'Activo' : 'Inactivo'}
+        </span>
+      )
+    },
     {
       key: 'actions',
       label: 'Acciones',
       render: (row) => (
         <div className="flex gap-2">
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <Edit size={18} />
-          </button>
-          <button
-            onClick={() => {
-              setSelectedUsuario(row);
-              setDeleteModalOpen(true);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 size={18} />
-          </button>
+          {row.activo ? (
+            <>
+              <button
+                onClick={() => handleEdit(row)}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Editar"
+              >
+                <Edit size={18} />
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedUsuario(row);
+                  setDeleteModalOpen(true);
+                }}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar"
+              >
+                <Trash2 size={18} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handleReactivate(row)}
+              className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              title="Reactivar"
+            >
+              Reactivar
+            </button>
+          )}
         </div>
       )
     }
@@ -232,8 +277,18 @@ const Usuarios = () => {
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <Card>
-        <div className="mb-4">
-          <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre o correo..." />
+        <div className="mb-4 flex gap-4 items-center">
+          <div className="flex-1">
+            <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre o correo..." />
+          </div>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
         </div>
         <Table columns={columns} data={filteredUsuarios} loading={loading} />
       </Card>
