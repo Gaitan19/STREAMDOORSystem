@@ -136,7 +136,7 @@ BEGIN
         TipoCuenta NVARCHAR(20) NOT NULL CHECK (TipoCuenta IN ('Propia', 'Terceros')),
         NumeroPerfiles INT DEFAULT 1,
         PerfilesDisponibles INT DEFAULT 1,
-        Estado NVARCHAR(20) DEFAULT 'Disponible' CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva')),
+        Estado NVARCHAR(30) DEFAULT 'Disponible' CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible')),
         FechaCreacion DATETIME DEFAULT GETDATE(),
         Activo BIT DEFAULT 1,
         FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID),
@@ -191,6 +191,42 @@ BEGIN
     BEGIN
         ALTER TABLE Cuentas ADD CONSTRAINT UQ_Cuentas_CodigoCuenta UNIQUE (CodigoCuenta);
         PRINT 'UNIQUE constraint added to CodigoCuenta column.';
+    END
+    
+    -- Actualizar constraint CHECK de Estado para incluir nuevos valores
+    DECLARE @ConstraintName NVARCHAR(200);
+    SELECT @ConstraintName = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID('Cuentas') 
+    AND COL_NAME(parent_object_id, parent_column_id) = 'Estado';
+    
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        DECLARE @SQL NVARCHAR(MAX);
+        SET @SQL = 'ALTER TABLE Cuentas DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
+        EXEC sp_executesql @SQL;
+        PRINT 'Dropped old Estado CHECK constraint: ' + @ConstraintName;
+        
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Estado 
+            CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible'));
+        PRINT 'Added new Estado CHECK constraint with extended values.';
+    END
+    ELSE
+    BEGIN
+        -- Si no existe constraint, agregar uno nuevo
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Estado 
+            CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible'));
+        PRINT 'Added Estado CHECK constraint.';
+    END
+    
+    -- Ampliar el tamaño de la columna Estado si es necesario
+    IF EXISTS (SELECT * FROM sys.columns 
+               WHERE object_id = OBJECT_ID('Cuentas') 
+               AND name = 'Estado' 
+               AND max_length < 60)  -- NVARCHAR(30) = 60 bytes
+    BEGIN
+        ALTER TABLE Cuentas ALTER COLUMN Estado NVARCHAR(30) NOT NULL;
+        PRINT 'Estado column resized to NVARCHAR(30).';
     END
 END
 GO
