@@ -676,17 +676,16 @@ const Ventas = () => {
                   </div>
                 </div>
               )}
+
+              {/* Total */}
+              <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                <span className="font-semibold text-lg">Total:</span>
+                <span className="font-bold text-xl text-green-600">
+                  {formatCurrency(calcularMontoTotal(), formData.moneda)}
+                </span>
+              </div>
             </div>
           )}
-                </div>
-                <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                  <span className="font-semibold text-lg">Total:</span>
-                  <span className="font-bold text-xl text-green-600">
-                    {formatCurrency(calcularMontoTotal(), formData.moneda)}
-                  </span>
-                </div>
-              </div>
-            )}
             {errors.servicios && (
               <p className="mt-2 text-sm text-red-600">{errors.servicios}</p>
             )}
