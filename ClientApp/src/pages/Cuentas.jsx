@@ -245,6 +245,19 @@ const Cuentas = () => {
     }
   };
 
+  const handleVerificarEstados = async () => {
+    try {
+      setLoading(true);
+      const response = await cuentasService.verificarEstados();
+      showAlert('success', response.message);
+      loadData(filtroEstado); // Reload data to show updated estados
+    } catch (error) {
+      showAlert('error', 'Error al verificar estados de cuentas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       servicioID: '',
@@ -456,6 +469,18 @@ const Cuentas = () => {
               <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
             </select>
           </div>
+          <Button
+            onClick={handleVerificarEstados}
+            variant="secondary"
+            className="flex items-center gap-2 whitespace-nowrap"
+            disabled={loading}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Verificar Estados
+          </Button>
         </div>
         <Table columns={columns} data={filteredCuentas} loading={loading} />
       </Card>
@@ -466,7 +491,9 @@ const Cuentas = () => {
           setModalOpen(false);
           resetForm();
         }}
-        title={selectedCuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        title={selectedCuenta ? 
+          `Editar Cuenta - ${selectedCuenta.nombreServicio} - ${selectedCuenta.codigoCuenta}` 
+          : 'Nueva Cuenta'}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">

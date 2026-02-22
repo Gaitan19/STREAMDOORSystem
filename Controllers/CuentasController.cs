@@ -442,5 +442,43 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { message = "Error al validar código", error = ex.Message });
             }
         }
+
+        // POST: api/cuentas/verificar-estados
+        [HttpPost("verificar-estados")]
+        public async Task<ActionResult> VerificarEstados()
+        {
+            try
+            {
+                // Get all "Disponible" accounts
+                var cuentasDisponibles = await _context.Cuentas
+                    .Where(c => c.Activo && c.Estado == "Disponible")
+                    .Include(c => c.Perfiles)
+                    .ToListAsync();
+
+                int actualizadas = 0;
+                foreach (var cuenta in cuentasDisponibles)
+                {
+                    var perfiles = cuenta.Perfiles.Where(p => p.Activo).ToList();
+                    var nuevoEstado = CalcularEstado(cuenta, perfiles);
+                    
+                    if (nuevoEstado != cuenta.Estado)
+                    {
+                        cuenta.Estado = nuevoEstado;
+                        actualizadas++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { 
+                    message = $"{actualizadas} cuenta(s) actualizada(s)", 
+                    actualizadas 
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al verificar estados", error = ex.Message });
+            }
+        }
     }
 }
