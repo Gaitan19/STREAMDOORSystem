@@ -274,18 +274,74 @@ BEGIN
     CREATE TABLE Ventas (
         VentaID INT PRIMARY KEY IDENTITY(1,1),
         ClienteID INT NOT NULL,
-        CuentaID INT NOT NULL,
-        PerfilID INT NULL, -- Solo si la cuenta es de terceros
         FechaInicio DATETIME NOT NULL,
         FechaFin DATETIME NOT NULL,
-        Duracion INT NOT NULL, -- En días
+        Duracion INT NULL, -- En días (opcional, para compatibilidad)
         Monto DECIMAL(10,2) NOT NULL,
         Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
         Estado NVARCHAR(20) DEFAULT 'Activo' CHECK (Estado IN ('Activo', 'ProximoVencer', 'Vencido', 'Cancelado')),
         FechaCreacion DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID)
+    );
+END
+GO
+
+-- Migración: Actualizar tabla Ventas existente para quitar CuentaID y PerfilID
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    -- Hacer Duracion nullable para compatibilidad
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'Duracion')
+    BEGIN
+        ALTER TABLE Ventas ALTER COLUMN Duracion INT NULL;
+    END
+
+    -- Eliminar CuentaID si existe (los datos se migrarán a VentasDetalles)
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'CuentaID')
+    BEGIN
+        -- Primero eliminar el foreign key constraint
+        DECLARE @ConstraintName nvarchar(200)
+        SELECT @ConstraintName = name FROM sys.foreign_keys 
+        WHERE parent_object_id = OBJECT_ID('Ventas') AND referenced_object_id = OBJECT_ID('Cuentas')
+        IF @ConstraintName IS NOT NULL
+            EXEC('ALTER TABLE Ventas DROP CONSTRAINT ' + @ConstraintName)
+        
+        -- Ahora eliminar la columna
+        ALTER TABLE Ventas DROP COLUMN CuentaID;
+    END
+
+    -- Eliminar PerfilID si existe (los datos se migrarán a VentasDetalles)
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'PerfilID')
+    BEGIN
+        -- Primero eliminar el foreign key constraint
+        DECLARE @ConstraintName2 nvarchar(200)
+        SELECT @ConstraintName2 = name FROM sys.foreign_keys 
+        WHERE parent_object_id = OBJECT_ID('Ventas') AND referenced_object_id = OBJECT_ID('Perfiles')
+        IF @ConstraintName2 IS NOT NULL
+            EXEC('ALTER TABLE Ventas DROP CONSTRAINT ' + @ConstraintName2)
+        
+        -- Ahora eliminar la columna
+        ALTER TABLE Ventas DROP COLUMN PerfilID;
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: VentasDetalles (Detalle de servicios por venta)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'VentasDetalles')
+BEGIN
+    CREATE TABLE VentasDetalles (
+        VentaDetalleID INT PRIMARY KEY IDENTITY(1,1),
+        VentaID INT NOT NULL,
+        CuentaID INT NOT NULL,
+        PerfilID INT NOT NULL,
+        ServicioID INT NOT NULL,
+        PrecioUnitario DECIMAL(10,2) NOT NULL,
+        FechaAsignacion DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
         FOREIGN KEY (CuentaID) REFERENCES Cuentas(CuentaID),
-        FOREIGN KEY (PerfilID) REFERENCES Perfiles(PerfilID)
+        FOREIGN KEY (PerfilID) REFERENCES Perfiles(PerfilID),
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID)
     );
 END
 GO
@@ -339,6 +395,14 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Estado')
     CREATE INDEX IX_Cuentas_Estado ON Cuentas(Estado);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_VentaID')
+    CREATE INDEX IX_VentasDetalles_VentaID ON VentasDetalles(VentaID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_PerfilID')
+    CREATE INDEX IX_VentasDetalles_PerfilID ON VentasDetalles(PerfilID);
 GO
 
 PRINT 'Base de datos DBStreamDoor creada exitosamente';

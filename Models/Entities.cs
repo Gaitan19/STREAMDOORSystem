@@ -209,18 +209,12 @@ namespace STREAMDOORSystem.Models
         public int ClienteID { get; set; }
 
         [Required]
-        public int CuentaID { get; set; }
-
-        public int? PerfilID { get; set; }
-
-        [Required]
         public DateTime FechaInicio { get; set; }
 
         [Required]
         public DateTime FechaFin { get; set; }
 
-        [Required]
-        public int Duracion { get; set; }
+        public int? Duracion { get; set; } // Nullable para compatibilidad
 
         [Required]
         [Column(TypeName = "decimal(10,2)")]
@@ -238,11 +232,44 @@ namespace STREAMDOORSystem.Models
         [ForeignKey("ClienteID")]
         public virtual Cliente? Cliente { get; set; }
 
+        public virtual ICollection<VentaDetalle> Detalles { get; set; } = new List<VentaDetalle>();
+    }
+
+    [Table("VentasDetalles")]
+    public class VentaDetalle
+    {
+        [Key]
+        public int VentaDetalleID { get; set; }
+
+        [Required]
+        public int VentaID { get; set; }
+
+        [Required]
+        public int CuentaID { get; set; }
+
+        [Required]
+        public int PerfilID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal PrecioUnitario { get; set; }
+
+        public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+
+        [ForeignKey("VentaID")]
+        public virtual Venta? Venta { get; set; }
+
         [ForeignKey("CuentaID")]
         public virtual Cuenta? Cuenta { get; set; }
 
         [ForeignKey("PerfilID")]
         public virtual Perfil? Perfil { get; set; }
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
     }
 
     [Table("Pagos")]

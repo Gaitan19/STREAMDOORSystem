@@ -173,30 +173,45 @@ namespace STREAMDOORSystem.Models.DTOs
         public int VentaID { get; set; }
         public int ClienteID { get; set; }
         public string NombreCliente { get; set; } = string.Empty;
-        public int CuentaID { get; set; }
-        public string NombreServicio { get; set; } = string.Empty;
-        public int? PerfilID { get; set; }
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
-        public int Duracion { get; set; }
+        public int? Duracion { get; set; }
         public decimal Monto { get; set; }
         public string Moneda { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public int DiasRestantes { get; set; }
+        public List<VentaDetalleDTO> Detalles { get; set; } = new();
+    }
+
+    public class VentaDetalleDTO
+    {
+        public int VentaDetalleID { get; set; }
+        public int VentaID { get; set; }
+        public int CuentaID { get; set; }
+        public string CodigoCuenta { get; set; } = string.Empty;
+        public int PerfilID { get; set; }
+        public int NumeroPerfil { get; set; }
+        public int ServicioID { get; set; }
+        public string NombreServicio { get; set; } = string.Empty;
+        public decimal PrecioUnitario { get; set; }
+        public DateTime FechaAsignacion { get; set; }
     }
 
     public class CrearVentaDTO
     {
         public int ClienteID { get; set; }
-        public int? CuentaID { get; set; }  // Opcional: si no se proporciona, usar ServicioID
-        public int? ServicioID { get; set; }  // Usado si CuentaID no está presente
-        public int? PerfilID { get; set; }
+        public DateTime FechaFin { get; set; }  // Changed from Duracion to FechaFin
         public int? MedioPagoID { get; set; }  // Medio de pago usado
-        public DateTime FechaInicio { get; set; }
-        public int Duracion { get; set; }
-        public decimal Monto { get; set; }
         public string Moneda { get; set; } = "C$";
         public string? Notas { get; set; }
+        public List<CrearVentaDetalleDTO> Detalles { get; set; } = new();  // Multiple services
+    }
+
+    public class CrearVentaDetalleDTO
+    {
+        public int CuentaID { get; set; }
+        public int PerfilID { get; set; }
+        public int ServicioID { get; set; }
     }
 
     public class RenovarVentaDTO
