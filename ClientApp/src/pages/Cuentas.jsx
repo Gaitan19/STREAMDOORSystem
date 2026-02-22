@@ -10,7 +10,7 @@ import Table from '../components/Table';
 import Alert from '../components/Alert';
 import PerfilesModal from '../components/PerfilesModal';
 import { cuentasService, serviciosService } from '../services/apiService';
-import { formatDate, getEstadoColor, copyToClipboard, getRowColorClass, generatePassword } from '../utils/helpers';
+import { formatDate, getEstadoColor, copyToClipboard, getRowColorClass, generatePassword, generateCodigoCuenta } from '../utils/helpers';
 
 const Cuentas = () => {
   const [cuentas, setCuentas] = useState([]);
@@ -34,7 +34,9 @@ const Cuentas = () => {
     numeroPerfiles: 1,
     fechaFinalizacion: '',
     email: '',
-    password: ''
+    password: '',
+    correoTerceros: '',
+    codigoCuenta: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -102,6 +104,35 @@ const Cuentas = () => {
     showAlert('success', 'Contraseña generada');
   };
 
+  const handleGenerateCodigoCuenta = async () => {
+    try {
+      // Get selected servicio name
+      const selectedServicio = servicios.find(s => s.servicioID === parseInt(formData.servicioID));
+      if (!selectedServicio) {
+        showAlert('error', 'Debe seleccionar un servicio primero');
+        return;
+      }
+
+      // Generate code
+      const codigo = generateCodigoCuenta(selectedServicio.nombre);
+      
+      // Validate uniqueness
+      const response = await cuentasService.validarCodigo(codigo);
+      if (response.existe) {
+        // Code already exists, generate again
+        showAlert('warning', 'Código ya existe. Generando otro...');
+        handleGenerateCodigoCuenta(); // Recursive call
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, codigoCuenta: codigo }));
+      showAlert('success', `Código generado: ${codigo}`);
+    } catch (error) {
+      console.error('Error generating code:', error);
+      showAlert('error', 'Error al generar código');
+    }
+  };
+
   const handleFiltroChange = (filtro) => {
     setFiltroEstado(filtro);
     loadData(filtro);
@@ -114,16 +145,21 @@ const Cuentas = () => {
       newErrors.servicioID = 'El servicio es requerido';
     }
 
+    if (!formData.codigoCuenta) {
+      newErrors.codigoCuenta = 'El código de cuenta es requerido. Use el botón para generar uno.';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'La contraseña es requerida';
+    }
+
     if (formData.tipoCuenta === 'Propia' && !formData.correoID) {
       newErrors.correoID = 'Debe seleccionar un correo para cuentas propias';
     }
 
     if (formData.tipoCuenta === 'Terceros') {
-      if (!formData.email) {
-        newErrors.email = 'El email es requerido para cuentas de terceros';
-      }
-      if (!formData.password) {
-        newErrors.password = 'La contraseña es requerida para cuentas de terceros';
+      if (!formData.correoTerceros) {
+        newErrors.correoTerceros = 'El correo de terceros es requerido';
       }
     }
 
@@ -145,17 +181,18 @@ const Cuentas = () => {
         ServicioID: parseInt(formData.servicioID),
         TipoCuenta: formData.tipoCuenta,
         NumeroPerfiles: parseInt(formData.numeroPerfiles),
-        FechaFinalizacion: formData.fechaFinalizacion || null
+        FechaFinalizacion: formData.fechaFinalizacion || null,
+        Password: formData.password,
+        CodigoCuenta: formData.codigoCuenta
       };
 
       // For Propia accounts, use selected CorreoID
       if (formData.tipoCuenta === 'Propia') {
         payload.CorreoID = formData.correoID ? parseInt(formData.correoID) : null;
       } 
-      // For Terceros accounts, send Email and Password for backend to create Correo
+      // For Terceros accounts, send CorreoTerceros
       else if (formData.tipoCuenta === 'Terceros') {
-        payload.Email = formData.email;
-        payload.Password = formData.password;
+        payload.CorreoTerceros = formData.correoTerceros;
         payload.CorreoID = null;
       }
 
@@ -418,6 +455,36 @@ const Cuentas = () => {
             required
           />
 
+          {/* Código de Cuenta - Required for all */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Código de Cuenta
+            </label>
+            <div className="flex gap-2">
+              <Input
+                name="codigoCuenta"
+                type="text"
+                value={formData.codigoCuenta}
+                readOnly
+                placeholder="Ej: NE192599"
+                error={errors.codigoCuenta}
+                required
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleGenerateCodigoCuenta}
+                title="Generar Código"
+              >
+                <Key size={16} />
+              </Button>
+            </div>
+            {errors.codigoCuenta && <p className="text-red-500 text-xs mt-1">{errors.codigoCuenta}</p>}
+            <p className="text-xs text-gray-500 mt-1">
+              Código único para identificar la cuenta (2 letras del servicio + 6 números)
+            </p>
+          </div>
+
           <Select
             label="Tipo de Cuenta"
             name="tipoCuenta"
@@ -480,23 +547,53 @@ const Cuentas = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Password for Propia accounts */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña de la Cuenta
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    name="password"
+                    type="text"
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={errors.password}
+                    placeholder="StreamDoorNic!2Gv7@p"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleGeneratePassword}
+                    title="Generar contraseña segura"
+                  >
+                    <Key size={16} />
+                  </Button>
+                </div>
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                <p className="text-xs text-gray-500 mt-1">
+                  Contraseña para acceder a la cuenta del servicio
+                </p>
+              </div>
             </>
           ) : (
             <>
               <Input
-                label="Email (para la cuenta de terceros)"
-                name="email"
+                label="Correo de la Cuenta de Terceros"
+                name="correoTerceros"
                 type="email"
-                value={formData.email}
+                value={formData.correoTerceros}
                 onChange={handleChange}
-                error={errors.email}
+                error={errors.correoTerceros}
                 placeholder="correo@ejemplo.com"
                 required
               />
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
+                  Contraseña de la Cuenta
                 </label>
                 <div className="flex gap-2">
                   <Input
@@ -624,6 +721,10 @@ const Cuentas = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="text-sm font-medium text-gray-600">Código de Cuenta</label>
+                <p className="text-base font-mono font-semibold text-blue-600">{selectedCuenta.codigoCuenta || 'N/A'}</p>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-gray-600">Servicio</label>
                 <p className="text-base font-semibold">{selectedCuenta.nombreServicio}</p>
               </div>
@@ -638,20 +739,6 @@ const Cuentas = () => {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600">Email</label>
-                <div className="flex items-center gap-2">
-                  <p className="text-base font-mono">{selectedCuenta.email || 'N/A'}</p>
-                  {selectedCuenta.email && (
-                    <button
-                      onClick={() => handleCopyToClipboard(selectedCuenta.email, 'Email')}
-                      className="p-1 text-blue-600 hover:text-blue-800"
-                    >
-                      <Copy size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div>
                 <label className="text-sm font-medium text-gray-600">Estado</label>
                 <p className="text-base">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(selectedCuenta.estado)}`}>
@@ -659,20 +746,76 @@ const Cuentas = () => {
                   </span>
                 </p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Perfiles</label>
-                <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
+            </div>
+
+            {/* Credentials Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Credenciales</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {selectedCuenta.tipoCuenta === 'Propia' && selectedCuenta.email && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Email (Correo del Negocio)</label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-mono">{selectedCuenta.email}</p>
+                      <button
+                        onClick={() => handleCopyToClipboard(selectedCuenta.email, 'Email')}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {selectedCuenta.tipoCuenta === 'Terceros' && selectedCuenta.correoTerceros && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Email de Terceros</label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-mono">{selectedCuenta.correoTerceros}</p>
+                      <button
+                        onClick={() => handleCopyToClipboard(selectedCuenta.correoTerceros, 'Email')}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {selectedCuenta.password && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Contraseña</label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-mono">{selectedCuenta.password}</p>
+                      <button
+                        onClick={() => handleCopyToClipboard(selectedCuenta.password, 'Contraseña')}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Fecha de Creación</label>
-                <p className="text-base">{formatDate(selectedCuenta.fechaCreacion)}</p>
-              </div>
-              {selectedCuenta.fechaFinalizacion && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-600">Fecha de Finalización</label>
-                  <p className="text-base">{formatDate(selectedCuenta.fechaFinalizacion)}</p>
+            </div>
+
+            {/* Account Info Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Información</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Perfiles</label>
+                  <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
                 </div>
-              )}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Fecha de Creación</label>
+                  <p className="text-base">{formatDate(selectedCuenta.fechaCreacion)}</p>
+                </div>
+                {selectedCuenta.fechaFinalizacion && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-600">Fecha de Finalización</label>
+                    <p className="text-base">{formatDate(selectedCuenta.fechaFinalizacion)}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
