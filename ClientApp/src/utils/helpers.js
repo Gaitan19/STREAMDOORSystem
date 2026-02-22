@@ -1,53 +1,49 @@
 export const generatePassword = (length = 16) => {
   // Requisitos de contraseña:
-  // - Longitud: 10-60 caracteres
+  // - Siempre empieza con "StreamDoorNic"
+  // - Longitud: 10-60 caracteres (después del prefijo)
   // - Al menos 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
   // - No incluir ~
   // - No contraseñas simples
   
+  const prefix = 'StreamDoorNic';
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
-  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?'; // Sin ~
+  const symbols = '!@#$%^&*'; // Simplified, sin ~
   
-  // Validar longitud
-  const validLength = Math.max(10, Math.min(60, length));
+  // Calculate length for the random part (after prefix)
+  const remainingLength = Math.max(10, length) - prefix.length;
+  const validLength = Math.max(4, remainingLength); // At least 4 chars after prefix
   
-  // Contraseñas simples a evitar
-  const weakPasswords = [
-    '12345678', '123456789', '1234567890', 
-    'password', 'Password', 'PASSWORD',
-    'qwerty', 'Qwerty', 'QWERTY',
-    'abcdefgh', 'Abcdefgh', 'ABCDEFGH'
-  ];
-  
-  let password = '';
+  let randomPart = '';
   let attempts = 0;
   const maxAttempts = 10;
   
-  // Generar contraseña válida
+  // Generar parte aleatoria válida
   do {
-    password = '';
+    randomPart = '';
     
     // Asegurar al menos 1 de cada tipo
-    password += uppercase[Math.floor(Math.random() * uppercase.length)];
-    password += lowercase[Math.floor(Math.random() * lowercase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
+    randomPart += uppercase[Math.floor(Math.random() * uppercase.length)];
+    randomPart += lowercase[Math.floor(Math.random() * lowercase.length)];
+    randomPart += numbers[Math.floor(Math.random() * numbers.length)];
+    randomPart += symbols[Math.floor(Math.random() * symbols.length)];
     
     // Completar el resto de la longitud
     const allChars = uppercase + lowercase + numbers + symbols;
-    for (let i = password.length; i < validLength; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
+    for (let i = randomPart.length; i < validLength; i++) {
+      randomPart += allChars[Math.floor(Math.random() * allChars.length)];
     }
     
     // Mezclar caracteres
-    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    randomPart = randomPart.split('').sort(() => Math.random() - 0.5).join('');
     attempts++;
     
-  } while (weakPasswords.includes(password) && attempts < maxAttempts);
+  } while (attempts < maxAttempts);
   
-  return password;
+  // Return prefix + random part
+  return prefix + randomPart;
 };
 
 export const generateEmail = (baseName) => {

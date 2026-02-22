@@ -23,6 +23,7 @@ const Cuentas = () => {
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [selectedCuenta, setSelectedCuenta] = useState(null);
   const [selectedCuentaForPerfiles, setSelectedCuentaForPerfiles] = useState(null);
+  const [perfilesDetalles, setPerfilesDetalles] = useState([]); // NEW: For detalles modal
   const [alert, setAlert] = useState(null);
   const [correos, setCorreos] = useState([]);
   const [correosDisponibles, setCorreosDisponibles] = useState([]);
@@ -224,8 +225,10 @@ const Cuentas = () => {
       tipoCuenta: cuenta.tipoCuenta || 'Propia',
       numeroPerfiles: cuenta.numeroPerfiles || 1,
       fechaFinalizacion: cuenta.fechaFinalizacion ? cuenta.fechaFinalizacion.split('T')[0] : '',
-      email: '',
-      password: ''
+      email: cuenta.email || '',
+      password: cuenta.password || '',
+      correoTerceros: cuenta.correoTerceros || '',
+      codigoCuenta: cuenta.codigoCuenta || ''
     });
     setModalOpen(true);
   };
@@ -250,7 +253,9 @@ const Cuentas = () => {
       numeroPerfiles: 1,
       fechaFinalizacion: '',
       email: '',
-      password: ''
+      password: '',
+      correoTerceros: '',
+      codigoCuenta: ''
     });
     setErrors({});
     setSelectedCuenta(null);
@@ -261,9 +266,22 @@ const Cuentas = () => {
     setPerfilesModalOpen(true);
   };
 
-  const handleVerDetalles = (cuenta) => {
-    setSelectedCuenta(cuenta);
-    setDetallesModalOpen(true);
+  const handleVerDetalles = async (cuenta) => {
+    try {
+      // Load profiles for this cuenta
+      const response = await fetch(`/api/perfiles/por-cuenta/${cuenta.cuentaID}`, {
+        credentials: 'include'
+      });
+      const perfiles = await response.json();
+      setPerfilesDetalles(perfiles);
+      setSelectedCuenta(cuenta);
+      setDetallesModalOpen(true);
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+      setPerfilesDetalles([]);
+      setSelectedCuenta(cuenta);
+      setDetallesModalOpen(true);
+    }
   };
 
   const handleChange = (e) => {
@@ -283,6 +301,15 @@ const Cuentas = () => {
           <CreditCard size={16} className="text-blue-600" />
           <span className="font-medium">{row.nombreServicio || 'N/A'}</span>
         </div>
+      )
+    },
+    { 
+      key: 'codigoCuenta', 
+      label: 'Código',
+      render: (row) => (
+        <code className="bg-blue-50 px-2 py-1 rounded text-sm font-mono font-semibold text-blue-700">
+          {row.codigoCuenta || 'N/A'}
+        </code>
       )
     },
     { 
@@ -713,55 +740,67 @@ const Cuentas = () => {
         onClose={() => {
           setDetallesModalOpen(false);
           setSelectedCuenta(null);
+          setPerfilesDetalles([]);
         }}
         title="Detalles de la Cuenta"
         size="lg"
       >
         {selectedCuenta && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Código de Cuenta</label>
-                <p className="text-base font-mono font-semibold text-blue-600">{selectedCuenta.codigoCuenta || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Servicio</label>
-                <p className="text-base font-semibold">{selectedCuenta.nombreServicio}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Tipo de Cuenta</label>
-                <p className="text-base">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedCuenta.tipoCuenta === 'Propia' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {selectedCuenta.tipoCuenta}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Estado</label>
-                <p className="text-base">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(selectedCuenta.estado)}`}>
-                    {selectedCuenta.estado}
-                  </span>
-                </p>
+          <div className="space-y-6">
+            {/* Código de Cuenta - Destacado */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="text-xs font-medium text-blue-700 uppercase">Código de Cuenta</label>
+              <p className="text-2xl font-mono font-bold text-blue-900 mt-1">{selectedCuenta.codigoCuenta || 'N/A'}</p>
+            </div>
+
+            {/* Basic Info */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Información Básica</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Servicio</label>
+                  <p className="text-base font-semibold">{selectedCuenta.nombreServicio}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Tipo de Cuenta</label>
+                  <p className="text-base">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedCuenta.tipoCuenta === 'Propia' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {selectedCuenta.tipoCuenta}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Estado</label>
+                  <p className="text-base">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(selectedCuenta.estado)}`}>
+                      {selectedCuenta.estado}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Perfiles</label>
+                  <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
+                </div>
               </div>
             </div>
 
             {/* Credentials Section */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Credenciales</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Credenciales</h3>
               <div className="grid grid-cols-1 gap-3">
                 {selectedCuenta.tipoCuenta === 'Propia' && selectedCuenta.email && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Email (Correo del Negocio)</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-mono">{selectedCuenta.email}</p>
+                    <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
+                      <p className="text-base font-mono flex-1">{selectedCuenta.email}</p>
                       <button
                         onClick={() => handleCopyToClipboard(selectedCuenta.email, 'Email')}
                         className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Copiar email"
                       >
-                        <Copy size={14} />
+                        <Copy size={16} />
                       </button>
                     </div>
                   </div>
@@ -769,27 +808,29 @@ const Cuentas = () => {
                 {selectedCuenta.tipoCuenta === 'Terceros' && selectedCuenta.correoTerceros && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Email de Terceros</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-mono">{selectedCuenta.correoTerceros}</p>
+                    <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
+                      <p className="text-base font-mono flex-1">{selectedCuenta.correoTerceros}</p>
                       <button
                         onClick={() => handleCopyToClipboard(selectedCuenta.correoTerceros, 'Email')}
                         className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Copiar email"
                       >
-                        <Copy size={14} />
+                        <Copy size={16} />
                       </button>
                     </div>
                   </div>
                 )}
                 {selectedCuenta.password && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Contraseña</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-mono">{selectedCuenta.password}</p>
+                    <label className="text-sm font-medium text-gray-600">Contraseña de la Cuenta</label>
+                    <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
+                      <p className="text-base font-mono flex-1">{selectedCuenta.password}</p>
                       <button
                         onClick={() => handleCopyToClipboard(selectedCuenta.password, 'Contraseña')}
                         className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Copiar contraseña"
                       >
-                        <Copy size={14} />
+                        <Copy size={16} />
                       </button>
                     </div>
                   </div>
@@ -797,25 +838,58 @@ const Cuentas = () => {
               </div>
             </div>
 
-            {/* Account Info Section */}
+            {/* Dates Section */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Información</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Fechas</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Perfiles</label>
-                  <p className="text-base">{selectedCuenta.perfilesDisponibles} disponibles / {selectedCuenta.numeroPerfiles} total</p>
-                </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Fecha de Creación</label>
                   <p className="text-base">{formatDate(selectedCuenta.fechaCreacion)}</p>
                 </div>
                 {selectedCuenta.fechaFinalizacion && (
-                  <div className="col-span-2">
+                  <div>
                     <label className="text-sm font-medium text-gray-600">Fecha de Finalización</label>
                     <p className="text-base">{formatDate(selectedCuenta.fechaFinalizacion)}</p>
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Profiles Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Perfiles de la Cuenta</h3>
+              {perfilesDetalles.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b">
+                        <th className="text-left py-2 px-3 font-semibold text-gray-700">Número</th>
+                        <th className="text-left py-2 px-3 font-semibold text-gray-700">PIN</th>
+                        <th className="text-left py-2 px-3 font-semibold text-gray-700">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {perfilesDetalles.map((perfil) => (
+                        <tr key={perfil.perfilID} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3 font-medium">{perfil.numeroPerfil}</td>
+                          <td className="py-2 px-3 font-mono text-gray-600">{perfil.pin || 'Sin PIN'}</td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              perfil.estado === 'Disponible' ? 'bg-green-100 text-green-800' :
+                              perfil.estado === 'Ocupado' ? 'bg-blue-100 text-blue-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {perfil.estado}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm italic">No hay perfiles registrados para esta cuenta.</p>
+              )}
             </div>
           </div>
         )}
