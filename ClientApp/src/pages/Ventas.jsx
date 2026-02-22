@@ -31,9 +31,14 @@ const Ventas = () => {
   const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
   
-  // Service selection cart
-  const [serviciosCart, setServiciosCart] = useState([]);
-  const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
+  // Two-step workflow
+  // Step 1: Services the client wants (without accounts assigned yet)
+  const [serviciosDeseados, setServiciosDeseados] = useState([]); // [{servicioID, nombre, precio}, ...]
+  const [servicioParaAgregar, setServicioParaAgregar] = useState(null); // Temp selection for Step 1
+  
+  // Step 2: Assign accounts/profiles to each desired service
+  const [serviciosCart, setServiciosCart] = useState([]); // Final cart with accounts assigned
+  const [servicioSeleccionado, setServicioSeleccionado] = useState(null); // For Step 2
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
   const [perfilesDisponibles, setPerfilesDisponibles] = useState([]);
   const [perfilSeleccionado, setPerfilSeleccionado] = useState(null);
@@ -123,6 +128,31 @@ const Ventas = () => {
     setClienteSearchResults([]);
   };
 
+  // Step 1: Add service to desired list (without account)
+  const handleAgregarServicioDeseado = () => {
+    if (!servicioParaAgregar) {
+      showAlert('error', 'Seleccione un servicio');
+      return;
+    }
+    
+    // Check if service already in desired list
+    const yaAgregado = serviciosDeseados.some(s => s.servicioID === servicioParaAgregar.servicioID);
+    if (yaAgregado) {
+      showAlert('error', 'Este servicio ya fue agregado');
+      return;
+    }
+    
+    setServiciosDeseados([...serviciosDeseados, servicioParaAgregar]);
+    setServicioParaAgregar(null);
+  };
+
+  const handleRemoverServicioDeseado = (servicioID) => {
+    setServiciosDeseados(serviciosDeseados.filter(s => s.servicioID !== servicioID));
+    // Also remove from cart if it was already assigned
+    setServiciosCart(serviciosCart.filter(sc => sc.servicioID !== servicioID));
+  };
+
+  // Step 2: Select service from desired list to assign account/profile
   const handleServicioSelect = (servicio) => {
     setServicioSeleccionado(servicio);
     setCuentaSeleccionada(null);
@@ -144,9 +174,10 @@ const Ventas = () => {
     }
   };
 
-  const handleAgregarServicio = () => {
+  // Step 2: Assign account/profile to selected service
+  const handleAsignarCuentaAServicio = () => {
     if (!servicioSeleccionado) {
-      showAlert('error', 'Seleccione un servicio');
+      showAlert('error', 'Seleccione un servicio para asignar');
       return;
     }
     
@@ -160,10 +191,17 @@ const Ventas = () => {
       return;
     }
     
-    // Check if this profile is already in the cart
-    const yaAgregado = serviciosCart.some(s => s.perfilID === perfilSeleccionado.perfilID);
-    if (yaAgregado) {
-      showAlert('error', 'Este perfil ya fue agregado');
+    // Check if this profile is already assigned
+    const perfilYaUsado = serviciosCart.some(s => s.perfilID === perfilSeleccionado.perfilID);
+    if (perfilYaUsado) {
+      showAlert('error', 'Este perfil ya fue asignado');
+      return;
+    }
+    
+    // Check if this service already has an account assigned
+    const servicioYaAsignado = serviciosCart.some(s => s.servicioID === servicioSeleccionado.servicioID);
+    if (servicioYaAsignado) {
+      showAlert('error', 'Este servicio ya tiene una cuenta asignada');
       return;
     }
     
@@ -182,6 +220,7 @@ const Ventas = () => {
     setCuentaSeleccionada(null);
     setPerfilSeleccionado(null);
     setPerfilesDisponibles([]);
+    showAlert('success', `Cuenta asignada a ${servicioSeleccionado.nombre}`);
   };
 
   const handleRemoverServicio = (index) => {
@@ -197,7 +236,9 @@ const Ventas = () => {
     setSelectedCliente(null);
     setClienteSearch('');
     setClienteSearchResults([]);
+    setServiciosDeseados([]); // Clear desired services list
     setServiciosCart([]);
+    setServicioParaAgregar(null);
     setServicioSeleccionado(null);
     setCuentaSeleccionada(null);
     setPerfilSeleccionado(null);
@@ -429,21 +470,20 @@ const Ventas = () => {
             )}
           </div>
 
-          {/* Service Selection */}
+          {/* Step 1: Select Desired Services */}
           <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold mb-4">Agregar Servicios</h3>
+            <h3 className="text-lg font-semibold mb-4">Paso 1: Servicios que Desea el Cliente</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Servicio *
+                  Seleccionar Servicio
                 </label>
                 <select
-                  value={servicioSeleccionado?.servicioID || ''}
+                  value={servicioParaAgregar?.servicioID || ''}
                   onChange={(e) => {
                     const servicio = serviciosDisponibles.find(s => s.servicioID === parseInt(e.target.value));
-                    if (servicio) handleServicioSelect(servicio);
-                    else handleServicioSelect(null);
+                    setServicioParaAgregar(servicio || null);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
@@ -456,98 +496,188 @@ const Ventas = () => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cuenta
-                </label>
-                <select
-                  value={cuentaSeleccionada?.cuentaID || ''}
-                  onChange={(e) => {
-                    const cuenta = cuentasDisponibles
-                      .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
-                      .find(c => c.cuentaID === parseInt(e.target.value));
-                    if (cuenta) handleCuentaSelect(cuenta);
-                  }}
-                  disabled={!servicioSeleccionado}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
-                >
-                  <option value="">Seleccionar cuenta...</option>
-                  {cuentasDisponibles
-                    .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
-                    .map((cuenta) => (
-                      <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                        {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Perfil
-                </label>
-                <select
-                  value={perfilSeleccionado?.perfilID || ''}
-                  onChange={(e) => {
-                    const perfil = perfilesDisponibles.find(p => p.perfilID === parseInt(e.target.value));
-                    setPerfilSeleccionado(perfil || null);
-                  }}
-                  disabled={!cuentaSeleccionada}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
-                >
-                  <option value="">Seleccionar perfil...</option>
-                  {perfilesDisponibles.map((perfil) => (
-                    <option key={perfil.perfilID} value={perfil.perfilID}>
-                      Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div className="flex items-end">
                 <Button
                   type="button"
-                  onClick={handleAgregarServicio}
-                  disabled={!cuentaSeleccionada || !perfilSeleccionado}
+                  onClick={handleAgregarServicioDeseado}
+                  disabled={!servicioParaAgregar}
                   className="w-full"
                 >
                   <Plus size={16} />
-                  Agregar
+                  Agregar Servicio
                 </Button>
               </div>
             </div>
 
-            {/* Services Cart */}
-            {serviciosCart.length > 0 && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium mb-3 flex items-center gap-2">
-                  <ShoppingCart size={18} />
-                  Servicios Seleccionados ({serviciosCart.length})
+            {/* Desired Services List */}
+            {serviciosDeseados.length > 0 && (
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <h4 className="font-medium mb-3 text-blue-900">
+                  Servicios Deseados ({serviciosDeseados.length})
                 </h4>
                 <div className="space-y-2">
-                  {serviciosCart.map((servicio, index) => (
-                    <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium">{servicio.nombreServicio}</div>
-                        <div className="text-sm text-gray-500">
-                          Cuenta: {servicio.codigoCuenta} | Perfil: #{servicio.numeroPerfil}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(servicio.precio, formData.moneda)}
+                  {serviciosDeseados.map((servicio) => {
+                    const yaAsignado = serviciosCart.some(sc => sc.servicioID === servicio.servicioID);
+                    return (
+                      <div key={servicio.servicioID} className="flex items-center justify-between bg-white p-3 rounded-lg border-2 border-blue-200">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{servicio.nombre}</span>
+                            {yaAsignado && (
+                              <Badge variant="success" size="sm">✓ Cuenta Asignada</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatCurrency(servicio.precio, formData.moneda)}
+                          </div>
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleRemoverServicio(index)}
+                          onClick={() => handleRemoverServicioDeseado(servicio.servicioID)}
                           className="text-red-600 hover:text-red-700"
+                          disabled={yaAsignado}
                         >
                           <X size={18} />
                         </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Assign Accounts to Services */}
+          {serviciosDeseados.length > 0 && (
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4">Paso 2: Asignar Cuentas a los Servicios</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Servicio a Asignar *
+                  </label>
+                  <select
+                    value={servicioSeleccionado?.servicioID || ''}
+                    onChange={(e) => {
+                      const servicio = serviciosDeseados.find(s => s.servicioID === parseInt(e.target.value));
+                      if (servicio) handleServicioSelect(servicio);
+                      else handleServicioSelect(null);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Seleccionar servicio...</option>
+                    {serviciosDeseados
+                      .filter(s => !serviciosCart.some(sc => sc.servicioID === s.servicioID))
+                      .map((servicio) => (
+                        <option key={servicio.servicioID} value={servicio.servicioID}>
+                          {servicio.nombre}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Solo se muestran servicios sin cuenta asignada
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cuenta
+                  </label>
+                  <select
+                    value={cuentaSeleccionada?.cuentaID || ''}
+                    onChange={(e) => {
+                      const cuenta = cuentasDisponibles
+                        .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                        .find(c => c.cuentaID === parseInt(e.target.value));
+                      if (cuenta) handleCuentaSelect(cuenta);
+                    }}
+                    disabled={!servicioSeleccionado}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  >
+                    <option value="">Seleccionar cuenta...</option>
+                    {cuentasDisponibles
+                      .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                      .map((cuenta) => (
+                        <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
+                          {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Perfil
+                  </label>
+                  <select
+                    value={perfilSeleccionado?.perfilID || ''}
+                    onChange={(e) => {
+                      const perfil = perfilesDisponibles.find(p => p.perfilID === parseInt(e.target.value));
+                      setPerfilSeleccionado(perfil || null);
+                    }}
+                    disabled={!cuentaSeleccionada}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  >
+                    <option value="">Seleccionar perfil...</option>
+                    {perfilesDisponibles.map((perfil) => (
+                      <option key={perfil.perfilID} value={perfil.perfilID}>
+                        Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    onClick={handleAsignarCuentaAServicio}
+                    disabled={!servicioSeleccionado || !cuentaSeleccionada || !perfilSeleccionado}
+                    className="w-full"
+                  >
+                    <Plus size={16} />
+                    Asignar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Final Cart with Assigned Accounts */}
+              {serviciosCart.length > 0 && (
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2 text-green-900">
+                    <ShoppingCart size={18} />
+                    Cuentas Asignadas ({serviciosCart.length}/{serviciosDeseados.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {serviciosCart.map((servicio, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border-2 border-green-200">
+                        <div className="flex-1">
+                          <div className="font-medium">{servicio.nombreServicio}</div>
+                          <div className="text-sm text-gray-500">
+                            Cuenta: {servicio.codigoCuenta} | Perfil: #{servicio.numeroPerfil}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="font-semibold text-green-600">
+                            {formatCurrency(servicio.precio, formData.moneda)}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoverServicio(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
                 </div>
                 <div className="mt-4 pt-4 border-t flex justify-between items-center">
                   <span className="font-semibold text-lg">Total:</span>
