@@ -142,6 +142,8 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("CorreoID")]
         public virtual Correo? Correo { get; set; }
+
+        public virtual ICollection<Perfil> Perfiles { get; set; } = new List<Perfil>();
     }
 
     [Table("Perfiles")]
