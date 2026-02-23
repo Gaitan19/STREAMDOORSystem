@@ -212,6 +212,8 @@ namespace STREAMDOORSystem.Models.DTOs
         public int CuentaID { get; set; }
         public int PerfilID { get; set; }
         public int ServicioID { get; set; }
+        public int? ComboID { get; set; }
+        public decimal? PrecioUnitario { get; set; }
     }
 
     public class RenovarVentaDTO

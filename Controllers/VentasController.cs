@@ -246,7 +246,8 @@ namespace STREAMDOORSystem.Controllers
                         return BadRequest(new { message = $"El servicio {detalleDto.ServicioID} no existe o no está activo" });
                     }
 
-                    var precioUnitario = servicio.Precio ?? 0;
+                    // Use provided price (for combos) or service price
+                    var precioUnitario = detalleDto.PrecioUnitario ?? servicio.Precio ?? 0;
                     montoTotal += precioUnitario;
 
                     detallesLista.Add(new VentaDetalle
@@ -254,6 +255,7 @@ namespace STREAMDOORSystem.Controllers
                         CuentaID = detalleDto.CuentaID,
                         PerfilID = detalleDto.PerfilID,
                         ServicioID = detalleDto.ServicioID,
+                        ComboID = detalleDto.ComboID,
                         PrecioUnitario = precioUnitario,
                         FechaAsignacion = DateTime.Now
                     });
