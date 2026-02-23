@@ -85,14 +85,16 @@ const Ventas = () => {
 
   const loadCuentasDisponibles = async () => {
     try {
-      const [cuentas, servicios, combos] = await Promise.all([
+      const [cuentas, servicios, combos, mediosPagoData] = await Promise.all([
         cuentasService.getDisponibles(),
         serviciosService.getAll(),
-        combosService.getAll()
+        combosService.getAll(),
+        mediosPagoService.getAll()
       ]);
       setCuentasDisponibles(cuentas);
       setServiciosDisponibles(servicios.filter(s => s.activo));
       setCombosDisponibles(combos.filter(c => c.activo));
+      setMediosPago(mediosPagoData.filter(mp => mp.activo));
     } catch (error) {
       console.error('Error al cargar cuentas disponibles:', error);
       showAlert('error', 'Error al cargar cuentas disponibles');
@@ -1158,6 +1160,74 @@ const Ventas = () => {
               ))}
             </select>
           </div>
+
+          {/* Resumen de Venta */}
+          {(serviciosCart.length > 0 || combosCart.length > 0) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-800 mb-3">Resumen de la Venta</h4>
+              
+              {/* Servicios Individuales */}
+              {serviciosCart.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Servicios Individuales:</p>
+                  <div className="space-y-1">
+                    {serviciosCart.map((sc, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span className="text-gray-600">• {sc.nombreServicio}</span>
+                        <span className="font-medium">{formatCurrency(sc.precio, formData.moneda)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Combos */}
+              {combosCart.length > 0 && (() => {
+                // Group combos by comboID
+                const combosAgrupados = {};
+                combosCart.forEach(cc => {
+                  if (!combosAgrupados[cc.comboID]) {
+                    combosAgrupados[cc.comboID] = {
+                      nombre: cc.nombreCombo,
+                      precio: 0,
+                      servicios: []
+                    };
+                  }
+                  combosAgrupados[cc.comboID].precio += cc.precio || 0;
+                  combosAgrupados[cc.comboID].servicios.push(cc.nombreServicio);
+                });
+
+                return (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Combos:</p>
+                    <div className="space-y-2">
+                      {Object.values(combosAgrupados).map((combo, index) => (
+                        <div key={index} className="border-l-2 border-blue-300 pl-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-gray-700">{combo.nombre}</span>
+                            <span className="font-medium">{formatCurrency(combo.precio, formData.moneda)}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Incluye: {combo.servicios.join(', ')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Total */}
+              <div className="border-t border-blue-300 pt-2 mt-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-gray-800">Total:</span>
+                  <span className="text-lg font-bold text-blue-600">
+                    {formatCurrency(calcularMontoTotal(), formData.moneda)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Notas */}
           <div>
