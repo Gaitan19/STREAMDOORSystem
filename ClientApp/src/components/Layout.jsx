@@ -59,7 +59,7 @@ const Layout = ({ children }) => {
         className={`fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-200 ease-in-out z-30
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       >
-        <div className="p-6 border-b">
+        <div className="p-6 border-b pb-1">
           <h1 className="text-2xl font-bold text-blue-600">STREAMDOOR</h1>
           <p className="text-sm text-gray-500 mt-1">Sistema de Gestión</p>
         </div>
