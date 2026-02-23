@@ -279,9 +279,11 @@ BEGIN
         Duracion INT NULL, -- En días (opcional, para compatibilidad)
         Monto DECIMAL(10,2) NOT NULL,
         Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        MedioPagoID INT NULL, -- Medio de pago utilizado
         Estado NVARCHAR(20) DEFAULT 'Activo' CHECK (Estado IN ('Activo', 'ProximoVencer', 'Vencido', 'Cancelado')),
         FechaCreacion DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID)
+        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
     );
 END
 GO
@@ -321,6 +323,13 @@ BEGIN
         
         -- Ahora eliminar la columna
         ALTER TABLE Ventas DROP COLUMN PerfilID;
+    END
+
+    -- Agregar MedioPagoID si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'MedioPagoID')
+    BEGIN
+        ALTER TABLE Ventas ADD MedioPagoID INT NULL;
+        ALTER TABLE Ventas ADD CONSTRAINT FK_Ventas_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
     END
 END
 GO

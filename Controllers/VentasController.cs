@@ -270,6 +270,7 @@ namespace STREAMDOORSystem.Controllers
                     Duracion = (int)(crearVentaDto.FechaFin - fechaInicio).TotalDays,
                     Monto = montoTotal,
                     Moneda = crearVentaDto.Moneda,
+                    MedioPagoID = crearVentaDto.MedioPagoID,
                     Estado = "Activo",
                     FechaCreacion = DateTime.Now,
                     Detalles = detallesLista

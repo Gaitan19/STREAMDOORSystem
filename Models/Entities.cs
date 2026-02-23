@@ -227,6 +227,8 @@ namespace STREAMDOORSystem.Models
         [MaxLength(20)]
         public string Estado { get; set; } = "Activo";
 
+        public int? MedioPagoID { get; set; }  // Medio de pago usado
+
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
         [ForeignKey("ClienteID")]
