@@ -234,6 +234,9 @@ namespace STREAMDOORSystem.Models
         [ForeignKey("ClienteID")]
         public virtual Cliente? Cliente { get; set; }
 
+        [ForeignKey("MedioPagoID")]
+        public virtual MedioPago? MedioPago { get; set; }
+
         public virtual ICollection<VentaDetalle> Detalles { get; set; } = new List<VentaDetalle>();
     }
 
