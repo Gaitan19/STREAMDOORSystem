@@ -118,4 +118,12 @@ export const dashboardService = {
   getRecentActivity: () => apiClient.get('/dashboard/recent-activity'),
 };
 
+export const combosService = {
+  getAll: () => apiClient.get('/combos'),
+  getById: (id) => apiClient.get(`/combos/${id}`),
+  create: (data) => apiClient.post('/combos', data),
+  update: (id, data) => apiClient.put(`/combos/${id}`, data),
+  delete: (id) => apiClient.delete(`/combos/${id}`),
+};
+
 export default apiClient;

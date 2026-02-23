@@ -11,6 +11,7 @@ import Cuentas from './pages/Cuentas';
 import Ventas from './pages/Ventas';
 import MediosPago from './pages/MediosPago';
 import Usuarios from './pages/Usuarios';
+import Combos from './pages/Combos';
 
 function App() {
   return (
@@ -102,6 +103,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Usuarios />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/combos"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Combos />
                 </Layout>
               </ProtectedRoute>
             }

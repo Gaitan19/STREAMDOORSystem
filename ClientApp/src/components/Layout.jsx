@@ -11,7 +11,8 @@ import {
   UserCog,
   LogOut,
   Menu,
-  X
+  X,
+  PackagePlus
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,6 +26,7 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/servicios', icon: Package, label: 'Servicios' },
+    { path: '/combos', icon: PackagePlus, label: 'Combos' },
     { path: '/correos', icon: Mail, label: 'Correos' },
     { path: '/cuentas', icon: CreditCard, label: 'Cuentas' },
     { path: '/ventas', icon: ShoppingCart, label: 'Ventas' },
