@@ -417,7 +417,7 @@ const Ventas = () => {
       const ventaData = {
         clienteID: selectedCliente.clienteID,
         fechaFin: formData.fechaFin,
-        medioPagoID: formData.medioPagoID || null,
+        medioPagoID: formData.medioPagoID ? parseInt(formData.medioPagoID) : null,
         moneda: formData.moneda,
         notas: formData.notas,
         detalles
