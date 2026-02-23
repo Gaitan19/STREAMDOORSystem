@@ -402,16 +402,14 @@ const Ventas = () => {
           comboID: null, // No combo ID for individual services
           precioUnitario: s.precio || 0
         })),
-        // Combo services - flatten all services from all combos
-        ...combosCart.flatMap(combo => 
-          combo.serviciosAsignados.map(sa => ({
-            cuentaID: sa.cuentaID,
-            perfilID: sa.perfilID,
-            servicioID: sa.servicioID,
-            comboID: combo.comboID, // Include combo ID for combo services
-            precioUnitario: combo.precio / combo.serviciosAsignados.length // Distribute combo price evenly
-          }))
-        )
+        // Combo services - combosCart is already flat, just map directly
+        ...combosCart.map(cc => ({
+          cuentaID: cc.cuentaID,
+          perfilID: cc.perfilID,
+          servicioID: cc.servicioID,
+          comboID: cc.comboID, // Include combo ID for combo services
+          precioUnitario: cc.precio || 0 // Price already distributed when added to cart
+        }))
       ];
 
       const ventaData = {
