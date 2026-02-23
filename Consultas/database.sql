@@ -383,6 +383,50 @@ END
 GO
 
 -- ============================================
+-- Tabla: Combos (Paquetes de Servicios)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Combos')
+BEGIN
+    CREATE TABLE Combos (
+        ComboID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL,
+        Descripcion NVARCHAR(255) NULL,
+        Precio DECIMAL(10,2) NOT NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: ComboServicios (Relación Many-to-Many entre Combos y Servicios)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ComboServicios')
+BEGIN
+    CREATE TABLE ComboServicios (
+        ComboServicioID INT PRIMARY KEY IDENTITY(1,1),
+        ComboID INT NOT NULL,
+        ServicioID INT NOT NULL,
+        FOREIGN KEY (ComboID) REFERENCES Combos(ComboID) ON DELETE CASCADE,
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID),
+        CONSTRAINT UQ_ComboServicios_Combo_Servicio UNIQUE(ComboID, ServicioID)
+    );
+END
+GO
+
+-- Migración: Agregar columna ComboID a VentasDetalles si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'VentasDetalles')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('VentasDetalles') AND name = 'ComboID')
+    BEGIN
+        ALTER TABLE VentasDetalles ADD ComboID INT NULL;
+        ALTER TABLE VentasDetalles ADD CONSTRAINT FK_VentasDetalles_Combos FOREIGN KEY (ComboID) REFERENCES Combos(ComboID);
+        PRINT 'Column ComboID added to VentasDetalles table.';
+    END
+END
+GO
+
+-- ============================================
 -- Índices para mejor rendimiento
 -- ============================================
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Estado')
@@ -403,6 +447,73 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_PerfilID')
     CREATE INDEX IX_VentasDetalles_PerfilID ON VentasDetalles(PerfilID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComboServicios_ComboID')
+    CREATE INDEX IX_ComboServicios_ComboID ON ComboServicios(ComboID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComboServicios_ServicioID')
+    CREATE INDEX IX_ComboServicios_ServicioID ON ComboServicios(ServicioID);
+GO
+
+-- ============================================
+-- Datos de Ejemplo: Combos Populares
+-- ============================================
+
+-- Insertar combos de ejemplo solo si la tabla está vacía
+IF NOT EXISTS (SELECT * FROM Combos)
+BEGIN
+    -- Combo Premium: Netflix + Prime Video + Disney+
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Activo)
+    VALUES ('Streaming Premium', 'Acceso a Netflix, Prime Video y Disney+', 600.00, 1);
+    
+    DECLARE @ComboPremiumID INT = SCOPE_IDENTITY();
+    
+    -- Asociar servicios al combo (asumiendo IDs de servicios ya creados)
+    -- Nota: Estos INSERT solo funcionarán si los servicios existen
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Netflix%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboPremiumID, ServicioID FROM Servicios WHERE Nombre LIKE '%Netflix%';
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Prime%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboPremiumID, ServicioID FROM Servicios WHERE Nombre LIKE '%Prime%';
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Disney%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboPremiumID, ServicioID FROM Servicios WHERE Nombre LIKE '%Disney%';
+    
+    -- Combo Anime: Crunchyroll + Funimation
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Activo)
+    VALUES ('Pack Anime', 'Acceso a Crunchyroll y Funimation', 350.00, 1);
+    
+    DECLARE @ComboAnimeID INT = SCOPE_IDENTITY();
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Crunchyroll%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboAnimeID, ServicioID FROM Servicios WHERE Nombre LIKE '%Crunchyroll%';
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Funimation%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboAnimeID, ServicioID FROM Servicios WHERE Nombre LIKE '%Funimation%';
+    
+    -- Combo Entretenimiento: HBO Max + Prime Video
+    INSERT INTO Combos (Nombre, Descripcion, Precio, Activo)
+    VALUES ('Entretenimiento Total', 'Acceso a HBO Max y Prime Video', 450.00, 1);
+    
+    DECLARE @ComboEntretenimientoID INT = SCOPE_IDENTITY();
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%HBO%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboEntretenimientoID, ServicioID FROM Servicios WHERE Nombre LIKE '%HBO%';
+    
+    IF EXISTS (SELECT * FROM Servicios WHERE Nombre LIKE '%Prime%')
+        INSERT INTO ComboServicios (ComboID, ServicioID)
+        SELECT @ComboEntretenimientoID, ServicioID FROM Servicios WHERE Nombre LIKE '%Prime%';
+    
+    PRINT 'Combos de ejemplo insertados exitosamente';
+END
 GO
 
 PRINT 'Base de datos DBStreamDoor creada exitosamente';

@@ -253,6 +253,8 @@ namespace STREAMDOORSystem.Models
         [Required]
         public int ServicioID { get; set; }
 
+        public int? ComboID { get; set; } // Nullable - solo se llena si la venta fue de un combo
+
         [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal PrecioUnitario { get; set; }
@@ -267,6 +269,52 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("PerfilID")]
         public virtual Perfil? Perfil { get; set; }
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
+
+        [ForeignKey("ComboID")]
+        public virtual Combo? Combo { get; set; }
+    }
+
+    [Table("Combos")]
+    public class Combo
+    {
+        [Key]
+        public int ComboID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Precio { get; set; }
+
+        public bool Activo { get; set; } = true;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        public virtual ICollection<ComboServicio> ComboServicios { get; set; } = new List<ComboServicio>();
+    }
+
+    [Table("ComboServicios")]
+    public class ComboServicio
+    {
+        [Key]
+        public int ComboServicioID { get; set; }
+
+        [Required]
+        public int ComboID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        [ForeignKey("ComboID")]
+        public virtual Combo? Combo { get; set; }
 
         [ForeignKey("ServicioID")]
         public virtual Servicio? Servicio { get; set; }

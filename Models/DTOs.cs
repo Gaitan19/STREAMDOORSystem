@@ -275,4 +275,33 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
+
+    // DTOs de Combos
+    public class ComboDTO
+    {
+        public int ComboID { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public decimal Precio { get; set; }
+        public bool Activo { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public List<ServicioDTO> Servicios { get; set; } = new List<ServicioDTO>();
+    }
+
+    public class CrearComboDTO
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public decimal Precio { get; set; }
+        public List<int> ServiciosIDs { get; set; } = new List<int>(); // IDs de los servicios que conforman el combo
+    }
+
+    public class ActualizarComboDTO
+    {
+        public string? Nombre { get; set; }
+        public string? Descripcion { get; set; }
+        public decimal? Precio { get; set; }
+        public bool? Activo { get; set; }
+        public List<int>? ServiciosIDs { get; set; } // Si se proporciona, actualiza los servicios del combo
+    }
 }
