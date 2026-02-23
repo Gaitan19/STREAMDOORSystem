@@ -49,6 +49,7 @@ const Ventas = () => {
   const [comboParaAgregar, setComboParaAgregar] = useState(null); // Temp selection for Step 1
   const [combosCart, setCombosCart] = useState([]); // Combos with all services assigned
   const [comboSeleccionado, setComboSeleccionado] = useState(null); // For Step 2 combo assignment
+  const [servicioComboSeleccionado, setServicioComboSeleccionado] = useState(null); // Service within combo to assign
   
   // Form data
   const [formData, setFormData] = useState({
@@ -265,10 +266,73 @@ const Ventas = () => {
   // Step 2: Select combo from desired list to assign accounts/profiles
   const handleComboSelect = (combo) => {
     setComboSeleccionado(combo);
+    setServicioComboSeleccionado(null);
+    setCuentaSeleccionada(null);
+    setPerfilSeleccionado(null);
+    setPerfilesDisponibles([]);
   };
 
-  const handleRemoverCombo = (index) => {
-    setCombosCart(combosCart.filter((_, i) => i !== index));
+  // Assign account/profile to a service within a combo
+  const handleAsignarCuentaACombo = () => {
+    if (!comboSeleccionado) {
+      showAlert('error', 'Seleccione un combo');
+      return;
+    }
+
+    if (!servicioComboSeleccionado) {
+      showAlert('error', 'Seleccione un servicio del combo');
+      return;
+    }
+    
+    if (!cuentaSeleccionada) {
+      showAlert('error', 'Seleccione una cuenta');
+      return;
+    }
+    
+    if (!perfilSeleccionado) {
+      showAlert('error', 'Seleccione un perfil');
+      return;
+    }
+    
+    // Check if this profile is already assigned
+    const perfilYaUsado = combosCart.some(cc => cc.perfilID === perfilSeleccionado.perfilID) ||
+                          serviciosCart.some(s => s.perfilID === perfilSeleccionado.perfilID);
+    if (perfilYaUsado) {
+      showAlert('error', 'Este perfil ya fue asignado');
+      return;
+    }
+    
+    // Check if this service in this combo already has an account assigned
+    const servicioYaAsignado = combosCart.some(cc => 
+      cc.comboID === comboSeleccionado.comboID && 
+      cc.servicioID === servicioComboSeleccionado.servicioID
+    );
+    if (servicioYaAsignado) {
+      showAlert('error', 'Este servicio del combo ya tiene una cuenta asignada');
+      return;
+    }
+    
+    const nuevoServicioCombo = {
+      comboID: comboSeleccionado.comboID,
+      cuentaID: cuentaSeleccionada.cuentaID,
+      perfilID: perfilSeleccionado.perfilID,
+      servicioID: servicioComboSeleccionado.servicioID,
+      nombreServicio: servicioComboSeleccionado.nombre,
+      codigoCuenta: cuentaSeleccionada.codigoCuenta,
+      numeroPerfil: perfilSeleccionado.numeroPerfil,
+      precio: comboSeleccionado.precio / comboSeleccionado.servicios.length // Distribute combo price
+    };
+    
+    setCombosCart([...combosCart, nuevoServicioCombo]);
+    setServicioComboSeleccionado(null);
+    setCuentaSeleccionada(null);
+    setPerfilSeleccionado(null);
+    setPerfilesDisponibles([]);
+    showAlert('success', `Cuenta asignada a ${servicioComboSeleccionado.nombre} del combo ${comboSeleccionado.nombre}`);
+  };
+
+  const handleRemoverCombo = (comboID, servicioID) => {
+    setCombosCart(combosCart.filter(cc => !(cc.comboID === comboID && cc.servicioID === servicioID)));
   };
 
   const calcularMontoTotal = () => {
@@ -616,6 +680,126 @@ const Ventas = () => {
             {errors.servicios && (
               <p className="mt-2 text-sm text-red-600">{errors.servicios}</p>
             )}
+
+            {/* Separator */}
+            <div className="flex items-center gap-4 my-4">
+              <div className="flex-1 border-t border-gray-300"></div>
+              <span className="text-sm font-medium text-gray-500">O</span>
+              <div className="flex-1 border-t border-gray-300"></div>
+            </div>
+
+            {/* Add Combo Section */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Package className="inline-block mr-1" size={16} />
+                Seleccionar Combo/Paquete
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select
+                  value={comboParaAgregar?.comboID || ''}
+                  onChange={(e) => {
+                    const combo = combosDisponibles.find(c => c.comboID === parseInt(e.target.value));
+                    setComboParaAgregar(combo || null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Seleccionar combo...</option>
+                  {combosDisponibles.map((combo) => (
+                    <option key={combo.comboID} value={combo.comboID}>
+                      {combo.nombre} - {formatCurrency(combo.precio, 'C$')} ({combo.servicios.length} servicios)
+                    </option>
+                  ))}
+                </select>
+                
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    onClick={handleAgregarComboDeseado}
+                    disabled={!comboParaAgregar}
+                    className="w-full"
+                  >
+                    <Package size={16} />
+                    Agregar Combo
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Show combo details */}
+              {comboParaAgregar && (
+                <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm font-medium text-purple-900 mb-2">
+                    Servicios incluidos en "{comboParaAgregar.nombre}":
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {comboParaAgregar.servicios.map(s => (
+                      <Badge key={s.servicioID} variant="secondary" size="sm">
+                        {s.nombre}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Desired Combos List */}
+            {combosDeseados.length > 0 && (
+              <div className="bg-purple-50 rounded-lg p-4 mb-4">
+                <h4 className="font-medium mb-3 text-purple-900">
+                  <Package className="inline-block mr-1" size={16} />
+                  Combos Deseados ({combosDeseados.length})
+                </h4>
+                <div className="space-y-2">
+                  {combosDeseados.map((combo) => {
+                    const todasAsignadas = combo.servicios.every(s =>
+                      combosCart.some(cc => cc.comboID === combo.comboID && cc.servicioID === s.servicioID)
+                    );
+                    const parcialmenteAsignado = combo.servicios.some(s =>
+                      combosCart.some(cc => cc.comboID === combo.comboID && cc.servicioID === s.servicioID)
+                    );
+
+                    return (
+                      <div key={combo.comboID} className="bg-white p-3 rounded-lg border-2 border-purple-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{combo.nombre}</span>
+                              {todasAsignadas && (
+                                <Badge variant="success" size="sm">✓ Completo</Badge>
+                              )}
+                              {parcialmenteAsignado && !todasAsignadas && (
+                                <Badge variant="warning" size="sm">⚠ Incompleto</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {formatCurrency(combo.precio, formData.moneda)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoverComboDeseado(combo.comboID)}
+                            className="text-red-600 hover:text-red-700"
+                            disabled={parcialmenteAsignado}
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-600 flex flex-wrap gap-1">
+                          <span className="font-medium">Servicios:</span>
+                          {combo.servicios.map(s => {
+                            const asignado = combosCart.some(cc => cc.comboID === combo.comboID && cc.servicioID === s.servicioID);
+                            return (
+                              <span key={s.servicioID} className={asignado ? 'text-green-600 font-medium' : ''}>
+                                {s.nombre}{asignado ? ' ✓' : ''}{s !== combo.servicios[combo.servicios.length - 1] ? ',' : ''}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Step 2: Assign Accounts to Services */}
@@ -755,6 +939,179 @@ const Ventas = () => {
                   {formatCurrency(calcularMontoTotal(), formData.moneda)}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Step 2: Assign Accounts to Combo Services */}
+          {combosDeseados.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold mb-4">
+                <Package className="inline-block mr-1" size={18} />
+                Paso 2: Asignar Cuentas a los Servicios del Combo
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Combo *
+                  </label>
+                  <select
+                    value={comboSeleccionado?.comboID || ''}
+                    onChange={(e) => {
+                      const combo = combosDeseados.find(c => c.comboID === parseInt(e.target.value));
+                      handleComboSelect(combo);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Seleccionar combo...</option>
+                    {combosDeseados.map((combo) => {
+                      const pendientes = combo.servicios.filter(s =>
+                        !combosCart.some(cc => cc.comboID === combo.comboID && cc.servicioID === s.servicioID)
+                      ).length;
+                      return (
+                        <option key={combo.comboID} value={combo.comboID}>
+                          {combo.nombre} ({pendientes > 0 ? `${pendientes} pendientes` : 'Completo'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Servicio del Combo *
+                  </label>
+                  <select
+                    value={servicioComboSeleccionado?.servicioID || ''}
+                    onChange={(e) => {
+                      const servicio = comboSeleccionado?.servicios.find(s => s.servicioID === parseInt(e.target.value));
+                      if (servicio) {
+                        setServicioComboSeleccionado(servicio);
+                        handleServicioSelect(servicio); // Also call handler to reset cuenta/perfil
+                      }
+                    }}
+                    disabled={!comboSeleccionado}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {comboSeleccionado?.servicios
+                      .filter(s => !combosCart.some(cc => cc.comboID === comboSeleccionado.comboID && cc.servicioID === s.servicioID))
+                      .map((servicio) => (
+                        <option key={servicio.servicioID} value={servicio.servicioID}>
+                          {servicio.nombre}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cuenta
+                  </label>
+                  <select
+                    value={cuentaSeleccionada?.cuentaID || ''}
+                    onChange={(e) => {
+                      const cuenta = cuentasDisponibles
+                        .filter(c => c.servicioID === servicioComboSeleccionado?.servicioID)
+                        .find(c => c.cuentaID === parseInt(e.target.value));
+                      if (cuenta) handleCuentaSelect(cuenta);
+                    }}
+                    disabled={!servicioComboSeleccionado}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {cuentasDisponibles
+                      .filter(c => c.servicioID === servicioComboSeleccionado?.servicioID)
+                      .map((cuenta) => (
+                        <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
+                          {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Perfil
+                  </label>
+                  <select
+                    value={perfilSeleccionado?.perfilID || ''}
+                    onChange={(e) => {
+                      const perfil = perfilesDisponibles.find(p => p.perfilID === parseInt(e.target.value));
+                      setPerfilSeleccionado(perfil || null);
+                    }}
+                    disabled={!cuentaSeleccionada}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {perfilesDisponibles.map((perfil) => (
+                      <option key={perfil.perfilID} value={perfil.perfilID}>
+                        Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    onClick={handleAsignarCuentaACombo}
+                    disabled={!comboSeleccionado || !servicioComboSeleccionado || !cuentaSeleccionada || !perfilSeleccionado}
+                    className="w-full"
+                  >
+                    <Plus size={16} />
+                    Asignar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Combo Cart */}
+              {combosCart.length > 0 && (
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2 text-purple-900">
+                    <Package size={18} />
+                    Servicios de Combos Asignados
+                  </h4>
+                  <div className="space-y-3">
+                    {combosDeseados.map(combo => {
+                      const serviciosAsignados = combosCart.filter(cc => cc.comboID === combo.comboID);
+                      if (serviciosAsignados.length === 0) return null;
+
+                      return (
+                        <div key={combo.comboID} className="bg-white p-3 rounded-lg border-2 border-purple-200">
+                          <div className="font-medium text-purple-900 mb-2 flex items-center justify-between">
+                            <span>{combo.nombre}</span>
+                            <Badge variant={serviciosAsignados.length === combo.servicios.length ? "success" : "warning"}>
+                              {serviciosAsignados.length}/{combo.servicios.length} asignados
+                            </Badge>
+                          </div>
+                          <div className="space-y-2 ml-4">
+                            {serviciosAsignados.map((item, index) => (
+                              <div key={index} className="flex items-center justify-between text-sm">
+                                <div className="flex-1">
+                                  <div className="font-medium">{item.nombreServicio}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {item.codigoCuenta} | Perfil #{item.numeroPerfil}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoverCombo(combo.comboID, item.servicioID)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
