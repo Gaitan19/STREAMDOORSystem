@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, X, Search, ShoppingCart, Calendar } from 'lucide-react';
+import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,7 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
-import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService } from '../services/apiService';
+import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService, combosService } from '../services/apiService';
 import { formatDate, formatCurrency } from '../utils/helpers';
 
 const Ventas = () => {
@@ -26,12 +26,13 @@ const Ventas = () => {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [searchingClientes, setSearchingClientes] = useState(false);
   
-  // Available servicios, accounts and medios de pago
+  // Available servicios, accounts, combos and medios de pago
   const [serviciosDisponibles, setServiciosDisponibles] = useState([]);
+  const [combosDisponibles, setCombosDisponibles] = useState([]);
   const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
   
-  // Two-step workflow
+  // Two-step workflow for SERVICES
   // Step 1: Services the client wants (without accounts assigned yet)
   const [serviciosDeseados, setServiciosDeseados] = useState([]); // [{servicioID, nombre, precio}, ...]
   const [servicioParaAgregar, setServicioParaAgregar] = useState(null); // Temp selection for Step 1
@@ -42,6 +43,12 @@ const Ventas = () => {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
   const [perfilesDisponibles, setPerfilesDisponibles] = useState([]);
   const [perfilSeleccionado, setPerfilSeleccionado] = useState(null);
+  
+  // Two-step workflow for COMBOS
+  const [combosDeseados, setCombosDeseados] = useState([]); // [{comboID, nombre, precio, servicios[]}, ...]
+  const [comboParaAgregar, setComboParaAgregar] = useState(null); // Temp selection for Step 1
+  const [combosCart, setCombosCart] = useState([]); // Combos with all services assigned
+  const [comboSeleccionado, setComboSeleccionado] = useState(null); // For Step 2 combo assignment
   
   // Form data
   const [formData, setFormData] = useState({
@@ -77,12 +84,14 @@ const Ventas = () => {
 
   const loadCuentasDisponibles = async () => {
     try {
-      const [cuentas, servicios] = await Promise.all([
+      const [cuentas, servicios, combos] = await Promise.all([
         cuentasService.getDisponibles(),
-        serviciosService.getAll()
+        serviciosService.getAll(),
+        combosService.getAll()
       ]);
       setCuentasDisponibles(cuentas);
       setServiciosDisponibles(servicios.filter(s => s.activo));
+      setCombosDisponibles(combos.filter(c => c.activo));
     } catch (error) {
       console.error('Error al cargar cuentas disponibles:', error);
       showAlert('error', 'Error al cargar cuentas disponibles');
@@ -227,8 +236,45 @@ const Ventas = () => {
     setServiciosCart(serviciosCart.filter((_, i) => i !== index));
   };
 
+  // === COMBO HANDLERS ===
+  
+  // Step 1: Add combo to desired list (without accounts)
+  const handleAgregarComboDeseado = () => {
+    if (!comboParaAgregar) {
+      showAlert('error', 'Seleccione un combo');
+      return;
+    }
+    
+    // Check if combo already in desired list
+    const yaAgregado = combosDeseados.some(c => c.comboID === comboParaAgregar.comboID);
+    if (yaAgregado) {
+      showAlert('error', 'Este combo ya fue agregado');
+      return;
+    }
+    
+    setCombosDeseados([...combosDeseados, comboParaAgregar]);
+    setComboParaAgregar(null);
+  };
+
+  const handleRemoverComboDeseado = (comboID) => {
+    setCombosDeseados(combosDeseados.filter(c => c.comboID !== comboID));
+    // Also remove from cart if it was already assigned
+    setCombosCart(combosCart.filter(cc => cc.comboID !== comboID));
+  };
+
+  // Step 2: Select combo from desired list to assign accounts/profiles
+  const handleComboSelect = (combo) => {
+    setComboSeleccionado(combo);
+  };
+
+  const handleRemoverCombo = (index) => {
+    setCombosCart(combosCart.filter((_, i) => i !== index));
+  };
+
   const calcularMontoTotal = () => {
-    return serviciosCart.reduce((total, servicio) => total + servicio.precio, 0);
+    const totalServicios = serviciosCart.reduce((total, servicio) => total + servicio.precio, 0);
+    const totalCombos = combosCart.reduce((total, combo) => total + combo.precio, 0);
+    return totalServicios + totalCombos;
   };
 
   const handleCreate = () => {
@@ -240,6 +286,10 @@ const Ventas = () => {
     setServiciosCart([]);
     setServicioParaAgregar(null);
     setServicioSeleccionado(null);
+    setCombosDeseados([]); // Clear desired combos list
+    setCombosCart([]);
+    setComboParaAgregar(null);
+    setComboSeleccionado(null);
     setCuentaSeleccionada(null);
     setPerfilSeleccionado(null);
     setPerfilesDisponibles([]);
@@ -261,7 +311,7 @@ const Ventas = () => {
     // Validation
     const newErrors = {};
     if (!selectedCliente) newErrors.cliente = 'Seleccione un cliente';
-    if (serviciosCart.length === 0) newErrors.servicios = 'Agregue al menos un servicio';
+    if (serviciosCart.length === 0 && combosCart.length === 0) newErrors.servicios = 'Agregue al menos un servicio o combo';
     if (!formData.fechaFin) newErrors.fechaFin = 'Seleccione la fecha de finalización';
     
     // Validate fechaFin is in the future
@@ -278,17 +328,35 @@ const Ventas = () => {
     }
 
     try {
+      // Construct detalles array combining individual services and combo services
+      const detalles = [
+        // Individual services
+        ...serviciosCart.map(s => ({
+          cuentaID: s.cuentaID,
+          perfilID: s.perfilID,
+          servicioID: s.servicioID,
+          comboID: null, // No combo ID for individual services
+          precioUnitario: s.precio || 0
+        })),
+        // Combo services - flatten all services from all combos
+        ...combosCart.flatMap(combo => 
+          combo.serviciosAsignados.map(sa => ({
+            cuentaID: sa.cuentaID,
+            perfilID: sa.perfilID,
+            servicioID: sa.servicioID,
+            comboID: combo.comboID, // Include combo ID for combo services
+            precioUnitario: combo.precio / combo.serviciosAsignados.length // Distribute combo price evenly
+          }))
+        )
+      ];
+
       const ventaData = {
         clienteID: selectedCliente.clienteID,
         fechaFin: formData.fechaFin,
         medioPagoID: formData.medioPagoID || null,
         moneda: formData.moneda,
         notas: formData.notas,
-        detalles: serviciosCart.map(s => ({
-          cuentaID: s.cuentaID,
-          perfilID: s.perfilID,
-          servicioID: s.servicioID
-        }))
+        detalles
       };
 
       await ventasService.create(ventaData);
