@@ -399,6 +399,16 @@ namespace STREAMDOORSystem.Controllers
                     return NotFound(new { message = "Venta no encontrada" });
                 }
 
+                // Eliminar los pagos relacionados primero
+                var pagos = await _context.Pagos
+                    .Where(p => p.VentaID == id)
+                    .ToListAsync();
+                
+                if (pagos.Any())
+                {
+                    _context.Pagos.RemoveRange(pagos);
+                }
+
                 // Marcar la venta como cancelada
                 venta.Estado = "Cancelada";
                 _context.Ventas.Update(venta);
@@ -421,10 +431,12 @@ namespace STREAMDOORSystem.Controllers
             catch (Exception ex)
             {
                 var innerMessage = ex.InnerException?.Message ?? "";
+                var innerInnerMessage = ex.InnerException?.InnerException?.Message ?? "";
                 return StatusCode(500, new { 
                     message = "Error al eliminar venta", 
                     error = ex.Message,
                     innerError = innerMessage,
+                    innerInnerError = innerInnerMessage,
                     stackTrace = ex.StackTrace 
                 });
             }
