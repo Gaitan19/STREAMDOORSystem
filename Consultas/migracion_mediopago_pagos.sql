@@ -23,7 +23,6 @@ BEGIN
         FechaPago DATETIME DEFAULT GETDATE(),
         Referencia NVARCHAR(100) NULL,
         Notas NVARCHAR(500) NULL,
-        FechaCreacion DATETIME DEFAULT GETDATE(),
         CONSTRAINT FK_Pagos_Ventas FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
         CONSTRAINT FK_Pagos_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
     );
@@ -32,6 +31,23 @@ END
 ELSE
 BEGIN
     PRINT 'Tabla Pagos ya existe.';
+    
+    -- Verificar y reparar foreign keys si faltan
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_Ventas')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_Ventas...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_Ventas 
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID);
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_MediosPago')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_MediosPago...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_MediosPago 
+        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
+    END
 END
 GO
 
