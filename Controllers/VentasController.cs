@@ -400,14 +400,9 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 // Eliminar los pagos relacionados primero
-                var pagos = await _context.Pagos
+                await _context.Pagos
                     .Where(p => p.VentaID == id)
-                    .ToListAsync();
-                
-                if (pagos.Any())
-                {
-                    _context.Pagos.RemoveRange(pagos);
-                }
+                    .ExecuteDeleteAsync();
 
                 // Marcar la venta como cancelada
                 venta.Estado = "Cancelada";
