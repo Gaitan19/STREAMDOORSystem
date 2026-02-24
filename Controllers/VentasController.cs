@@ -27,6 +27,7 @@ namespace STREAMDOORSystem.Controllers
             {
                 var ventas = await _context.Ventas
                     .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                             .ThenInclude(c => c!.Servicio)
@@ -64,7 +65,13 @@ namespace STREAMDOORSystem.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error al obtener ventas", error = ex.Message });
+                var innerMessage = ex.InnerException?.Message ?? "";
+                return StatusCode(500, new { 
+                    message = "Error al obtener ventas", 
+                    error = ex.Message,
+                    innerError = innerMessage,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -76,6 +83,7 @@ namespace STREAMDOORSystem.Controllers
             {
                 var venta = await _context.Ventas
                     .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                             .ThenInclude(c => c!.Servicio)
@@ -119,7 +127,13 @@ namespace STREAMDOORSystem.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error al obtener venta", error = ex.Message });
+                var innerMessage = ex.InnerException?.Message ?? "";
+                return StatusCode(500, new { 
+                    message = "Error al obtener venta", 
+                    error = ex.Message,
+                    innerError = innerMessage,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -138,6 +152,7 @@ namespace STREAMDOORSystem.Controllers
                 var ventas = await _context.Ventas
                     .Where(v => v.ClienteID == clienteId)
                     .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                             .ThenInclude(c => c!.Servicio)
@@ -175,7 +190,13 @@ namespace STREAMDOORSystem.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error al obtener ventas del cliente", error = ex.Message });
+                var innerMessage = ex.InnerException?.Message ?? "";
+                return StatusCode(500, new { 
+                    message = "Error al obtener ventas del cliente", 
+                    error = ex.Message,
+                    innerError = innerMessage,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -312,6 +333,7 @@ namespace STREAMDOORSystem.Controllers
                 // Recargar la venta con todas las relaciones para el DTO de respuesta
                 var ventaCreada = await _context.Ventas
                     .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                             .ThenInclude(c => c!.Servicio)
@@ -350,7 +372,15 @@ namespace STREAMDOORSystem.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error al crear venta", error = ex.Message });
+                var innerMessage = ex.InnerException?.Message ?? "";
+                var innerInnerMessage = ex.InnerException?.InnerException?.Message ?? "";
+                return StatusCode(500, new { 
+                    message = "Error al crear venta", 
+                    error = ex.Message,
+                    innerError = innerMessage,
+                    innerInnerError = innerInnerMessage,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -390,7 +420,13 @@ namespace STREAMDOORSystem.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error al eliminar venta", error = ex.Message });
+                var innerMessage = ex.InnerException?.Message ?? "";
+                return StatusCode(500, new { 
+                    message = "Error al eliminar venta", 
+                    error = ex.Message,
+                    innerError = innerMessage,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
     }
