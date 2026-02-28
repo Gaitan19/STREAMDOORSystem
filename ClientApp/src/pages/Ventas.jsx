@@ -480,7 +480,10 @@ const Ventas = () => {
       for (const detalle of ventaCompletaData.detalles) {
         try {
           const cuenta = await cuentasService.getById(detalle.cuentaID);
-          const perfilesDisponibles = cuenta?.perfiles?.filter(p => p.estado === 'Disponible') || [];
+          // Include disponibles AND the currently assigned profile (even if ocupado)
+          const perfilesDisponibles = cuenta?.perfiles?.filter(p => 
+            p.estado === 'Disponible' || p.perfilID === detalle.perfilID
+          ) || [];
           initialChanges[detalle.ventaDetalleID] = {
             perfilesDisponibles
           };
@@ -497,7 +500,7 @@ const Ventas = () => {
     }
   };
 
-  const handleCuentaChangeInEdit = async (detalleID, nuevaCuentaID, originalCuentaID) => {
+  const handleCuentaChangeInEdit = async (detalleID, nuevaCuentaID, originalCuentaID, originalPerfilID) => {
     try {
       // If reverting to original account or selecting same as current, remove account change
       if (!nuevaCuentaID || nuevaCuentaID === '' || parseInt(nuevaCuentaID) === originalCuentaID) {
@@ -516,7 +519,10 @@ const Ventas = () => {
         // If keeping current account, load its profiles for profile-only change
         if (parseInt(nuevaCuentaID) === originalCuentaID) {
           const cuenta = await cuentasService.getById(originalCuentaID);
-          const perfilesDisponibles = cuenta.perfiles.filter(p => p.estado === 'Disponible');
+          // Include disponibles AND the currently assigned profile
+          const perfilesDisponibles = cuenta.perfiles.filter(p => 
+            p.estado === 'Disponible' || p.perfilID === originalPerfilID
+          );
           setEditChanges({
             ...updatedChanges,
             [detalleID]: {
@@ -1698,7 +1704,7 @@ const Ventas = () => {
                   // Find ALL accounts that match this service (not just disponibles)
                   // This allows reassigning from one sale to another
                   const cuentasParaServicio = cuentasDisponibles.filter(c => 
-                    c.servicioID === detalle.servicioID
+                    c.servicioID === detalle.servicioID && c.activo
                   );
 
                   return (
@@ -1742,7 +1748,7 @@ const Ventas = () => {
                           </label>
                           <select
                             value={currentCuentaID || ''}
-                            onChange={(e) => handleCuentaChangeInEdit(detalle.ventaDetalleID, e.target.value, detalle.cuentaID)}
+                            onChange={(e) => handleCuentaChangeInEdit(detalle.ventaDetalleID, e.target.value, detalle.cuentaID, detalle.perfilID)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value={detalle.cuentaID}>Mantener cuenta actual</option>
@@ -1750,7 +1756,7 @@ const Ventas = () => {
                               .filter(c => c.cuentaID !== detalle.cuentaID) // Don't show current account twice
                               .map(cuenta => (
                                 <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                                  {cuenta.correoCuenta} - Código: {cuenta.codigoAcceso || 'N/A'}
+                                  {cuenta.email || cuenta.correoTerceros || 'N/A'} - Código: {cuenta.codigoCuenta || 'N/A'}
                                 </option>
                               ))
                             }
