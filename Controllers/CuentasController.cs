@@ -49,7 +49,17 @@ namespace STREAMDOORSystem.Controllers
                     FechaFinalizacion = c.FechaFinalizacion,
                     Password = c.Password,
                     CorreoTerceros = c.CorreoTerceros,
-                    CodigoCuenta = c.CodigoCuenta
+                    CodigoCuenta = c.CodigoCuenta,
+                    Activo = c.Activo,
+                    Perfiles = c.Perfiles.Where(p => p.Activo).Select(p => new PerfilDTO
+                    {
+                        PerfilID = p.PerfilID,
+                        CuentaID = p.CuentaID,
+                        NumeroPerfil = p.NumeroPerfil,
+                        PIN = p.PIN,
+                        Estado = p.Estado,
+                        Activo = p.Activo
+                    }).ToList()
                 }).ToList();
 
                 return Ok(cuentasDto);
@@ -94,7 +104,17 @@ namespace STREAMDOORSystem.Controllers
                     FechaFinalizacion = cuenta.FechaFinalizacion,
                     Password = cuenta.Password,
                     CorreoTerceros = cuenta.CorreoTerceros,
-                    CodigoCuenta = cuenta.CodigoCuenta
+                    CodigoCuenta = cuenta.CodigoCuenta,
+                    Activo = cuenta.Activo,
+                    Perfiles = cuenta.Perfiles.Where(p => p.Activo).Select(p => new PerfilDTO
+                    {
+                        PerfilID = p.PerfilID,
+                        CuentaID = p.CuentaID,
+                        NumeroPerfil = p.NumeroPerfil,
+                        PIN = p.PIN,
+                        Estado = p.Estado,
+                        Activo = p.Activo
+                    }).ToList()
                 };
 
                 return Ok(cuentaDto);

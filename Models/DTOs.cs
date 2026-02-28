@@ -110,6 +110,8 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Password { get; set; }
         public string? CorreoTerceros { get; set; }
         public string? CodigoCuenta { get; set; }
+        public List<PerfilDTO>? Perfiles { get; set; }
+        public bool Activo { get; set; }
     }
 
     public class CrearCuentaDTO
