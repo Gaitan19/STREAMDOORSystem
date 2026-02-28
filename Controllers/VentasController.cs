@@ -38,6 +38,7 @@ namespace STREAMDOORSystem.Controllers
                         VentaID = v.VentaID,
                         ClienteID = v.ClienteID,
                         NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
+                        TelefonoCliente = v.Cliente.Telefono,
                         FechaInicio = v.FechaInicio,
                         FechaFin = v.FechaFin,
                         Duracion = v.Duracion,
@@ -101,6 +102,7 @@ namespace STREAMDOORSystem.Controllers
                     VentaID = venta.VentaID,
                     ClienteID = venta.ClienteID,
                     NombreCliente = venta.Cliente!.Nombre + " " + venta.Cliente.Apellido,
+                    TelefonoCliente = venta.Cliente.Telefono,
                     FechaInicio = venta.FechaInicio,
                     FechaFin = venta.FechaFin,
                     Duracion = venta.Duracion,
@@ -163,6 +165,7 @@ namespace STREAMDOORSystem.Controllers
                         VentaID = v.VentaID,
                         ClienteID = v.ClienteID,
                         NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
+                        TelefonoCliente = v.Cliente.Telefono,
                         FechaInicio = v.FechaInicio,
                         FechaFin = v.FechaFin,
                         Duracion = v.Duracion,
@@ -345,6 +348,7 @@ namespace STREAMDOORSystem.Controllers
                     VentaID = ventaCreada!.VentaID,
                     ClienteID = ventaCreada.ClienteID,
                     NombreCliente = ventaCreada.Cliente!.Nombre + " " + ventaCreada.Cliente.Apellido,
+                    TelefonoCliente = ventaCreada.Cliente.Telefono,
                     FechaInicio = ventaCreada.FechaInicio,
                     FechaFin = ventaCreada.FechaFin,
                     Duracion = ventaCreada.Duracion,
@@ -431,6 +435,178 @@ namespace STREAMDOORSystem.Controllers
                     error = ex.Message,
                     innerError = innerMessage,
                     innerInnerError = innerInnerMessage,
+                    stackTrace = ex.StackTrace 
+                });
+            }
+        }
+
+        // GET: api/Ventas/5/Completa (with credentials)
+        [HttpGet("{id}/Completa")]
+        public async Task<ActionResult<VentaCompletaDTO>> GetVentaCompleta(int id)
+        {
+            try
+            {
+                var venta = await _context.Ventas
+                    .Include(v => v.Cliente)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Correo)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
+                    .FirstOrDefaultAsync(v => v.VentaID == id);
+
+                if (venta == null)
+                {
+                    return NotFound(new { message = "Venta no encontrada" });
+                }
+
+                var ventaDto = new VentaCompletaDTO
+                {
+                    VentaID = venta.VentaID,
+                    ClienteID = venta.ClienteID,
+                    NombreCliente = venta.Cliente!.Nombre + " " + venta.Cliente.Apellido,
+                    TelefonoCliente = venta.Cliente.Telefono,
+                    FechaInicio = venta.FechaInicio,
+                    FechaFin = venta.FechaFin,
+                    Duracion = venta.Duracion,
+                    Monto = venta.Monto,
+                    Moneda = venta.Moneda,
+                    Estado = venta.Estado,
+                    Notas = null, // Venta doesn't have Notas property yet
+                    Detalles = venta.Detalles.Select(d => new VentaDetalleCompletaDTO
+                    {
+                        VentaDetalleID = d.VentaDetalleID,
+                        NombreServicio = d.Cuenta!.Servicio!.Nombre,
+                        CodigoCuenta = d.Cuenta.CodigoCuenta ?? "",
+                        EmailCuenta = d.Cuenta.Correo?.Email ?? "",
+                        PasswordCuenta = d.Cuenta.Correo?.Password ?? "",
+                        NumeroPerfil = d.Perfil!.NumeroPerfil,
+                        PinPerfil = d.Perfil.PIN,
+                        PrecioUnitario = d.PrecioUnitario
+                    }).ToList()
+                };
+
+                return Ok(ventaDto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    message = "Error al obtener detalles completos de venta", 
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message ?? "",
+                    stackTrace = ex.StackTrace 
+                });
+            }
+        }
+
+        // PUT: api/Ventas/5/Actualizar
+        [HttpPut("{id}/Actualizar")]
+        public async Task<ActionResult> ActualizarVenta(int id, ActualizarVentaDTO dto)
+        {
+            try
+            {
+                var venta = await _context.Ventas
+                    .Include(v => v.Detalles)
+                    .FirstOrDefaultAsync(v => v.VentaID == id);
+
+                if (venta == null)
+                {
+                    return NotFound(new { message = "Venta no encontrada" });
+                }
+
+                if (venta.Estado == "Cancelado")
+                {
+                    return BadRequest(new { message = "No se puede modificar una venta cancelada" });
+                }
+
+                // Update each detail
+                foreach (var detalleDto in dto.Detalles)
+                {
+                    var detalle = venta.Detalles.FirstOrDefault(d => d.VentaDetalleID == detalleDto.VentaDetalleID);
+                    
+                    if (detalle == null)
+                    {
+                        return BadRequest(new { message = $"Detalle {detalleDto.VentaDetalleID} no encontrado" });
+                    }
+
+                    // If changing account
+                    if (detalleDto.NuevaCuentaID.HasValue && detalleDto.NuevaCuentaID.Value != detalle.CuentaID)
+                    {
+                        // Free old profile
+                        var oldPerfil = await _context.Perfiles.FindAsync(detalle.PerfilID);
+                        if (oldPerfil != null)
+                        {
+                            oldPerfil.Estado = "Disponible";
+                            _context.Perfiles.Update(oldPerfil);
+                        }
+
+                        // Validate new account
+                        var nuevaCuenta = await _context.Cuentas
+                            .Include(c => c.Perfiles)
+                            .FirstOrDefaultAsync(c => c.CuentaID == detalleDto.NuevaCuentaID.Value);
+
+                        if (nuevaCuenta == null || nuevaCuenta.Estado != "Disponible")
+                        {
+                            return BadRequest(new { message = $"Cuenta {detalleDto.NuevaCuentaID} no disponible" });
+                        }
+
+                        detalle.CuentaID = detalleDto.NuevaCuentaID.Value;
+
+                        // If new profile is specified
+                        if (detalleDto.NuevoPerfilID.HasValue)
+                        {
+                            var nuevoPerfil = nuevaCuenta.Perfiles.FirstOrDefault(p => p.PerfilID == detalleDto.NuevoPerfilID.Value);
+                            
+                            if (nuevoPerfil == null || nuevoPerfil.Estado != "Disponible")
+                            {
+                                return BadRequest(new { message = $"Perfil {detalleDto.NuevoPerfilID} no disponible" });
+                            }
+
+                            detalle.PerfilID = detalleDto.NuevoPerfilID.Value;
+                            nuevoPerfil.Estado = "Ocupado";
+                            _context.Perfiles.Update(nuevoPerfil);
+                        }
+                    }
+                    // If only changing profile within same account
+                    else if (detalleDto.NuevoPerfilID.HasValue && detalleDto.NuevoPerfilID.Value != detalle.PerfilID)
+                    {
+                        // Free old profile
+                        var oldPerfil = await _context.Perfiles.FindAsync(detalle.PerfilID);
+                        if (oldPerfil != null)
+                        {
+                            oldPerfil.Estado = "Disponible";
+                            _context.Perfiles.Update(oldPerfil);
+                        }
+
+                        // Assign new profile
+                        var nuevoPerfil = await _context.Perfiles.FindAsync(detalleDto.NuevoPerfilID.Value);
+                        
+                        if (nuevoPerfil == null || nuevoPerfil.Estado != "Disponible")
+                        {
+                            return BadRequest(new { message = $"Perfil {detalleDto.NuevoPerfilID} no disponible" });
+                        }
+
+                        detalle.PerfilID = detalleDto.NuevoPerfilID.Value;
+                        nuevoPerfil.Estado = "Ocupado";
+                        _context.Perfiles.Update(nuevoPerfil);
+                    }
+
+                    _context.VentasDetalles.Update(detalle);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Venta actualizada correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    message = "Error al actualizar venta", 
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message ?? "",
                     stackTrace = ex.StackTrace 
                 });
             }

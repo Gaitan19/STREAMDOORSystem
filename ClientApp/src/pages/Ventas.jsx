@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package } from 'lucide-react';
+import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -17,7 +17,10 @@ const Ventas = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState(null);
+  const [ventaCompleta, setVentaCompleta] = useState(null);
   const [alert, setAlert] = useState(null);
   
   // Client search
@@ -109,6 +112,7 @@ const Ventas = () => {
   const handleSearch = (searchTerm) => {
     const filtered = ventas.filter(venta =>
       venta.nombreCliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venta.telefonoCliente?.includes(searchTerm) ||
       venta.detalles?.some(d => d.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredVentas(filtered);
@@ -446,6 +450,38 @@ const Ventas = () => {
     }
   };
 
+  const handleViewDetails = async (ventaID) => {
+    try {
+      setLoading(true);
+      const response = await ventasService.getCompleta(ventaID);
+      setVentaCompleta(response);
+      setViewDetailsModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar detalles de venta:', error);
+      showAlert('error', 'Error al cargar detalles de venta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = async (venta) => {
+    try {
+      setSelectedVenta(venta);
+      // Load available accounts for the service being sold
+      const cuentas = await cuentasService.getDisponibles();
+      setCuentasDisponibles(cuentas);
+      setEditModalOpen(true);
+    } catch (error) {
+      console.error('Error al preparar edición:', error);
+      showAlert('error', 'Error al preparar edición');
+    }
+  };
+
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    showAlert('success', `${label} copiado al portapapeles`);
+  };
+
   const columns = [
     { 
       key: 'ventaID', 
@@ -460,6 +496,13 @@ const Ventas = () => {
           <div className="font-medium text-gray-900">{row.nombreCliente}</div>
           <div className="text-sm text-gray-500">ID: {row.clienteID}</div>
         </div>
+      )
+    },
+    { 
+      key: 'telefono', 
+      label: 'Teléfono',
+      render: (row) => (
+        <div className="text-sm text-gray-700">{row.telefonoCliente}</div>
       )
     },
     { 
@@ -514,6 +557,23 @@ const Ventas = () => {
       render: (row) => (
         <div className="flex gap-2">
           <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleViewDetails(row.ventaID)}
+            title="Ver detalles completos"
+          >
+            <Eye size={16} />
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleEdit(row)}
+            disabled={row.estado === 'Cancelado'}
+            title="Editar venta"
+          >
+            <Edit size={16} />
+          </Button>
+          <Button
             variant="danger"
             size="sm"
             onClick={() => {
@@ -521,6 +581,7 @@ const Ventas = () => {
               setDeleteModalOpen(true);
             }}
             disabled={row.estado === 'Cancelado'}
+            title="Cancelar venta"
           >
             <Trash2 size={16} />
           </Button>
@@ -544,7 +605,7 @@ const Ventas = () => {
       <Card>
         <div className="mb-4">
           <SearchBar
-            placeholder="Buscar por cliente o servicio..."
+            placeholder="Buscar por cliente, teléfono o servicio..."
             onSearch={handleSearch}
           />
         </div>
@@ -1292,6 +1353,174 @@ const Ventas = () => {
             </Button>
             <Button variant="danger" onClick={handleDelete}>
               Sí, cancelar venta
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal View Details */}
+      <Modal
+        isOpen={viewDetailsModalOpen}
+        onClose={() => setViewDetailsModalOpen(false)}
+        title="Detalles Completos de Venta"
+        size="large"
+      >
+        {ventaCompleta && (
+          <div className="space-y-6">
+            {/* Client Information */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-3">Información del Cliente</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-sm text-gray-600">Nombre:</p>
+                  <p className="font-medium">{ventaCompleta.nombreCliente}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Teléfono:</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{ventaCompleta.telefonoCliente}</p>
+                    <button
+                      onClick={() => copyToClipboard(ventaCompleta.telefonoCliente, 'Teléfono')}
+                      className="text-blue-600 hover:text-blue-700"
+                      title="Copiar teléfono"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sale Information */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Información de la Venta</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <p className="text-sm text-gray-600">Fecha Inicio:</p>
+                  <p className="font-medium">{formatDate(ventaCompleta.fechaInicio)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Fecha Fin:</p>
+                  <p className="font-medium">{formatDate(ventaCompleta.fechaFin)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Monto Total:</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(ventaCompleta.monto, ventaCompleta.moneda)}</p>
+                </div>
+              </div>
+              {ventaCompleta.notas && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600">Notas:</p>
+                  <p className="text-sm">{ventaCompleta.notas}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Accounts Details */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900">Servicios y Credenciales</h3>
+              {ventaCompleta.detalles.map((detalle, idx) => (
+                <div key={idx} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-purple-900">{detalle.nombreServicio}</h4>
+                    <Badge variant="primary">Perfil #{detalle.numeroPerfil}</Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Código de Cuenta:</p>
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                          <span className="font-mono text-sm flex-1">{detalle.codigoCuenta}</span>
+                          <button
+                            onClick={() => copyToClipboard(detalle.codigoCuenta, 'Código')}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="Copiar código"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Email:</p>
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                          <span className="font-mono text-sm flex-1 truncate">{detalle.emailCuenta}</span>
+                          <button
+                            onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="Copiar email"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Contraseña:</p>
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                          <span className="font-mono text-sm flex-1">{detalle.passwordCuenta}</span>
+                          <button
+                            onClick={() => copyToClipboard(detalle.passwordCuenta, 'Contraseña')}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="Copiar contraseña"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {detalle.pinPerfil && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">PIN del Perfil:</p>
+                          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                            <span className="font-mono text-sm flex-1">{detalle.pinPerfil}</span>
+                            <button
+                              onClick={() => copyToClipboard(detalle.pinPerfil, 'PIN')}
+                              className="text-blue-600 hover:text-blue-700"
+                              title="Copiar PIN"
+                            >
+                              <Copy size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-purple-200">
+                    <p className="text-sm text-gray-600">
+                      Precio: <span className="font-semibold">{formatCurrency(detalle.precioUnitario, ventaCompleta.moneda)}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Edit - Simplified for now */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Editar Asignación de Venta"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Funcionalidad de edición en desarrollo. Por ahora puede cancelar la venta actual y crear una nueva con las cuentas correctas.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setEditModalOpen(false)}>
+              Cerrar
             </Button>
           </div>
         </div>

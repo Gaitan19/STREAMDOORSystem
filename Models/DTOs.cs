@@ -173,6 +173,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int VentaID { get; set; }
         public int ClienteID { get; set; }
         public string NombreCliente { get; set; } = string.Empty;
+        public string TelefonoCliente { get; set; } = string.Empty;
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
         public int? Duracion { get; set; }
@@ -195,6 +196,48 @@ namespace STREAMDOORSystem.Models.DTOs
         public string NombreServicio { get; set; } = string.Empty;
         public decimal PrecioUnitario { get; set; }
         public DateTime FechaAsignacion { get; set; }
+    }
+
+    // DTO for viewing complete sale details including credentials
+    public class VentaCompletaDTO
+    {
+        public int VentaID { get; set; }
+        public int ClienteID { get; set; }
+        public string NombreCliente { get; set; } = string.Empty;
+        public string TelefonoCliente { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
+        public DateTime FechaFin { get; set; }
+        public int? Duracion { get; set; }
+        public decimal Monto { get; set; }
+        public string Moneda { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string? Notas { get; set; }
+        public List<VentaDetalleCompletaDTO> Detalles { get; set; } = new();
+    }
+
+    public class VentaDetalleCompletaDTO
+    {
+        public int VentaDetalleID { get; set; }
+        public string NombreServicio { get; set; } = string.Empty;
+        public string CodigoCuenta { get; set; } = string.Empty;
+        public string EmailCuenta { get; set; } = string.Empty;
+        public string PasswordCuenta { get; set; } = string.Empty;
+        public int NumeroPerfil { get; set; }
+        public string? PinPerfil { get; set; }
+        public decimal PrecioUnitario { get; set; }
+    }
+
+    // DTO for updating/editing sale details
+    public class ActualizarVentaDTO
+    {
+        public List<ActualizarVentaDetalleDTO> Detalles { get; set; } = new();
+    }
+
+    public class ActualizarVentaDetalleDTO
+    {
+        public int VentaDetalleID { get; set; }
+        public int? NuevaCuentaID { get; set; }
+        public int? NuevoPerfilID { get; set; }
     }
 
     public class CrearVentaDTO
