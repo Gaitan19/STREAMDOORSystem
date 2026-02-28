@@ -480,7 +480,7 @@ const Ventas = () => {
       for (const detalle of ventaCompletaData.detalles) {
         try {
           const cuenta = await cuentasService.getById(detalle.cuentaID);
-          const perfilesDisponibles = cuenta.perfiles.filter(p => p.estado === 'Disponible');
+          const perfilesDisponibles = cuenta?.perfiles?.filter(p => p.estado === 'Disponible') || [];
           initialChanges[detalle.ventaDetalleID] = {
             perfilesDisponibles
           };
