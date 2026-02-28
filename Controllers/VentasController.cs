@@ -405,7 +405,7 @@ namespace STREAMDOORSystem.Controllers
                     .ExecuteDeleteAsync();
 
                 // Marcar la venta como cancelada
-                venta.Estado = "Cancelada";
+                venta.Estado = "Cancelado";
                 _context.Ventas.Update(venta);
 
                 // Liberar los perfiles (marcarlos como Disponible nuevamente)
