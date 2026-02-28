@@ -21,6 +21,7 @@ const Ventas = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [ventaCompleta, setVentaCompleta] = useState(null);
+  const [editChanges, setEditChanges] = useState({}); // Track changes: {ventaDetalleID: {nuevaCuentaID, nuevoPerfilID}}
   const [alert, setAlert] = useState(null);
   
   // Client search
@@ -467,13 +468,78 @@ const Ventas = () => {
   const handleEdit = async (venta) => {
     try {
       setSelectedVenta(venta);
-      // Load available accounts for the service being sold
+      // Load complete sale details with credentials
+      const ventaCompletaData = await ventasService.getCompleta(venta.ventaID);
+      setVentaCompleta(ventaCompletaData);
+      // Load available accounts
       const cuentas = await cuentasService.getDisponibles();
       setCuentasDisponibles(cuentas);
+      // Reset edit changes
+      setEditChanges({});
       setEditModalOpen(true);
     } catch (error) {
       console.error('Error al preparar edición:', error);
       showAlert('error', 'Error al preparar edición');
+    }
+  };
+
+  const handleCuentaChangeInEdit = async (detalleID, nuevaCuentaID) => {
+    try {
+      // Load profiles for the new account
+      const cuenta = await cuentasService.getById(nuevaCuentaID);
+      const perfilesDisponibles = cuenta.perfiles.filter(p => p.estado === 'Disponible');
+      
+      setEditChanges({
+        ...editChanges,
+        [detalleID]: {
+          ...editChanges[detalleID],
+          nuevaCuentaID: parseInt(nuevaCuentaID),
+          nuevoPerfilID: perfilesDisponibles.length > 0 ? perfilesDisponibles[0].perfilID : null,
+          perfilesDisponibles
+        }
+      });
+    } catch (error) {
+      console.error('Error al cargar perfiles:', error);
+      showAlert('error', 'Error al cargar perfiles de la cuenta');
+    }
+  };
+
+  const handlePerfilChangeInEdit = (detalleID, nuevoPerfilID) => {
+    setEditChanges({
+      ...editChanges,
+      [detalleID]: {
+        ...editChanges[detalleID],
+        nuevoPerfilID: parseInt(nuevoPerfilID)
+      }
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      if (Object.keys(editChanges).length === 0) {
+        showAlert('warning', 'No hay cambios para guardar');
+        return;
+      }
+
+      // Build update DTO
+      const updateDTO = {
+        detalles: Object.entries(editChanges).map(([ventaDetalleID, changes]) => ({
+          ventaDetalleID: parseInt(ventaDetalleID),
+          nuevaCuentaID: changes.nuevaCuentaID,
+          nuevoPerfilID: changes.nuevoPerfilID
+        }))
+      };
+
+      await ventasService.actualizar(selectedVenta.ventaID, updateDTO);
+      showAlert('success', 'Venta actualizada correctamente');
+      setEditModalOpen(false);
+      setEditChanges({});
+      setSelectedVenta(null);
+      setVentaCompleta(null);
+      loadData(); // Reload sales list
+    } catch (error) {
+      console.error('Error al actualizar venta:', error);
+      showAlert('error', error.response?.data?.message || 'Error al actualizar venta');
     }
   };
 
@@ -1508,21 +1574,186 @@ const Ventas = () => {
         )}
       </Modal>
 
-      {/* Modal Edit - Simplified for now */}
+      {/* Modal Edit - Full functionality */}
       <Modal
         isOpen={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        title="Editar Asignación de Venta"
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditChanges({});
+          setSelectedVenta(null);
+          setVentaCompleta(null);
+        }}
+        title="Editar Asignación de Cuentas y Perfiles"
       >
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Funcionalidad de edición en desarrollo. Por ahora puede cancelar la venta actual y crear una nueva con las cuentas correctas.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setEditModalOpen(false)}>
-              Cerrar
-            </Button>
-          </div>
+        <div className="space-y-6">
+          {ventaCompleta && (
+            <>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-2">Información de la Venta</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-600">Cliente:</span>
+                    <span className="ml-2 font-medium">{ventaCompleta.nombreCliente}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Fecha Fin:</span>
+                    <span className="ml-2 font-medium">{formatDate(ventaCompleta.fechaFin)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Total:</span>
+                    <span className="ml-2 font-medium">{formatCurrency(ventaCompleta.total)} {ventaCompleta.moneda}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Estado:</span>
+                    <Badge variant={
+                      ventaCompleta.estado === 'Activo' ? 'success' :
+                      ventaCompleta.estado === 'ProximoVencer' ? 'warning' :
+                      ventaCompleta.estado === 'Vencido' ? 'danger' : 'default'
+                    }>
+                      {ventaCompleta.estado}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Asignaciones Actuales</h3>
+                <p className="text-sm text-gray-600">Seleccione nuevas cuentas y perfiles para reemplazar las actuales:</p>
+                
+                {ventaCompleta.detalles.map((detalle, index) => {
+                  const changes = editChanges[detalle.ventaDetalleID] || {};
+                  const currentCuentaID = changes.nuevaCuentaID || detalle.cuentaID;
+                  const currentPerfilID = changes.nuevoPerfilID || detalle.perfilID;
+                  
+                  // Get available profiles for current selected account
+                  const perfilesParaCuenta = changes.perfilesDisponibles || [];
+                  
+                  // Find accounts that match this service
+                  const cuentasParaServicio = cuentasDisponibles.filter(c => 
+                    c.servicioID === detalle.servicioID && c.estado === 'Disponible'
+                  );
+
+                  return (
+                    <div key={detalle.ventaDetalleID} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{detalle.nombreServicio}</h4>
+                          <p className="text-sm text-gray-600">
+                            {detalle.tipo === 'Combo' && `Combo: ${detalle.nombreCombo}`}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">#{index + 1}</Badge>
+                      </div>
+
+                      {/* Current Assignment */}
+                      <div className="mb-4 p-3 bg-white rounded border-l-4 border-blue-500">
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Asignación Actual</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">Email:</span>
+                            <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{detalle.correoCuenta}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">Perfil #:</span>
+                            <span className="font-medium">{detalle.numeroPerfil}</span>
+                            <span className="text-gray-400 mx-1">|</span>
+                            <span className="text-gray-600">PIN:</span>
+                            <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{detalle.pinPerfil}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* New Assignment Selection */}
+                      <div className="space-y-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Nueva Asignación</p>
+                        
+                        {/* Account Selection */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Seleccionar Nueva Cuenta
+                          </label>
+                          <select
+                            value={currentCuentaID}
+                            onChange={(e) => handleCuentaChangeInEdit(detalle.ventaDetalleID, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value={detalle.cuentaID}>Mantener cuenta actual</option>
+                            {cuentasParaServicio.map(cuenta => (
+                              <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
+                                {cuenta.correoCuenta} - Código: {cuenta.codigoAcceso || 'N/A'}
+                              </option>
+                            ))}
+                          </select>
+                          {cuentasParaServicio.length === 0 && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              ⚠️ No hay cuentas disponibles para este servicio
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Profile Selection */}
+                        {changes.nuevaCuentaID && perfilesParaCuenta.length > 0 && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Seleccionar Perfil
+                            </label>
+                            <select
+                              value={currentPerfilID}
+                              onChange={(e) => handlePerfilChangeInEdit(detalle.ventaDetalleID, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              {perfilesParaCuenta.map(perfil => (
+                                <option key={perfil.perfilID} value={perfil.perfilID}>
+                                  Perfil #{perfil.numeroPerfil} - PIN: {perfil.pin}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {changes.nuevaCuentaID && (
+                          <div className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-700">
+                            ✓ Se cambiará la cuenta para este servicio
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-sm text-gray-600">
+                  {Object.keys(editChanges).length > 0 ? (
+                    <span className="text-blue-600 font-medium">
+                      {Object.keys(editChanges).length} cambio(s) pendiente(s)
+                    </span>
+                  ) : (
+                    <span>No hay cambios</span>
+                  )}
+                </p>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => {
+                      setEditModalOpen(false);
+                      setEditChanges({});
+                      setSelectedVenta(null);
+                      setVentaCompleta(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSaveEdit}
+                    disabled={Object.keys(editChanges).length === 0}
+                  >
+                    Guardar Cambios
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
