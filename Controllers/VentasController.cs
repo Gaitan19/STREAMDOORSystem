@@ -323,8 +323,7 @@ namespace STREAMDOORSystem.Controllers
                         Moneda = crearVentaDto.Moneda,
                         FechaPago = fechaInicio,
                         Referencia = $"Venta #{venta.VentaID}",
-                        Notas = crearVentaDto.Notas,
-                        FechaCreacion = DateTime.Now
+                        Notas = crearVentaDto.Notas
                     };
                     _context.Pagos.Add(pago);
                     await _context.SaveChangesAsync();

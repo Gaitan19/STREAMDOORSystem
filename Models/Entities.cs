@@ -358,7 +358,6 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("MedioPagoID")]
         public virtual MedioPago? MedioPago { get; set; }
-        public DateTime FechaCreacion { get; internal set; }
     }
 
     [Table("CorreosServicios")]
