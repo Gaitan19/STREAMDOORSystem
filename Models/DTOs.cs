@@ -218,6 +218,9 @@ namespace STREAMDOORSystem.Models.DTOs
     public class VentaDetalleCompletaDTO
     {
         public int VentaDetalleID { get; set; }
+        public int ServicioID { get; set; }  // Needed for filtering accounts by service in edit modal
+        public int CuentaID { get; set; }     // Needed for edit modal to know current account
+        public int PerfilID { get; set; }     // Needed for edit modal to know current profile
         public string NombreServicio { get; set; } = string.Empty;
         public string CodigoCuenta { get; set; } = string.Empty;
         public string EmailCuenta { get; set; } = string.Empty;

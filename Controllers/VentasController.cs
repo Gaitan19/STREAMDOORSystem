@@ -479,6 +479,9 @@ namespace STREAMDOORSystem.Controllers
                     Detalles = venta.Detalles.Select(d => new VentaDetalleCompletaDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
+                        ServicioID = d.Cuenta!.ServicioID,  // Add for filtering in edit modal
+                        CuentaID = d.CuentaID,               // Add for edit modal
+                        PerfilID = d.PerfilID,               // Add for edit modal
                         NombreServicio = d.Cuenta!.Servicio!.Nombre,
                         CodigoCuenta = d.Cuenta.CodigoCuenta ?? "",
                         EmailCuenta = d.Cuenta.Correo?.Email ?? "",
