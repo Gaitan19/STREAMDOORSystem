@@ -471,11 +471,25 @@ const Ventas = () => {
       // Load complete sale details with credentials
       const ventaCompletaData = await ventasService.getCompleta(venta.ventaID);
       setVentaCompleta(ventaCompletaData);
-      // Load available accounts
-      const cuentas = await cuentasService.getDisponibles();
-      setCuentasDisponibles(cuentas);
-      // Reset edit changes
-      setEditChanges({});
+      // Load ALL accounts (not just disponibles) to allow reassignment
+      const cuentas = await cuentasService.getAll();
+      setCuentasDisponibles(cuentas.filter(c => c.activo));
+      
+      // Pre-load profiles for current accounts to enable profile-only changes
+      const initialChanges = {};
+      for (const detalle of ventaCompletaData.detalles) {
+        try {
+          const cuenta = await cuentasService.getById(detalle.cuentaID);
+          const perfilesDisponibles = cuenta.perfiles.filter(p => p.estado === 'Disponible');
+          initialChanges[detalle.ventaDetalleID] = {
+            perfilesDisponibles
+          };
+        } catch (err) {
+          console.error(`Error loading profiles for cuenta ${detalle.cuentaID}:`, err);
+        }
+      }
+      setEditChanges(initialChanges);
+      
       setEditModalOpen(true);
     } catch (error) {
       console.error('Error al preparar edición:', error);
@@ -483,14 +497,34 @@ const Ventas = () => {
     }
   };
 
-  const handleCuentaChangeInEdit = async (detalleID, nuevaCuentaID) => {
+  const handleCuentaChangeInEdit = async (detalleID, nuevaCuentaID, originalCuentaID) => {
     try {
-      // If reverting to original account, remove from changes
-      const detalle = ventaCompleta.detalles.find(d => d.ventaDetalleID === detalleID);
-      if (nuevaCuentaID === '' || parseInt(nuevaCuentaID) === detalle.cuentaID) {
+      // If reverting to original account or selecting same as current, remove account change
+      if (!nuevaCuentaID || nuevaCuentaID === '' || parseInt(nuevaCuentaID) === originalCuentaID) {
         const updatedChanges = { ...editChanges };
-        delete updatedChanges[detalleID];
+        // Keep profile change if exists, but remove account change
+        if (updatedChanges[detalleID]) {
+          const { nuevaCuentaID: _, perfilesDisponibles: __, ...rest } = updatedChanges[detalleID];
+          if (Object.keys(rest).length > 0) {
+            updatedChanges[detalleID] = rest;
+          } else {
+            delete updatedChanges[detalleID];
+          }
+        }
         setEditChanges(updatedChanges);
+        
+        // If keeping current account, load its profiles for profile-only change
+        if (parseInt(nuevaCuentaID) === originalCuentaID) {
+          const cuenta = await cuentasService.getById(originalCuentaID);
+          const perfilesDisponibles = cuenta.perfiles.filter(p => p.estado === 'Disponible');
+          setEditChanges({
+            ...updatedChanges,
+            [detalleID]: {
+              ...updatedChanges[detalleID],
+              perfilesDisponibles
+            }
+          });
+        }
         return;
       }
 
@@ -513,7 +547,25 @@ const Ventas = () => {
     }
   };
 
-  const handlePerfilChangeInEdit = (detalleID, nuevoPerfilID) => {
+  const handlePerfilChangeInEdit = (detalleID, nuevoPerfilID, originalCuentaID) => {
+    const detalle = ventaCompleta.detalles.find(d => d.ventaDetalleID === detalleID);
+    
+    // If reverting to original profile, check if we should remove the change
+    if (parseInt(nuevoPerfilID) === detalle.perfilID) {
+      const updatedChanges = { ...editChanges };
+      // If no account change either, remove this detail from changes
+      if (!updatedChanges[detalleID]?.nuevaCuentaID) {
+        delete updatedChanges[detalleID];
+        setEditChanges(updatedChanges);
+      } else {
+        // Keep account change but remove profile change
+        const { nuevoPerfilID: _, ...rest } = updatedChanges[detalleID];
+        updatedChanges[detalleID] = rest;
+        setEditChanges(updatedChanges);
+      }
+      return;
+    }
+    
     setEditChanges({
       ...editChanges,
       [detalleID]: {
@@ -525,14 +577,21 @@ const Ventas = () => {
 
   const handleSaveEdit = async () => {
     try {
-      // Build update DTO
+      // Build update DTO - only include entries that have actual changes
       const updateDTO = {
-        detalles: Object.entries(editChanges).map(([ventaDetalleID, changes]) => ({
-          ventaDetalleID: parseInt(ventaDetalleID),
-          nuevaCuentaID: changes.nuevaCuentaID,
-          nuevoPerfilID: changes.nuevoPerfilID
-        }))
+        detalles: Object.entries(editChanges)
+          .filter(([_, changes]) => changes.nuevaCuentaID || changes.nuevoPerfilID)
+          .map(([ventaDetalleID, changes]) => ({
+            ventaDetalleID: parseInt(ventaDetalleID),
+            nuevaCuentaID: changes.nuevaCuentaID,
+            nuevoPerfilID: changes.nuevoPerfilID
+          }))
       };
+
+      if (updateDTO.detalles.length === 0) {
+        showAlert('warning', 'No hay cambios para guardar');
+        return;
+      }
 
       await ventasService.actualizar(selectedVenta.ventaID, updateDTO);
       showAlert('success', 'Venta actualizada correctamente');
@@ -601,12 +660,16 @@ const Ventas = () => {
     },
     { 
       key: 'monto', 
-      label: 'Monto',
-      render: (row) => (
-        <div className="font-semibold text-green-600">
-          {formatCurrency(row.monto, row.moneda)}
-        </div>
-      )
+      label: 'Total',
+      render: (row) => {
+        // Calculate total from details if monto is 0 or not set
+        const total = row.monto || row.detalles?.reduce((sum, d) => sum + (d.precioUnitario || 0), 0) || 0;
+        return (
+          <div className="font-semibold text-green-600">
+            {formatCurrency(total, row.moneda)}
+          </div>
+        );
+      }
     },
     { 
       key: 'estado', 
@@ -1632,9 +1695,10 @@ const Ventas = () => {
                   // Get available profiles for current selected account
                   const perfilesParaCuenta = changes.perfilesDisponibles || [];
                   
-                  // Find accounts that match this service
+                  // Find ALL accounts that match this service (not just disponibles)
+                  // This allows reassigning from one sale to another
                   const cuentasParaServicio = cuentasDisponibles.filter(c => 
-                    c.servicioID === detalle.servicioID && c.estado === 'Disponible'
+                    c.servicioID === detalle.servicioID
                   );
 
                   return (
@@ -1674,36 +1738,39 @@ const Ventas = () => {
                         {/* Account Selection */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Seleccionar Nueva Cuenta
+                            Seleccionar Cuenta
                           </label>
                           <select
-                            value={currentCuentaID}
-                            onChange={(e) => handleCuentaChangeInEdit(detalle.ventaDetalleID, e.target.value)}
+                            value={currentCuentaID || ''}
+                            onChange={(e) => handleCuentaChangeInEdit(detalle.ventaDetalleID, e.target.value, detalle.cuentaID)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
-                            <option value="">Mantener cuenta actual</option>
-                            {cuentasParaServicio.map(cuenta => (
-                              <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                                {cuenta.correoCuenta} - Código: {cuenta.codigoAcceso || 'N/A'}
-                              </option>
-                            ))}
+                            <option value={detalle.cuentaID}>Mantener cuenta actual</option>
+                            {cuentasParaServicio
+                              .filter(c => c.cuentaID !== detalle.cuentaID) // Don't show current account twice
+                              .map(cuenta => (
+                                <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
+                                  {cuenta.correoCuenta} - Código: {cuenta.codigoAcceso || 'N/A'}
+                                </option>
+                              ))
+                            }
                           </select>
-                          {cuentasParaServicio.length === 0 && (
+                          {cuentasParaServicio.filter(c => c.cuentaID !== detalle.cuentaID).length === 0 && (
                             <p className="text-xs text-amber-600 mt-1">
-                              ⚠️ No hay cuentas disponibles para este servicio
+                              ℹ️ No hay otras cuentas para este servicio (puede cambiar solo el perfil)
                             </p>
                           )}
                         </div>
 
-                        {/* Profile Selection */}
-                        {changes.nuevaCuentaID && perfilesParaCuenta.length > 0 && (
+                        {/* Profile Selection - Always show if we have profiles */}
+                        {(perfilesParaCuenta.length > 0 || !changes.nuevaCuentaID) && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Seleccionar Perfil
+                              Seleccionar Perfil {!changes.nuevaCuentaID && '(misma cuenta)'}
                             </label>
                             <select
                               value={currentPerfilID}
-                              onChange={(e) => handlePerfilChangeInEdit(detalle.ventaDetalleID, e.target.value)}
+                              onChange={(e) => handlePerfilChangeInEdit(detalle.ventaDetalleID, e.target.value, detalle.cuentaID)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                               {perfilesParaCuenta.map(perfil => (
@@ -1712,6 +1779,9 @@ const Ventas = () => {
                                 </option>
                               ))}
                             </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {!changes.nuevaCuentaID ? 'Perfiles disponibles en la cuenta actual' : 'Perfiles disponibles en la nueva cuenta'}
+                            </p>
                           </div>
                         )}
 
@@ -1721,9 +1791,10 @@ const Ventas = () => {
                           </div>
                         )}
 
-                        {changes.nuevaCuentaID && perfilesParaCuenta.length > 0 && (
+                        {/* Show change indicator */}
+                        {(changes.nuevaCuentaID || changes.nuevoPerfilID) && (
                           <div className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-700">
-                            ✓ Se cambiará la cuenta y perfil para este servicio
+                            ✓ {changes.nuevaCuentaID ? 'Se cambiará la cuenta y perfil' : 'Se cambiará solo el perfil'}
                           </div>
                         )}
                       </div>
@@ -1734,13 +1805,19 @@ const Ventas = () => {
 
               <div className="flex justify-between items-center pt-4 border-t">
                 <p className="text-sm text-gray-600">
-                  {Object.keys(editChanges).length > 0 ? (
-                    <span className="text-blue-600 font-medium">
-                      {Object.keys(editChanges).length} cambio(s) pendiente(s)
-                    </span>
-                  ) : (
-                    <span>No hay cambios</span>
-                  )}
+                  {(() => {
+                    // Count only real changes (entries that have nuevaCuentaID or nuevoPerfilID)
+                    const realChanges = Object.values(editChanges).filter(change => 
+                      change.nuevaCuentaID || change.nuevoPerfilID
+                    ).length;
+                    return realChanges > 0 ? (
+                      <span className="text-blue-600 font-medium">
+                        {realChanges} cambio(s) pendiente(s)
+                      </span>
+                    ) : (
+                      <span>No hay cambios</span>
+                    );
+                  })()}
                 </p>
                 <div className="flex gap-3">
                   <Button 
@@ -1756,7 +1833,7 @@ const Ventas = () => {
                   </Button>
                   <Button 
                     onClick={handleSaveEdit}
-                    disabled={Object.keys(editChanges).length === 0}
+                    disabled={Object.values(editChanges).filter(c => c.nuevaCuentaID || c.nuevoPerfilID).length === 0}
                   >
                     Guardar Cambios
                   </Button>
