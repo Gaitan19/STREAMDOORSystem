@@ -475,7 +475,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = venta.Monto,
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
-                    Notas = null, // Venta doesn't have Notas property yet
+                    Notas = null,
                     Detalles = venta.Detalles.Select(d => new VentaDetalleCompletaDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -496,8 +496,7 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { 
                     message = "Error al obtener detalles completos de venta", 
                     error = ex.Message,
-                    innerError = ex.InnerException?.Message ?? "",
-                    stackTrace = ex.StackTrace 
+                    innerError = ex.InnerException?.Message ?? ""
                 });
             }
         }
@@ -606,8 +605,7 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { 
                     message = "Error al actualizar venta", 
                     error = ex.Message,
-                    innerError = ex.InnerException?.Message ?? "",
-                    stackTrace = ex.StackTrace 
+                    innerError = ex.InnerException?.Message ?? ""
                 });
             }
         }
