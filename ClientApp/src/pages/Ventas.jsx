@@ -676,10 +676,12 @@ const Ventas = () => {
         if (!comboGroups[detalle.comboID]) {
           comboGroups[detalle.comboID] = {
             nombreCombo: detalle.nombreCombo,
-            servicios: []
+            servicios: [],
+            precioCombo: 0
           };
         }
         comboGroups[detalle.comboID].servicios.push(detalle);
+        comboGroups[detalle.comboID].precioCombo += (detalle.precioUnitario || 0);
       } else {
         individualServices.push(detalle);
       }
@@ -690,7 +692,7 @@ const Ventas = () => {
     // Format combos
     Object.values(comboGroups).forEach(combo => {
       const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
-      message += `🔥 COMBO ACTIVO [${serviceNames}]\n\n`;
+      message += `🔥 COMBO ACTIVO [${serviceNames.toUpperCase()}]\n\n`;
 
       combo.servicios.forEach(detalle => {
         message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
@@ -704,11 +706,14 @@ const Ventas = () => {
         message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
         message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
       });
+      
+      // Add combo price
+      message += `💰 PRECIO DEL COMBO: ${combo.precioCombo.toFixed(2)} ${venta.moneda}\n\n`;
     });
 
     // Format individual services
     individualServices.forEach((detalle, index) => {
-      if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n\n';
+      if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
       
       message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
       message += `Acceda con los siguientes datos por favor\n`;
@@ -720,17 +725,17 @@ const Ventas = () => {
         message += `      🔐 Pin: ${detalle.pinPerfil}`;
       }
       message += `\n\n`;
-      if (venta.medioPago) {
-        message += `💸 Método de pago: ${venta.medioPago}\n`;
-      }
       message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
       message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n`;
+      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
+      
+      // Add individual service price
+      message += `💰 PRECIO: ${(detalle.precioUnitario || 0).toFixed(2)} ${venta.moneda}\n\n`;
     });
 
     // Add total price at the end (only once)
     if (message.trim()) {
-      message += `\n\n💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
+      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
       message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
     }
 

@@ -488,7 +488,8 @@ namespace STREAMDOORSystem.Controllers
                         PasswordCuenta = d.Cuenta.Correo?.Password ?? "",
                         NumeroPerfil = d.Perfil!.NumeroPerfil,
                         PinPerfil = d.Perfil.PIN,
-                        PrecioUnitario = d.PrecioUnitario
+                        PrecioUnitario = d.PrecioUnitario,
+                        ComboID = d.ComboID
                     }).ToList()
                 };
 

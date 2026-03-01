@@ -230,6 +230,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int NumeroPerfil { get; set; }
         public string? PinPerfil { get; set; }
         public decimal PrecioUnitario { get; set; }
+        public int? ComboID { get; set; }  // To identify which services belong to a combo
     }
 
     // DTO for updating/editing sale details
