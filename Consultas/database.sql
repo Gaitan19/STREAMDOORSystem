@@ -545,7 +545,7 @@ GO
 -- ============================================
 -- MIGRACIÓN: Separar Disponibilidad y Estado de Suscripción en Cuentas
 -- ============================================
--- Agregar Disponibilidad column to Cuentas
+-- Add Disponibilidad column to Cuentas
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Disponibilidad')
 BEGIN
     ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NULL;
@@ -575,7 +575,7 @@ BEGIN
 END
 GO
 
--- Agregar EstadoSuscripcion column to Cuentas
+-- Add EstadoSuscripcion column to Cuentas
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'EstadoSuscripcion')
 BEGIN
     ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NULL;

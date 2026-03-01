@@ -164,12 +164,15 @@ namespace STREAMDOORSystem.Controllers
                     NumeroPerfiles = crearCuentaDto.NumeroPerfiles,
                     PerfilesDisponibles = crearCuentaDto.NumeroPerfiles,
                     Estado = "Disponible",  // Backward compatibility
-                    Disponibilidad = "Disponible",  // New field
-                    EstadoSuscripcion = crearCuentaDto.FechaFinalizacion.HasValue && 
-                                        crearCuentaDto.FechaFinalizacion.Value <= DateTime.Now.AddDays(5) &&
-                                        crearCuentaDto.FechaFinalizacion.Value >= DateTime.Now 
-                                            ? "Próxima a Vencer"
-                                            : "Activo",  // New field
+                    Disponibilidad = "Disponible",  // New field - always available on creation
+                    // Calculate EstadoSuscripcion based on FechaFinalizacion
+                    EstadoSuscripcion = crearCuentaDto.FechaFinalizacion.HasValue
+                        ? (crearCuentaDto.FechaFinalizacion.Value < DateTime.Now
+                            ? "Vencida"  // Already expired
+                            : (crearCuentaDto.FechaFinalizacion.Value <= DateTime.Now.AddDays(5) && crearCuentaDto.FechaFinalizacion.Value >= DateTime.Now
+                                ? "Próxima a Vencer"  // Expires within 5 days
+                                : "Activo"))  // Active and not near expiration
+                        : "Activo",  // No expiration date - considered active
                     FechaCreacion = DateTime.Now,
                     FechaFinalizacion = crearCuentaDto.FechaFinalizacion,
                     Password = crearCuentaDto.Password,
@@ -488,7 +491,7 @@ namespace STREAMDOORSystem.Controllers
 
             // Calculate Disponibilidad (profile availability)
             string disponibilidad;
-            if (perfiles.Any() && perfiles.All(p => p.Estado == "Ocupado"))
+            if (perfiles.Any(p => p.Activo) && perfiles.Where(p => p.Activo).All(p => p.Estado == "Ocupado"))
             {
                 disponibilidad = "No Disponible";
             }
