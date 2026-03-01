@@ -686,8 +686,6 @@ const Ventas = () => {
     });
 
     let message = '';
-    const hasMultipleServices = venta.detalles.length > 1;
-    const isCombo = Object.keys(comboGroups).length > 0;
 
     // Format combos
     Object.values(comboGroups).forEach(combo => {
