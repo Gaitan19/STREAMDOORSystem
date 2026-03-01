@@ -508,14 +508,14 @@ namespace STREAMDOORSystem.Controllers
         {
             try
             {
-                // Get all "Disponible" accounts
-                var cuentasDisponibles = await _context.Cuentas
-                    .Where(c => c.Activo && c.Estado == "Disponible")
+                // Get ALL active accounts, not just "Disponible" ones
+                var cuentas = await _context.Cuentas
+                    .Where(c => c.Activo)
                     .Include(c => c.Perfiles.Where(p => p.Activo))
                     .ToListAsync();
 
                 int actualizadas = 0;
-                foreach (var cuenta in cuentasDisponibles)
+                foreach (var cuenta in cuentas)
                 {
                     var perfiles = cuenta.Perfiles.ToList();
                     var nuevoEstado = CalcularEstado(cuenta, perfiles);
