@@ -133,7 +133,7 @@ const Clientes = () => {
     });
 
     // Add total price at the end (only once)
-    if (message) {
+    if (message.trim()) {
       message += `\n\n💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
       message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
     }
