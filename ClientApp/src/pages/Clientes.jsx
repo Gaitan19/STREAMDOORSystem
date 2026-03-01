@@ -110,7 +110,7 @@ const Clientes = () => {
       });
 
       message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
-      message += `*💵 GRACIAS POR SU COMPRA 🛍`;
+      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
     });
 
     // Format individual services
@@ -129,12 +129,12 @@ const Clientes = () => {
       message += `\n\n`;
       message += `💰 Precio: ${detalle.precioUnitario?.toFixed(2) || '0.00'} ${venta.moneda}\n`;
       if (venta.medioPago) {
-        message += `💸 Metodo de pago: ${venta.medioPago}\n`;
+        message += `💸 Método de pago: ${venta.medioPago}\n`;
       }
       message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
       message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
       message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
-      message += `_*💵 GRACIAS POR SU COMPRA 🛍`;
+      message += `_*💵 GRACIAS POR SU COMPRA 🛍*_`;
     });
 
     return message;
