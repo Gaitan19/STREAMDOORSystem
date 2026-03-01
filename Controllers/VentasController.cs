@@ -621,7 +621,7 @@ namespace STREAMDOORSystem.Controllers
             {
                 // Get all active sales
                 var ventas = await _context.Ventas
-                    .Where(v => v.Estado == "Activo" || v.Estado == "Próximo a vencer")
+                    .Where(v => v.Estado == "Activo" || v.Estado == "ProximoVencer")
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                     .Include(v => v.Detalles)
@@ -672,7 +672,7 @@ namespace STREAMDOORSystem.Controllers
                     else if (diasRestantes <= 5)
                     {
                         // About to expire (5 days or less)
-                        nuevoEstado = "Próximo a vencer";
+                        nuevoEstado = "ProximoVencer";
                     }
                     else
                     {
@@ -726,7 +726,7 @@ namespace STREAMDOORSystem.Controllers
                         query = query.Where(v => v.Estado == "Activo");
                         break;
                     case "proximas-a-vencer":
-                        query = query.Where(v => v.Estado == "Próximo a vencer");
+                        query = query.Where(v => v.Estado == "ProximoVencer");
                         break;
                     case "vencidas":
                         query = query.Where(v => v.Estado == "Vencido");
