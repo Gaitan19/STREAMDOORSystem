@@ -12,7 +12,9 @@ import {
   LogOut,
   Menu,
   X,
-  PackagePlus
+  PackagePlus,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,6 +32,8 @@ const Layout = ({ children }) => {
     { path: '/correos', icon: Mail, label: 'Correos' },
     { path: '/cuentas', icon: CreditCard, label: 'Cuentas' },
     { path: '/ventas', icon: ShoppingCart, label: 'Ventas' },
+    { path: '/ingresos', icon: TrendingUp, label: 'Ingresos' },
+    { path: '/egresos', icon: TrendingDown, label: 'Egresos' },
     { path: '/medios-pago', icon: Wallet, label: 'Medios de Pago' },
     { path: '/usuarios', icon: UserCog, label: 'Usuarios' },
   ];

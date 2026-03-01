@@ -12,6 +12,8 @@ import Ventas from './pages/Ventas';
 import MediosPago from './pages/MediosPago';
 import Usuarios from './pages/Usuarios';
 import Combos from './pages/Combos';
+import Ingresos from './pages/Ingresos';
+import Egresos from './pages/Egresos';
 
 function App() {
   return (
@@ -114,6 +116,28 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Combos />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/ingresos"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Ingresos />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/egresos"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Egresos />
                 </Layout>
               </ProtectedRoute>
             }

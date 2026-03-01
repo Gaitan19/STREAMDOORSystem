@@ -37,7 +37,8 @@ const Cuentas = () => {
     email: '',
     password: '',
     correoTerceros: '',
-    codigoCuenta: ''
+    codigoCuenta: '',
+    costo: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -228,7 +229,8 @@ const Cuentas = () => {
       email: cuenta.email || '',
       password: cuenta.password || '',
       correoTerceros: cuenta.correoTerceros || '',
-      codigoCuenta: cuenta.codigoCuenta || ''
+      codigoCuenta: cuenta.codigoCuenta || '',
+      costo: cuenta.costo || ''
     });
     setModalOpen(true);
   };
@@ -268,7 +270,8 @@ const Cuentas = () => {
       email: '',
       password: '',
       correoTerceros: '',
-      codigoCuenta: ''
+      codigoCuenta: '',
+      costo: ''
     });
     setErrors({});
     setSelectedCuenta(null);
@@ -742,6 +745,18 @@ const Cuentas = () => {
             error={errors.fechaFinalizacion}
           />
 
+          <Input
+            label="Costo de la Cuenta (C$)"
+            name="costo"
+            type="number"
+            step="0.01"
+            min="0"
+            value={formData.costo}
+            onChange={handleChange}
+            error={errors.costo}
+            placeholder="Ej: 150.00"
+          />
+
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
             <p className="font-medium mb-1">ℹ️ Información</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
@@ -749,6 +764,7 @@ const Cuentas = () => {
               <li><strong>Cuenta de Terceros:</strong> Registra email y contraseña manualmente</li>
               <li>Los perfiles se crean automáticamente. Edítelos luego con "Ver Perfiles"</li>
               <li>La fecha de finalización es opcional (útil para control de vencimientos)</li>
+              <li><strong>Costo:</strong> Ingrese el costo de compra/creación de la cuenta</li>
             </ul>
           </div>
 

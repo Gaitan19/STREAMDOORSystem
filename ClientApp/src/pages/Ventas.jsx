@@ -1725,6 +1725,12 @@ const Ventas = () => {
                   <p className="text-sm text-gray-600">Monto Total:</p>
                   <p className="font-semibold text-green-600">{formatCurrency(ventaCompleta.monto, ventaCompleta.moneda)}</p>
                 </div>
+                {ventaCompleta.nombreUsuario && (
+                  <div>
+                    <p className="text-sm text-gray-600">Vendedor:</p>
+                    <p className="font-medium">{ventaCompleta.nombreUsuario}</p>
+                  </div>
+                )}
               </div>
               {ventaCompleta.notas && (
                 <div className="mt-3">
