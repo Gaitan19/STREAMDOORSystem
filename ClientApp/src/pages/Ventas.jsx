@@ -686,6 +686,8 @@ const Ventas = () => {
     });
 
     let message = '';
+    const hasMultipleServices = venta.detalles.length > 1;
+    const isCombo = Object.keys(comboGroups).length > 0;
 
     // Format combos
     Object.values(comboGroups).forEach(combo => {
@@ -704,9 +706,6 @@ const Ventas = () => {
         message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
         message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
       });
-
-      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
-      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
     });
 
     // Format individual services
@@ -723,15 +722,19 @@ const Ventas = () => {
         message += `      🔐 Pin: ${detalle.pinPerfil}`;
       }
       message += `\n\n`;
-      message += `💰 Precio: ${detalle.precioUnitario?.toFixed(2) || '0.00'} ${venta.moneda}\n`;
       if (venta.medioPago) {
         message += `💸 Método de pago: ${venta.medioPago}\n`;
       }
       message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
       message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
-      message += `_*💵 GRACIAS POR SU COMPRA 🛍*_`;
+      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n`;
     });
+
+    // Add total price at the end (only once)
+    if (message) {
+      message += `\n\n💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
+      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
+    }
 
     return message;
   };
