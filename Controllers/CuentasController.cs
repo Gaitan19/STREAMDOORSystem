@@ -345,6 +345,42 @@ namespace STREAMDOORSystem.Controllers
             }
         }
 
+        // GET: api/Cuentas/correos/disponibles-por-servicio/{servicioID}
+        [HttpGet("correos/disponibles-por-servicio/{servicioID}")]
+        public async Task<ActionResult<IEnumerable<CorreoDTO>>> GetCorreosDisponiblesPorServicio(int servicioID)
+        {
+            try
+            {
+                // Get all CorreoIDs that are already used for THIS specific service
+                var correosUsadosParaEsteServicio = await _context.Cuentas
+                    .Where(c => c.Activo && c.CorreoID.HasValue && c.ServicioID == servicioID)
+                    .Select(c => c.CorreoID!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Get all active correos EXCEPT those already used for this service
+                // This allows the same email to be used for different services
+                var correosDisponibles = await _context.Correos
+                    .Where(c => c.Activo && !correosUsadosParaEsteServicio.Contains(c.CorreoID))
+                    .Select(c => new CorreoDTO
+                    {
+                        CorreoID = c.CorreoID,
+                        Email = c.Email,
+                        Password = c.Password,
+                        FechaCreacion = c.FechaCreacion,
+                        Notas = c.Notas,
+                        Activo = c.Activo
+                    })
+                    .ToListAsync();
+
+                return Ok(correosDisponibles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener correos disponibles por servicio", error = ex.Message });
+            }
+        }
+
         // GET: api/Cuentas/filtro/{filtro}
         [HttpGet("filtro/{filtro}")]
         public async Task<ActionResult<IEnumerable<CuentaDTO>>> GetCuentasPorFiltro(string filtro)

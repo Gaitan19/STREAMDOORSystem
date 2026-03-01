@@ -297,11 +297,40 @@ const Cuentas = () => {
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    // When service changes, reload available emails for that service
+    if (name === 'servicioID' && value && formData.tipoCuenta === 'Propia') {
+      try {
+        const response = await fetch(`/api/cuentas/correos/disponibles-por-servicio/${value}`, {
+          credentials: 'include'
+        });
+        const correosData = await response.json();
+        setCorreosDisponibles(correosData);
+        // Reset correo selection when service changes
+        setFormData(prev => ({ ...prev, correoID: '', email: '', password: '' }));
+      } catch (error) {
+        console.error('Error loading correos for service:', error);
+        showAlert('error', 'Error al cargar correos disponibles');
+      }
+    }
+
+    // When tipo cuenta changes, reload emails if switching to Propia and service is selected
+    if (name === 'tipoCuenta' && value === 'Propia' && formData.servicioID) {
+      try {
+        const response = await fetch(`/api/cuentas/correos/disponibles-por-servicio/${formData.servicioID}`, {
+          credentials: 'include'
+        });
+        const correosData = await response.json();
+        setCorreosDisponibles(correosData);
+      } catch (error) {
+        console.error('Error loading correos for service:', error);
+      }
     }
   };
 
@@ -557,27 +586,45 @@ const Cuentas = () => {
           {/* Dynamic fields based on TipoCuenta */}
           {formData.tipoCuenta === 'Propia' ? (
             <>
-              <Select
-                label="Correo Disponible"
-                name="correoID"
-                value={formData.correoID}
-                onChange={(e) => {
-                  handleChange(e);
-                  // Find selected correo to show password
-                  const selectedCorreo = correosDisponibles.find(c => c.correoID === parseInt(e.target.value));
-                  if (selectedCorreo) {
-                    setFormData(prev => ({ ...prev, email: selectedCorreo.email, password: selectedCorreo.password }));
-                  }
-                }}
-                error={errors.correoID}
-                options={correosDisponibles
-                  .filter(c => c.correoID != null)
-                  .map(c => ({
-                    value: c.correoID.toString(),
-                    label: c.email || 'Sin email'
-                  }))}
-                required
-              />
+              <div>
+                <Select
+                  label="Correo Disponible"
+                  name="correoID"
+                  value={formData.correoID}
+                  onChange={(e) => {
+                    handleChange(e);
+                    // Find selected correo to show password
+                    const selectedCorreo = correosDisponibles.find(c => c.correoID === parseInt(e.target.value));
+                    if (selectedCorreo) {
+                      setFormData(prev => ({ ...prev, email: selectedCorreo.email, password: selectedCorreo.password }));
+                    }
+                  }}
+                  error={errors.correoID}
+                  options={correosDisponibles
+                    .filter(c => c.correoID != null)
+                    .map(c => ({
+                      value: c.correoID.toString(),
+                      label: c.email || 'Sin email'
+                    }))}
+                  required
+                  disabled={!formData.servicioID}
+                />
+                {!formData.servicioID && (
+                  <p className="text-amber-600 text-xs mt-1">
+                    ⚠️ Seleccione un servicio primero para ver los correos disponibles
+                  </p>
+                )}
+                {formData.servicioID && correosDisponibles.length === 0 && (
+                  <p className="text-red-600 text-xs mt-1">
+                    ❌ No hay correos disponibles para este servicio. El mismo correo no puede usarse dos veces para el mismo servicio.
+                  </p>
+                )}
+                {formData.servicioID && correosDisponibles.length > 0 && (
+                  <p className="text-gray-500 text-xs mt-1">
+                    ℹ️ Un correo puede usarse para diferentes servicios, pero no dos veces para el mismo servicio
+                  </p>
+                )}
+              </div>
               
               {formData.correoID && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
