@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -7,7 +7,8 @@ import Input from '../components/Input';
 import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
-import { clientesService } from '../services/apiService';
+import Badge from '../components/Badge';
+import { clientesService, ventasService } from '../services/apiService';
 import { validatePhone } from '../utils/helpers';
 
 const Clientes = () => {
@@ -16,7 +17,11 @@ const Clientes = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [historialModalOpen, setHistorialModalOpen] = useState(false);
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState(null);
+  const [historialCompras, setHistorialCompras] = useState([]);
+  const [selectedVenta, setSelectedVenta] = useState(null);
   const [alert, setAlert] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -147,6 +152,50 @@ const Clientes = () => {
     }
   };
 
+  const handleViewHistorial = async (cliente) => {
+    try {
+      setSelectedCliente(cliente);
+      setLoading(true);
+      const data = await clientesService.getHistorialCompras(cliente.clienteID);
+      setHistorialCompras(data);
+      setHistorialModalOpen(true);
+    } catch (error) {
+      showAlert('error', 'Error al cargar historial de compras');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetalles = async (ventaId) => {
+    try {
+      setLoading(true);
+      const data = await ventasService.getCompleta(ventaId);
+      setSelectedVenta(data);
+      setDetallesModalOpen(true);
+    } catch (error) {
+      showAlert('error', 'Error al cargar detalles de la venta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getEstadoBadge = (estado) => {
+    const estadoMap = {
+      'Activo': { color: 'green', icon: '✓', text: 'Activo' },
+      'ProximoVencer': { color: 'yellow', icon: '⚠', text: 'Próximo a Vencer' },
+      'Vencido': { color: 'red', icon: '✕', text: 'Vencido' },
+      'Cancelado': { color: 'gray', icon: '⊗', text: 'Cancelado' }
+    };
+    
+    const config = estadoMap[estado] || estadoMap['Activo'];
+    return (
+      <Badge color={config.color}>
+        <span className="mr-1">{config.icon}</span>
+        {config.text}
+      </Badge>
+    );
+  };
+
   const columns = [
     { 
       key: 'nombre', 
@@ -177,8 +226,16 @@ const Clientes = () => {
       render: (row) => (
         <div className="flex gap-2">
           <button
+            onClick={() => handleViewHistorial(row)}
+            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            title="Ver Historial de Compras"
+          >
+            <ShoppingBag size={18} />
+          </button>
+          <button
             onClick={() => handleEdit(row)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Editar"
           >
             <Edit size={18} />
           </button>
@@ -188,6 +245,7 @@ const Clientes = () => {
               setDeleteModalOpen(true);
             }}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar"
           >
             <Trash2 size={18} />
           </button>
@@ -322,6 +380,134 @@ const Clientes = () => {
             Eliminar
           </Button>
         </div>
+      </Modal>
+
+      {/* Historial de Compras Modal */}
+      <Modal
+        isOpen={historialModalOpen}
+        onClose={() => {
+          setHistorialModalOpen(false);
+          setSelectedCliente(null);
+          setHistorialCompras([]);
+        }}
+        title={`Historial de Compras - ${selectedCliente?.nombre} ${selectedCliente?.apellido}`}
+        size="xl"
+      >
+        <div className="space-y-4">
+          {historialCompras.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <ShoppingBag size={48} className="mx-auto mb-4 text-gray-300" />
+              <p>Este cliente no tiene compras registradas</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {historialCompras.map((venta) => (
+                <div key={venta.ventaID} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-semibold text-gray-900">
+                          Venta #{venta.ventaID}
+                        </h4>
+                        {getEstadoBadge(venta.estado)}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={16} className="text-gray-400" />
+                          <span>
+                            {new Date(venta.fechaInicio).toLocaleDateString('es-NI')} - {new Date(venta.fechaFin).toLocaleDateString('es-NI')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={16} className="text-gray-400" />
+                          <span className="font-semibold text-gray-900">
+                            {venta.moneda} {venta.monto?.toFixed(2) || (venta.detalles || []).reduce((sum, d) => sum + (d.precioUnitario || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-600">
+                        <strong>Servicios:</strong> {(venta.detalles || []).map(d => d.nombreServicio).join(', ')}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleViewDetalles(venta.ventaID)}
+                      className="ml-4 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Ver Detalles"
+                    >
+                      <Eye size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Detalles de Venta Modal */}
+      <Modal
+        isOpen={detallesModalOpen}
+        onClose={() => {
+          setDetallesModalOpen(false);
+          setSelectedVenta(null);
+        }}
+        title={`Detalles de Venta #${selectedVenta?.ventaID}`}
+        size="lg"
+      >
+        {selectedVenta && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                {getEstadoBadge(selectedVenta.estado)}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Duración</label>
+                <p className="text-gray-900">{selectedVenta.duracion} días</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                <p className="text-gray-900">{new Date(selectedVenta.fechaInicio).toLocaleDateString('es-NI')}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
+                <p className="text-gray-900">{new Date(selectedVenta.fechaFin).toLocaleDateString('es-NI')}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+                <p className="text-gray-900 font-semibold text-lg">
+                  {selectedVenta.moneda} {selectedVenta.monto?.toFixed(2) || (selectedVenta.detalles || []).reduce((sum, d) => sum + (d.precioUnitario || 0), 0).toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Servicios Contratados</h4>
+              <div className="space-y-3">
+                {(selectedVenta.detalles || []).map((detalle, index) => (
+                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h5 className="font-semibold text-gray-900">{detalle.nombreServicio}</h5>
+                        <div className="mt-2 space-y-1 text-sm text-gray-600">
+                          <p><strong>Correo/Código:</strong> {detalle.correoCuenta || detalle.codigoCuenta}</p>
+                          <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
+                          <p><strong>Contraseña:</strong> {detalle.passwordCuenta}</p>
+                          {detalle.pinPerfil && <p><strong>PIN:</strong> {detalle.pinPerfil}</p>}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          {selectedVenta.moneda} {detalle.precioUnitario?.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

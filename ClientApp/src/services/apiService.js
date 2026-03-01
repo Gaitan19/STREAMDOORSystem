@@ -45,6 +45,7 @@ export const clientesService = {
   getAll: () => apiClient.get('/clientes'),
   getById: (id) => apiClient.get(`/clientes/${id}`),
   search: (query) => apiClient.get(`/clientes/search?q=${encodeURIComponent(query)}`),
+  getHistorialCompras: (id) => apiClient.get(`/clientes/${id}/historial-compras`),
   create: (data) => apiClient.post('/clientes', data),
   update: (id, data) => apiClient.put(`/clientes/${id}`, data),
   delete: (id) => apiClient.delete(`/clientes/${id}`),

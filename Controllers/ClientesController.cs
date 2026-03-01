@@ -228,5 +228,65 @@ namespace STREAMDOORSystem.Controllers
                 return StatusCode(500, new { message = "Error al buscar clientes", error = ex.Message });
             }
         }
+
+        // GET: api/Clientes/5/historial-compras
+        [HttpGet("{id}/historial-compras")]
+        public async Task<ActionResult<IEnumerable<VentaDTO>>> GetHistorialCompras(int id)
+        {
+            try
+            {
+                var cliente = await _context.Clientes.FindAsync(id);
+
+                if (cliente == null || !cliente.Activo)
+                {
+                    return NotFound(new { message = "Cliente no encontrado" });
+                }
+
+                var ventas = await _context.Ventas
+                    .Where(v => v.ClienteID == id)
+                    .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
+                    .OrderByDescending(v => v.FechaInicio)
+                    .Select(v => new VentaDTO
+                    {
+                        VentaID = v.VentaID,
+                        ClienteID = v.ClienteID,
+                        NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
+                        TelefonoCliente = v.Cliente.Telefono,
+                        FechaInicio = v.FechaInicio,
+                        FechaFin = v.FechaFin,
+                        Duracion = v.Duracion,
+                        Monto = v.Monto,
+                        Moneda = v.Moneda,
+                        Estado = v.Estado,
+                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        Detalles = v.Detalles.Select(d => new VentaDetalleDTO
+                        {
+                            VentaDetalleID = d.VentaDetalleID,
+                            VentaID = d.VentaID,
+                            CuentaID = d.CuentaID,
+                            CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                            PerfilID = d.PerfilID,
+                            NumeroPerfil = d.Perfil!.NumeroPerfil,
+                            ServicioID = d.ServicioID,
+                            NombreServicio = d.Cuenta.Servicio!.Nombre,
+                            PrecioUnitario = d.PrecioUnitario,
+                            FechaAsignacion = d.FechaAsignacion
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(ventas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener historial de compras", error = ex.Message });
+            }
+        }
     }
 }
