@@ -325,11 +325,30 @@ BEGIN
         ALTER TABLE Ventas DROP COLUMN PerfilID;
     END
 
-    -- Agregar MedioPagoID si no existe
+    -- Agregar MedioPagoID si no existe (consolidado de migracion_mediopago_pagos.sql)
+    PRINT 'Verificando columna MedioPagoID en Ventas...';
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'MedioPagoID')
     BEGIN
+        PRINT 'Agregando columna MedioPagoID a Ventas...';
         ALTER TABLE Ventas ADD MedioPagoID INT NULL;
+        PRINT 'Columna MedioPagoID agregada exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Columna MedioPagoID ya existe en Ventas.';
+    END
+    
+    -- Verificar y agregar Foreign Key FK_Ventas_MediosPago
+    PRINT 'Verificando Foreign Key FK_Ventas_MediosPago...';
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Ventas_MediosPago')
+    BEGIN
+        PRINT 'Creando Foreign Key FK_Ventas_MediosPago...';
         ALTER TABLE Ventas ADD CONSTRAINT FK_Ventas_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
+        PRINT 'Foreign Key FK_Ventas_MediosPago creado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Foreign Key FK_Ventas_MediosPago ya existe.';
     END
 END
 GO
@@ -356,10 +375,13 @@ END
 GO
 
 -- ============================================
--- Tabla: Pagos
+-- Tabla: Pagos (con verificación de integridad)
+-- Migración consolidada de migracion_mediopago_pagos.sql
 -- ============================================
+PRINT 'Verificando tabla Pagos...';
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Pagos')
 BEGIN
+    PRINT 'Creando tabla Pagos...';
     CREATE TABLE Pagos (
         PagoID INT PRIMARY KEY IDENTITY(1,1),
         VentaID INT NOT NULL,
@@ -369,9 +391,31 @@ BEGIN
         FechaPago DATETIME DEFAULT GETDATE(),
         Referencia NVARCHAR(100) NULL,
         Notas NVARCHAR(500) NULL,
-        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
-        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
+        CONSTRAINT FK_Pagos_Ventas FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
+        CONSTRAINT FK_Pagos_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
     );
+    PRINT 'Tabla Pagos creada exitosamente.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Pagos ya existe.';
+    
+    -- Verificar y reparar foreign keys si faltan
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_Ventas')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_Ventas...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_Ventas 
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID);
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_MediosPago')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_MediosPago...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_MediosPago 
+        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
+    END
 END
 GO
 
@@ -467,6 +511,16 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComboServicios_Servici
 GO
 
 
+
+-- ============================================
+-- MIGRACIONES CONSOLIDADAS
+-- ============================================
+-- Las siguientes migraciones han sido integradas en este archivo:
+-- - migracion_mediopago_pagos.sql (2026-02-24): Tabla Pagos y MedioPagoID en Ventas
+--   * Verificación de integridad de tabla Pagos con reparación de foreign keys
+--   * Adición idempotente de columna MedioPagoID en tabla Ventas
+--   * Foreign Key FK_Ventas_MediosPago con verificación
+-- ============================================
 
 PRINT 'Base de datos DBStreamDoor creada exitosamente';
 GO
