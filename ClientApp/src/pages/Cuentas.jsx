@@ -86,7 +86,9 @@ const Cuentas = () => {
     const filtered = cuentas.filter(cuenta =>
       cuenta.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase())
+      cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cuenta.disponibilidad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cuenta.estadoSuscripcion?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredCuentas(filtered);
   };
@@ -416,9 +418,20 @@ const Cuentas = () => {
       key: 'estado', 
       label: 'Estado',
       render: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(row.estado)}`}>
-          {row.estado}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(row.disponibilidad || row.estado)}`}>
+            {row.disponibilidad || row.estado}
+          </span>
+          {row.estadoSuscripcion && (
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              row.estadoSuscripcion === 'Vencida' ? 'bg-red-100 text-red-800' :
+              row.estadoSuscripcion === 'Próxima a Vencer' ? 'bg-orange-100 text-orange-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {row.estadoSuscripcion}
+            </span>
+          )}
+        </div>
       )
     },
     {
