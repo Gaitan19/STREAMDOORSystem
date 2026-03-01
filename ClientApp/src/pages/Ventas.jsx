@@ -24,6 +24,7 @@ const Ventas = () => {
   const [ventaCompleta, setVentaCompleta] = useState(null);
   const [editChanges, setEditChanges] = useState({}); // Track changes: {ventaDetalleID: {nuevaCuentaID, nuevoPerfilID}}
   const [alert, setAlert] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState('todas'); // Filter for sales status
   
   // Client search
   const [clienteSearch, setClienteSearch] = useState('');
@@ -70,13 +71,19 @@ const Ventas = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (filtro = 'todas') => {
     try {
       setLoading(true);
-      const [ventasData, mediosPagoData] = await Promise.all([
-        ventasService.getAll(),
-        mediosPagoService.getAll()
-      ]);
+      let ventasData;
+      const mediosPagoData = await mediosPagoService.getAll();
+      
+      // Load ventas based on filter
+      if (filtro === 'todas') {
+        ventasData = await ventasService.getAll();
+      } else {
+        ventasData = await ventasService.getByFiltro(filtro);
+      }
+      
       setVentas(ventasData);
       setFilteredVentas(ventasData);
       setMediosPago(mediosPagoData.filter(mp => mp.activo));
@@ -118,6 +125,24 @@ const Ventas = () => {
       venta.detalles?.some(d => d.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredVentas(filtered);
+  };
+
+  const handleFiltroChange = (filtro) => {
+    setFiltroEstado(filtro);
+    loadData(filtro);
+  };
+
+  const handleVerificarEstados = async () => {
+    try {
+      setLoading(true);
+      const response = await ventasService.verificarEstados();
+      showAlert('success', response.message);
+      loadData(filtroEstado); // Reload data to show updated estados
+    } catch (error) {
+      showAlert('error', 'Error al verificar estados de ventas');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Client search with debounce
@@ -759,11 +784,38 @@ const Ventas = () => {
       </div>
 
       <Card>
-        <div className="mb-4">
-          <SearchBar
-            placeholder="Buscar por cliente, teléfono o servicio..."
-            onSearch={handleSearch}
-          />
+        <div className="mb-4 flex gap-4 items-center">
+          <div className="flex-1">
+            <SearchBar
+              placeholder="Buscar por cliente, teléfono o servicio..."
+              onSearch={handleSearch}
+            />
+          </div>
+          <div className="w-64">
+            <select
+              value={filtroEstado}
+              onChange={(e) => handleFiltroChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="todas">Todas las ventas</option>
+              <option value="activas">✅ Activas</option>
+              <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
+              <option value="vencidas">🔴 Vencidas</option>
+              <option value="canceladas">❌ Canceladas</option>
+            </select>
+          </div>
+          <Button
+            onClick={handleVerificarEstados}
+            variant="secondary"
+            className="flex items-center gap-2 whitespace-nowrap"
+            disabled={loading}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Verificar Estados
+          </Button>
         </div>
 
         <Table

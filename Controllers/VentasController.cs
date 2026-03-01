@@ -612,5 +612,174 @@ namespace STREAMDOORSystem.Controllers
                 });
             }
         }
+
+        // POST: api/ventas/verificar-estados
+        [HttpPost("verificar-estados")]
+        public async Task<ActionResult> VerificarEstados()
+        {
+            try
+            {
+                // Get all active sales
+                var ventas = await _context.Ventas
+                    .Where(v => v.Estado == "Activo" || v.Estado == "Próximo a vencer")
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil)
+                    .ToListAsync();
+
+                int ventasActualizadas = 0;
+                int perfilesLiberados = 0;
+                var hoy = DateTime.Now.Date;
+
+                foreach (var venta in ventas)
+                {
+                    var diasRestantes = (venta.FechaFin.Date - hoy).Days;
+                    var estadoAnterior = venta.Estado;
+                    string nuevoEstado;
+
+                    if (diasRestantes <= 0)
+                    {
+                        // Venta vencida - liberar cuentas y perfiles
+                        nuevoEstado = "Vencido";
+                        
+                        foreach (var detalle in venta.Detalles)
+                        {
+                            if (detalle.Cuenta != null)
+                            {
+                                // Free the profile
+                                if (detalle.Perfil != null && detalle.Perfil.Estado == "Ocupado")
+                                {
+                                    detalle.Perfil.Estado = "Disponible";
+                                    _context.Perfiles.Update(detalle.Perfil);
+                                    perfilesLiberados++;
+                                }
+
+                                // Check if all profiles in the account are now available
+                                var perfilesOcupados = await _context.Perfiles
+                                    .Where(p => p.CuentaID == detalle.Cuenta.CuentaID && p.Estado == "Ocupado" && p.Activo)
+                                    .CountAsync();
+
+                                if (perfilesOcupados == 0)
+                                {
+                                    // All profiles are available, mark account as Disponible
+                                    detalle.Cuenta.Estado = "Disponible";
+                                    _context.Cuentas.Update(detalle.Cuenta);
+                                }
+                            }
+                        }
+                    }
+                    else if (diasRestantes <= 5)
+                    {
+                        // About to expire (5 days or less)
+                        nuevoEstado = "Próximo a vencer";
+                    }
+                    else
+                    {
+                        // Still active
+                        nuevoEstado = "Activo";
+                    }
+
+                    if (nuevoEstado != estadoAnterior)
+                    {
+                        venta.Estado = nuevoEstado;
+                        _context.Ventas.Update(venta);
+                        ventasActualizadas++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = $"{ventasActualizadas} venta(s) actualizada(s), {perfilesLiberados} perfil(es) liberado(s)",
+                    ventasActualizadas,
+                    perfilesLiberados
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al verificar estados", error = ex.Message });
+            }
+        }
+
+        // GET: api/ventas/filtro/{estado}
+        [HttpGet("filtro/{estado}")]
+        public async Task<ActionResult<IEnumerable<VentaDTO>>> GetVentasByEstado(string estado)
+        {
+            try
+            {
+                IQueryable<Venta> query = _context.Ventas
+                    .Include(v => v.Cliente)
+                    .Include(v => v.MedioPago)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Cuenta)
+                            .ThenInclude(c => c!.Servicio)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Perfil);
+
+                var hoy = DateTime.Now.Date;
+
+                switch (estado.ToLower())
+                {
+                    case "activas":
+                        query = query.Where(v => v.Estado == "Activo");
+                        break;
+                    case "proximas-a-vencer":
+                        query = query.Where(v => v.Estado == "Próximo a vencer");
+                        break;
+                    case "vencidas":
+                        query = query.Where(v => v.Estado == "Vencido");
+                        break;
+                    case "canceladas":
+                        query = query.Where(v => v.Estado == "Cancelado");
+                        break;
+                    case "todas":
+                    default:
+                        // No filter, return all
+                        break;
+                }
+
+                var ventas = await query
+                    .Select(v => new VentaDTO
+                    {
+                        VentaID = v.VentaID,
+                        ClienteID = v.ClienteID,
+                        NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
+                        TelefonoCliente = v.Cliente.Telefono,
+                        FechaInicio = v.FechaInicio,
+                        FechaFin = v.FechaFin,
+                        Duracion = v.Duracion,
+                        Monto = v.Monto,
+                        Moneda = v.Moneda,
+                        Estado = v.Estado,
+                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        Detalles = v.Detalles.Select(d => new VentaDetalleDTO
+                        {
+                            VentaDetalleID = d.VentaDetalleID,
+                            VentaID = d.VentaID,
+                            CuentaID = d.CuentaID,
+                            CodigoCuenta = d.Cuenta!.CodigoCuenta ?? "",
+                            PerfilID = d.PerfilID,
+                            NumeroPerfil = d.Perfil!.NumeroPerfil,
+                            ServicioID = d.ServicioID,
+                            NombreServicio = d.Cuenta.Servicio!.Nombre,
+                            PrecioUnitario = d.PrecioUnitario,
+                            FechaAsignacion = d.FechaAsignacion
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(ventas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Error al obtener ventas filtradas",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

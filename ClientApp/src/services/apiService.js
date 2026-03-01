@@ -89,11 +89,13 @@ export const ventasService = {
   getById: (id) => apiClient.get(`/ventas/${id}`),
   getCompleta: (id) => apiClient.get(`/ventas/${id}/Completa`),
   getByCliente: (clienteId) => apiClient.get(`/ventas/cliente/${clienteId}`),
+  getByFiltro: (filtro) => apiClient.get(`/ventas/filtro/${filtro}`),
   create: (data) => apiClient.post('/ventas', data),
   update: (id, data) => apiClient.put(`/ventas/${id}`, data),
   actualizar: (id, data) => apiClient.put(`/ventas/${id}/Actualizar`, data),
   delete: (id) => apiClient.delete(`/ventas/${id}`),
   renovar: (id, data) => apiClient.post(`/ventas/${id}/renovar`, data),
+  verificarEstados: () => apiClient.post('/ventas/verificar-estados'),
   getProximasVencer: () => apiClient.get('/ventas/proximas-vencer'),
   getVencidas: () => apiClient.get('/ventas/vencidas'),
 };
