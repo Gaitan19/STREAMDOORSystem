@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using STREAMDOORSystem.Data;
 using STREAMDOORSystem.Models;
 using STREAMDOORSystem.Models.DTOs;
+using System.Security.Claims;
 
 namespace STREAMDOORSystem.Controllers
 {
@@ -286,6 +287,14 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 // Crear la venta
+                // Get current user info from JWT token
+                var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int? usuarioId = null;
+                if (int.TryParse(usuarioIdClaim, out int parsedId))
+                {
+                    usuarioId = parsedId;
+                }
+
                 var venta = new Venta
                 {
                     ClienteID = crearVentaDto.ClienteID,
@@ -295,6 +304,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = montoTotal,
                     Moneda = crearVentaDto.Moneda,
                     MedioPagoID = crearVentaDto.MedioPagoID,
+                    UsuarioID = usuarioId,
                     Estado = "Activo",
                     FechaCreacion = DateTime.Now,
                     Detalles = detallesLista
@@ -448,6 +458,8 @@ namespace STREAMDOORSystem.Controllers
             {
                 var venta = await _context.Ventas
                     .Include(v => v.Cliente)
+                    .Include(v => v.Usuario)
+                    .Include(v => v.MedioPago)
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Cuenta)
                             .ThenInclude(c => c!.Correo)
@@ -476,6 +488,10 @@ namespace STREAMDOORSystem.Controllers
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
                     Notas = null,
+                    MedioPagoID = venta.MedioPagoID,
+                    NombreMedioPago = venta.MedioPago?.Nombre,
+                    UsuarioID = venta.UsuarioID,
+                    NombreUsuario = venta.Usuario?.Nombre,
                     Detalles = venta.Detalles.Select(d => new VentaDetalleCompletaDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,

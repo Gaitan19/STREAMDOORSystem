@@ -110,6 +110,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Password { get; set; }
         public string? CorreoTerceros { get; set; }
         public string? CodigoCuenta { get; set; }
+        public decimal? Costo { get; set; }
         public List<PerfilDTO>? Perfiles { get; set; }
         public bool Activo { get; set; }
     }
@@ -125,6 +126,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Password { get; set; }  // Account password (both Propia & Terceros)
         public string? CorreoTerceros { get; set; }  // Email for Terceros accounts
         public string? CodigoCuenta { get; set; }  // Auto-generated account code
+        public decimal? Costo { get; set; }
         public List<PerfilDTO>? Perfiles { get; set; }
     }
 
@@ -214,6 +216,10 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Moneda { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public string? Notas { get; set; }
+        public int? MedioPagoID { get; set; }
+        public string? NombreMedioPago { get; set; }
+        public int? UsuarioID { get; set; }
+        public string? NombreUsuario { get; set; }
         public List<VentaDetalleCompletaDTO> Detalles { get; set; } = new();
     }
 
@@ -354,5 +360,57 @@ namespace STREAMDOORSystem.Models.DTOs
         public decimal? Precio { get; set; }
         public bool? Activo { get; set; }
         public List<int>? ServiciosIDs { get; set; } // Si se proporciona, actualiza los servicios del combo
+    }
+
+    // DTOs de Ingresos
+    public class IngresoDTO
+    {
+        public int IngresoID { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public decimal Monto { get; set; }
+        public int? UsuarioID { get; set; }
+        public string? Usuario { get; set; }
+        public string? Descripcion { get; set; }
+        public int? VentaID { get; set; }
+    }
+
+    public class CrearIngresoDTO
+    {
+        public decimal Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public int? VentaID { get; set; }
+    }
+
+    public class ActualizarIngresoDTO
+    {
+        public decimal? Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public int? VentaID { get; set; }
+    }
+
+    // DTOs de Egresos
+    public class EgresoDTO
+    {
+        public int EgresoID { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public decimal Monto { get; set; }
+        public int? UsuarioID { get; set; }
+        public string? Usuario { get; set; }
+        public string? Descripcion { get; set; }
+        public int? CuentaID { get; set; }
+    }
+
+    public class CrearEgresoDTO
+    {
+        public decimal Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public int? CuentaID { get; set; }
+    }
+
+    public class ActualizarEgresoDTO
+    {
+        public decimal? Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public int? CuentaID { get; set; }
     }
 }

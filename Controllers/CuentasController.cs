@@ -50,6 +50,7 @@ namespace STREAMDOORSystem.Controllers
                     Password = c.Password,
                     CorreoTerceros = c.CorreoTerceros,
                     CodigoCuenta = c.CodigoCuenta,
+                    Costo = c.Costo,
                     Activo = c.Activo,
                     Perfiles = c.Perfiles.Where(p => p.Activo).Select(p => new PerfilDTO
                     {
@@ -166,6 +167,7 @@ namespace STREAMDOORSystem.Controllers
                     Password = crearCuentaDto.Password,
                     CorreoTerceros = crearCuentaDto.CorreoTerceros,
                     CodigoCuenta = crearCuentaDto.CodigoCuenta,
+                    Costo = crearCuentaDto.Costo,
                     Activo = true
                 };
 
@@ -222,7 +224,8 @@ namespace STREAMDOORSystem.Controllers
                     PerfilesDisponibles = cuenta.PerfilesDisponibles,
                     Estado = cuenta.Estado,
                     FechaCreacion = cuenta.FechaCreacion,
-                    FechaFinalizacion = cuenta.FechaFinalizacion
+                    FechaFinalizacion = cuenta.FechaFinalizacion,
+                    Costo = cuenta.Costo
                 };
 
                 return CreatedAtAction(nameof(GetCuenta), new { id = cuenta.CuentaID }, cuentaDto);
