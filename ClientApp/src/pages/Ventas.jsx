@@ -643,15 +643,22 @@ const Ventas = () => {
     { 
       key: 'servicios', 
       label: 'Servicios',
-      render: (row) => (
-        <div className="space-y-1">
-          {row.detalles?.map((detalle, idx) => (
-            <Badge key={idx} variant="primary" size="sm">
-              {detalle.nombreServicio} (P{detalle.numeroPerfil})
-            </Badge>
-          ))}
-        </div>
-      )
+      render: (row) => {
+        const detalles = row.detalles || row.Detalles || [];
+        return (
+          <div className="space-y-1">
+            {detalles.map((detalle, idx) => {
+              const nombre = detalle.nombreServicio || detalle.NombreServicio || '';
+              const perfil = detalle.numeroPerfil || detalle.NumeroPerfil || '';
+              return (
+                <Badge key={idx} variant="primary" size="sm">
+                  {nombre} (P{perfil})
+                </Badge>
+              );
+            })}
+          </div>
+        );
+      }
     },
     { 
       key: 'fechas', 
@@ -669,18 +676,19 @@ const Ventas = () => {
       label: 'Total',
       render: (row) => {
         // Calculate total from details if monto is 0 or not set
-        let total = row.Monto;
+        // Try lowercase first (camelCase), then uppercase (PascalCase)
+        let total = row.monto || row.Monto || 0;
         if (!total || total === 0) {
-          // Sum from details - try both PascalCase and camelCase for compatibility
-          const detalles = row.Detalles || row.detalles || [];
+          // Sum from details - try both camelCase and PascalCase for compatibility
+          const detalles = row.detalles || row.Detalles || [];
           total = detalles.reduce((sum, d) => {
-            const precio = d.PrecioUnitario || d.precioUnitario || 0;
+            const precio = d.precioUnitario || d.PrecioUnitario || 0;
             return sum + precio;
           }, 0);
         }
         return (
           <div className="font-semibold text-green-600">
-            {formatCurrency(total, row.Moneda || row.moneda)}
+            {formatCurrency(total, row.moneda || row.Moneda)}
           </div>
         );
       }
