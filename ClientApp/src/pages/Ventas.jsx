@@ -724,12 +724,23 @@ const Ventas = () => {
       label: 'Estado',
       render: (row) => {
         let color = 'gray';
-        if (row.estado === 'Activo') color = 'green';
-        else if (row.estado === 'ProximoVencer') color = 'yellow';
-        else if (row.estado === 'Vencido') color = 'red';
-        else if (row.estado === 'Cancelado') color = 'gray';
+        let displayText = row.estado;
         
-        return <Badge variant={color}>{row.estado}</Badge>;
+        if (row.estado === 'Activo') {
+          color = 'green';
+          displayText = '✓ Activo';
+        } else if (row.estado === 'ProximoVencer') {
+          color = 'yellow';
+          displayText = '⚠ Próximo a Vencer';
+        } else if (row.estado === 'Vencido') {
+          color = 'red';
+          displayText = '✕ Vencido';
+        } else if (row.estado === 'Cancelado') {
+          color = 'gray';
+          displayText = '⊗ Cancelado';
+        }
+        
+        return <Badge variant={color}>{displayText}</Badge>;
       }
     },
     {
@@ -1748,11 +1759,16 @@ const Ventas = () => {
                   <div>
                     <span className="text-gray-600">Estado:</span>
                     <Badge variant={
-                      ventaCompleta.estado === 'Activo' ? 'success' :
-                      ventaCompleta.estado === 'ProximoVencer' ? 'warning' :
-                      ventaCompleta.estado === 'Vencido' ? 'danger' : 'default'
+                      ventaCompleta.estado === 'Activo' ? 'green' :
+                      ventaCompleta.estado === 'ProximoVencer' ? 'yellow' :
+                      ventaCompleta.estado === 'Vencido' ? 'red' :
+                      ventaCompleta.estado === 'Cancelado' ? 'gray' : 'gray'
                     }>
-                      {ventaCompleta.estado}
+                      {ventaCompleta.estado === 'Activo' ? '✓ Activo' :
+                       ventaCompleta.estado === 'ProximoVencer' ? '⚠ Próximo a Vencer' :
+                       ventaCompleta.estado === 'Vencido' ? '✕ Vencido' :
+                       ventaCompleta.estado === 'Cancelado' ? '⊗ Cancelado' :
+                       ventaCompleta.estado}
                     </Badge>
                   </div>
                 </div>
