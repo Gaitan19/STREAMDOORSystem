@@ -596,7 +596,7 @@ const Cuentas = () => {
                     // Find selected correo to show password
                     const selectedCorreo = correosDisponibles.find(c => c.correoID === parseInt(e.target.value));
                     if (selectedCorreo) {
-                      setFormData(prev => ({ ...prev, email: selectedCorreo.email, password: selectedCorreo.password }));
+                      setFormData(prev => ({ ...prev, email: selectedCorreo.email, password: generatePassword(16) }));
                     }
                   }}
                   error={errors.correoID}
