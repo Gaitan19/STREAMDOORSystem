@@ -1737,84 +1737,190 @@ const Ventas = () => {
             {/* Accounts Details */}
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-900">Servicios y Credenciales</h3>
-              {ventaCompleta.detalles.map((detalle, idx) => (
-                <div key={idx} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-purple-900">{detalle.nombreServicio}</h4>
-                    <Badge variant="primary">Perfil #{detalle.numeroPerfil}</Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Código de Cuenta:</p>
-                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
-                          <span className="font-mono text-sm flex-1">{detalle.codigoCuenta}</span>
-                          <button
-                            onClick={() => copyToClipboard(detalle.codigoCuenta, 'Código')}
-                            className="text-blue-600 hover:text-blue-700"
-                            title="Copiar código"
-                          >
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Email:</p>
-                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
-                          <span className="font-mono text-sm flex-1 truncate">{detalle.emailCuenta}</span>
-                          <button
-                            onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
-                            className="text-blue-600 hover:text-blue-700"
-                            title="Copiar email"
-                          >
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+              {(() => {
+                // Group services by comboID
+                const combos = {};
+                const individualServices = [];
+                
+                ventaCompleta.detalles.forEach(detalle => {
+                  if (detalle.comboID) {
+                    if (!combos[detalle.comboID]) {
+                      combos[detalle.comboID] = [];
+                    }
+                    combos[detalle.comboID].push(detalle);
+                  } else {
+                    individualServices.push(detalle);
+                  }
+                });
 
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Contraseña:</p>
-                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
-                          <span className="font-mono text-sm flex-1">{detalle.passwordCuenta}</span>
-                          <button
-                            onClick={() => copyToClipboard(detalle.passwordCuenta, 'Contraseña')}
-                            className="text-blue-600 hover:text-blue-700"
-                            title="Copiar contraseña"
-                          >
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                      </div>
+                return (
+                  <>
+                    {/* Render Combos */}
+                    {Object.entries(combos).map(([comboID, services]) => {
+                      const comboPrice = services.reduce((sum, s) => sum + (s.precioUnitario || 0), 0);
+                      const comboName = services.map(s => s.nombreServicio).join(' + ');
                       
-                      {detalle.pinPerfil && (
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">PIN del Perfil:</p>
-                          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
-                            <span className="font-mono text-sm flex-1">{detalle.pinPerfil}</span>
-                            <button
-                              onClick={() => copyToClipboard(detalle.pinPerfil, 'PIN')}
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Copiar PIN"
-                            >
-                              <Copy size={16} />
-                            </button>
+                      return (
+                        <div key={`combo-${comboID}`} className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-orange-900 flex items-center gap-2">
+                              🔥 COMBO: {comboName}
+                            </h4>
+                            <Badge variant="primary">Combo #{comboID}</Badge>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            {services.map((detalle, idx) => (
+                              <div key={idx} className="bg-white border border-orange-200 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="font-semibold text-gray-900">{detalle.nombreServicio}</h5>
+                                  <Badge variant="primary">Perfil #{detalle.numeroPerfil}</Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-2">
+                                    <div>
+                                      <p className="text-xs text-gray-600 mb-1">Email:</p>
+                                      <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded border text-xs">
+                                        <span className="font-mono flex-1 truncate">{detalle.emailCuenta}</span>
+                                        <button
+                                          onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
+                                          className="text-blue-600 hover:text-blue-700"
+                                          title="Copiar email"
+                                        >
+                                          <Copy size={14} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div>
+                                      <p className="text-xs text-gray-600 mb-1">Contraseña:</p>
+                                      <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded border text-xs">
+                                        <span className="font-mono flex-1">{detalle.passwordCuenta}</span>
+                                        <button
+                                          onClick={() => copyToClipboard(detalle.passwordCuenta, 'Contraseña')}
+                                          className="text-blue-600 hover:text-blue-700"
+                                          title="Copiar contraseña"
+                                        >
+                                          <Copy size={14} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {detalle.pinPerfil && (
+                                    <div>
+                                      <p className="text-xs text-gray-600 mb-1">PIN:</p>
+                                      <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded border text-xs">
+                                        <span className="font-mono flex-1">{detalle.pinPerfil}</span>
+                                        <button
+                                          onClick={() => copyToClipboard(detalle.pinPerfil, 'PIN')}
+                                          className="text-blue-600 hover:text-blue-700"
+                                          title="Copiar PIN"
+                                        >
+                                          <Copy size={14} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t border-orange-300 bg-orange-100 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                            <p className="text-sm font-semibold text-orange-900">
+                              💰 PRECIO DEL COMBO: <span className="text-lg">{formatCurrency(comboPrice, ventaCompleta.moneda)}</span>
+                            </p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t border-purple-200">
-                    <p className="text-sm text-gray-600">
-                      Precio: <span className="font-semibold">{formatCurrency(detalle.precioUnitario, ventaCompleta.moneda)}</span>
-                    </p>
-                  </div>
-                </div>
-              ))}
+                      );
+                    })}
+
+                    {/* Render Individual Services */}
+                    {individualServices.map((detalle, idx) => (
+                      <div key={`individual-${idx}`} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-purple-900">{detalle.nombreServicio}</h4>
+                          <Badge variant="primary">Perfil #{detalle.numeroPerfil}</Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Código de Cuenta:</p>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                                <span className="font-mono text-sm flex-1">{detalle.codigoCuenta}</span>
+                                <button
+                                  onClick={() => copyToClipboard(detalle.codigoCuenta, 'Código')}
+                                  className="text-blue-600 hover:text-blue-700"
+                                  title="Copiar código"
+                                >
+                                  <Copy size={16} />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Email:</p>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                                <span className="font-mono text-sm flex-1 truncate">{detalle.emailCuenta}</span>
+                                <button
+                                  onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
+                                  className="text-blue-600 hover:text-blue-700"
+                                  title="Copiar email"
+                                >
+                                  <Copy size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Contraseña:</p>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                                <span className="font-mono text-sm flex-1">{detalle.passwordCuenta}</span>
+                                <button
+                                  onClick={() => copyToClipboard(detalle.passwordCuenta, 'Contraseña')}
+                                  className="text-blue-600 hover:text-blue-700"
+                                  title="Copiar contraseña"
+                                >
+                                  <Copy size={16} />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {detalle.pinPerfil && (
+                              <div>
+                                <p className="text-sm text-gray-600 mb-1">PIN del Perfil:</p>
+                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
+                                  <span className="font-mono text-sm flex-1">{detalle.pinPerfil}</span>
+                                  <button
+                                    onClick={() => copyToClipboard(detalle.pinPerfil, 'PIN')}
+                                    className="text-blue-600 hover:text-blue-700"
+                                    title="Copiar PIN"
+                                  >
+                                    <Copy size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t border-purple-200">
+                          <p className="text-sm text-gray-600">
+                            💰 Precio: <span className="font-semibold">{formatCurrency(detalle.precioUnitario, ventaCompleta.moneda)}</span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t">

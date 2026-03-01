@@ -576,26 +576,87 @@ const Clientes = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-3">Servicios Contratados</h4>
               <div className="space-y-3">
-                {(selectedVenta.detalles || []).map((detalle, index) => (
-                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h5 className="font-semibold text-gray-900">{detalle.nombreServicio}</h5>
-                        <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <p><strong>Correo:</strong> {detalle.emailCuenta}</p>
-                          <p><strong>Contraseña:</strong> {detalle.passwordCuenta}</p>
-                          <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
-                          {detalle.pinPerfil && <p><strong>PIN:</strong> {detalle.pinPerfil}</p>}
+                {(() => {
+                  // Group services by comboID
+                  const combos = {};
+                  const individualServices = [];
+                  
+                  (selectedVenta.detalles || []).forEach(detalle => {
+                    if (detalle.comboID) {
+                      if (!combos[detalle.comboID]) {
+                        combos[detalle.comboID] = [];
+                      }
+                      combos[detalle.comboID].push(detalle);
+                    } else {
+                      individualServices.push(detalle);
+                    }
+                  });
+
+                  return (
+                    <>
+                      {/* Render Combos */}
+                      {Object.entries(combos).map(([comboID, services]) => {
+                        const comboPrice = services.reduce((sum, s) => sum + (s.precioUnitario || 0), 0);
+                        const comboName = services.map(s => s.nombreServicio).join(' + ');
+                        
+                        return (
+                          <div key={`combo-${comboID}`} className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
+                            <div className="flex items-start justify-between mb-3">
+                              <h5 className="font-semibold text-orange-900 flex items-center gap-2">
+                                🔥 COMBO: {comboName}
+                              </h5>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-600">Combo #{comboID}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {services.map((detalle, idx) => (
+                                <div key={idx} className="bg-white border border-orange-200 rounded p-3">
+                                  <h6 className="font-semibold text-gray-900 mb-2">{detalle.nombreServicio}</h6>
+                                  <div className="space-y-1 text-sm text-gray-600">
+                                    <p><strong>Correo:</strong> {detalle.emailCuenta}</p>
+                                    <p><strong>Contraseña:</strong> {detalle.passwordCuenta}</p>
+                                    <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
+                                    {detalle.pinPerfil && <p><strong>PIN:</strong> {detalle.pinPerfil}</p>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="mt-3 pt-3 border-t border-orange-300 bg-orange-100 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                              <p className="font-semibold text-orange-900">
+                                💰 PRECIO DEL COMBO: {selectedVenta.moneda} {comboPrice.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Render Individual Services */}
+                      {individualServices.map((detalle, index) => (
+                        <div key={`individual-${index}`} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-gray-900">{detalle.nombreServicio}</h5>
+                              <div className="mt-2 space-y-1 text-sm text-gray-600">
+                                <p><strong>Correo:</strong> {detalle.emailCuenta}</p>
+                                <p><strong>Contraseña:</strong> {detalle.passwordCuenta}</p>
+                                <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
+                                {detalle.pinPerfil && <p><strong>PIN:</strong> {detalle.pinPerfil}</p>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-gray-900">
+                                💰 {selectedVenta.moneda} {detalle.precioUnitario?.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">
-                          {selectedVenta.moneda} {detalle.precioUnitario?.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
