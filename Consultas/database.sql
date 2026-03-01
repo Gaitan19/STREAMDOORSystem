@@ -479,6 +479,69 @@ BEGIN
 END
 GO
 
+-- Migración: Agregar columna Costo a Cuentas si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Costo')
+    BEGIN
+        ALTER TABLE Cuentas ADD Costo DECIMAL(10,2) NULL;
+        PRINT 'Column Costo added to Cuentas table.';
+    END
+END
+GO
+
+-- Migración: Agregar columna UsuarioID a Ventas si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'UsuarioID')
+    BEGIN
+        ALTER TABLE Ventas ADD UsuarioID INT NULL;
+        ALTER TABLE Ventas ADD CONSTRAINT FK_Ventas_Usuarios FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID);
+        PRINT 'Column UsuarioID added to Ventas table.';
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: Ingresos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Ingresos')
+BEGIN
+    CREATE TABLE Ingresos (
+        IngresoID INT PRIMARY KEY IDENTITY(1,1),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Monto DECIMAL(10,2) NOT NULL,
+        UsuarioID INT NULL,
+        Usuario NVARCHAR(100) NULL,
+        Descripcion NVARCHAR(500) NULL,
+        VentaID INT NULL,
+        FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID),
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID)
+    );
+    PRINT 'Table Ingresos created.';
+END
+GO
+
+-- ============================================
+-- Tabla: Egresos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Egresos')
+BEGIN
+    CREATE TABLE Egresos (
+        EgresoID INT PRIMARY KEY IDENTITY(1,1),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Monto DECIMAL(10,2) NOT NULL,
+        UsuarioID INT NULL,
+        Usuario NVARCHAR(100) NULL,
+        Descripcion NVARCHAR(500) NULL,
+        CuentaID INT NULL,
+        FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID),
+        FOREIGN KEY (CuentaID) REFERENCES Cuentas(CuentaID)
+    );
+    PRINT 'Table Egresos created.';
+END
+GO
+
 -- ============================================
 -- Índices para mejor rendimiento
 -- ============================================

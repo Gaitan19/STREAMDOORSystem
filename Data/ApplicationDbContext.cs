@@ -23,6 +23,8 @@ namespace STREAMDOORSystem.Data
         public DbSet<CorreoServicio> CorreosServicios { get; set; }
         public DbSet<Combo> Combos { get; set; }
         public DbSet<ComboServicio> ComboServicios { get; set; }
+        public DbSet<Ingreso> Ingresos { get; set; }
+        public DbSet<Egreso> Egresos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

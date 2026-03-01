@@ -135,6 +135,9 @@ namespace STREAMDOORSystem.Models
         [MaxLength(10)]
         public string? CodigoCuenta { get; set; }
 
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? Costo { get; set; }
+
         public bool Activo { get; set; } = true;
 
         [ForeignKey("ServicioID")]
@@ -229,6 +232,8 @@ namespace STREAMDOORSystem.Models
 
         public int? MedioPagoID { get; set; }  // Medio de pago usado
 
+        public int? UsuarioID { get; set; } // Usuario que realizó la venta
+
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
         [ForeignKey("ClienteID")]
@@ -236,6 +241,9 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("MedioPagoID")]
         public virtual MedioPago? MedioPago { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? Usuario { get; set; }
 
         public virtual ICollection<VentaDetalle> Detalles { get; set; } = new List<VentaDetalle>();
     }
@@ -379,5 +387,63 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("ServicioID")]
         public virtual Servicio? Servicio { get; set; }
+    }
+
+    [Table("Ingresos")]
+    public class Ingreso
+    {
+        [Key]
+        public int IngresoID { get; set; }
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        public int? UsuarioID { get; set; }
+
+        [MaxLength(100)]
+        public string? Usuario { get; set; }
+
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        public int? VentaID { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? UsuarioNav { get; set; }
+
+        [ForeignKey("VentaID")]
+        public virtual Venta? Venta { get; set; }
+    }
+
+    [Table("Egresos")]
+    public class Egreso
+    {
+        [Key]
+        public int EgresoID { get; set; }
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        public int? UsuarioID { get; set; }
+
+        [MaxLength(100)]
+        public string? Usuario { get; set; }
+
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        public int? CuentaID { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? UsuarioNav { get; set; }
+
+        [ForeignKey("CuentaID")]
+        public virtual Cuenta? Cuenta { get; set; }
     }
 }
