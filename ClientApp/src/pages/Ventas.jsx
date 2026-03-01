@@ -669,7 +669,7 @@ const Ventas = () => {
       label: 'Total',
       render: (row) => {
         // Calculate total from details if monto is 0 or not set
-        const total = row.monto || row.detalles?.reduce((sum, d) => sum + (d.precioUnitario || 0), 0) || 0;
+        const total = row.monto || row.Detalles?.reduce((sum, d) => sum + (d.PrecioUnitario || 0), 0) || 0;
         return (
           <div className="font-semibold text-green-600">
             {formatCurrency(total, row.moneda)}
