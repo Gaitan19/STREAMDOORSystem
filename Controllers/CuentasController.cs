@@ -45,6 +45,8 @@ namespace STREAMDOORSystem.Controllers
                     // Calculate PerfilesDisponibles from actual available profiles
                     PerfilesDisponibles = c.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
                     Estado = c.Estado,
+                    Disponibilidad = c.Disponibilidad,
+                    EstadoSuscripcion = c.EstadoSuscripcion,
                     FechaCreacion = c.FechaCreacion,
                     FechaFinalizacion = c.FechaFinalizacion,
                     Password = c.Password,
@@ -161,7 +163,13 @@ namespace STREAMDOORSystem.Controllers
                     TipoCuenta = crearCuentaDto.TipoCuenta,
                     NumeroPerfiles = crearCuentaDto.NumeroPerfiles,
                     PerfilesDisponibles = crearCuentaDto.NumeroPerfiles,
-                    Estado = "Disponible",
+                    Estado = "Disponible",  // Backward compatibility
+                    Disponibilidad = "Disponible",  // New field
+                    EstadoSuscripcion = crearCuentaDto.FechaFinalizacion.HasValue && 
+                                        crearCuentaDto.FechaFinalizacion.Value <= DateTime.Now.AddDays(5) &&
+                                        crearCuentaDto.FechaFinalizacion.Value >= DateTime.Now 
+                                            ? "Próxima a Vencer"
+                                            : "Activo",  // New field
                     FechaCreacion = DateTime.Now,
                     FechaFinalizacion = crearCuentaDto.FechaFinalizacion,
                     Password = crearCuentaDto.Password,
@@ -458,7 +466,41 @@ namespace STREAMDOORSystem.Controllers
             }
         }
 
-        // Helper method to calculate Estado
+        // Helper methods to calculate Disponibilidad and EstadoSuscripcion
+        private (string disponibilidad, string estadoSuscripcion) CalcularEstados(Cuenta cuenta, List<Perfil> perfiles)
+        {
+            // Calculate EstadoSuscripcion (subscription status)
+            string estadoSuscripcion;
+            if (cuenta.FechaFinalizacion.HasValue && cuenta.FechaFinalizacion.Value < DateTime.Now)
+            {
+                estadoSuscripcion = "Vencida";
+            }
+            else if (cuenta.FechaFinalizacion.HasValue && 
+                cuenta.FechaFinalizacion.Value <= DateTime.Now.AddDays(5) &&
+                cuenta.FechaFinalizacion.Value >= DateTime.Now)
+            {
+                estadoSuscripcion = "Próxima a Vencer";
+            }
+            else
+            {
+                estadoSuscripcion = "Activo";
+            }
+
+            // Calculate Disponibilidad (profile availability)
+            string disponibilidad;
+            if (perfiles.Any() && perfiles.All(p => p.Estado == "Ocupado"))
+            {
+                disponibilidad = "No Disponible";
+            }
+            else
+            {
+                disponibilidad = "Disponible";
+            }
+
+            return (disponibilidad, estadoSuscripcion);
+        }
+        
+        // Legacy method - kept for backward compatibility, combines both statuses
         private string CalcularEstado(Cuenta cuenta, List<Perfil> perfiles)
         {
             // 1. Check if expired
@@ -518,12 +560,33 @@ namespace STREAMDOORSystem.Controllers
                 foreach (var cuenta in cuentas)
                 {
                     var perfiles = cuenta.Perfiles.ToList();
-                    var nuevoEstado = CalcularEstado(cuenta, perfiles);
+                    var (disponibilidad, estadoSuscripcion) = CalcularEstados(cuenta, perfiles);
+                    var nuevoEstado = CalcularEstado(cuenta, perfiles); // For backward compatibility
+                    
+                    bool cambio = false;
+                    if (disponibilidad != cuenta.Disponibilidad)
+                    {
+                        cuenta.Disponibilidad = disponibilidad;
+                        _context.Entry(cuenta).Property(c => c.Disponibilidad).IsModified = true;
+                        cambio = true;
+                    }
+                    
+                    if (estadoSuscripcion != cuenta.EstadoSuscripcion)
+                    {
+                        cuenta.EstadoSuscripcion = estadoSuscripcion;
+                        _context.Entry(cuenta).Property(c => c.EstadoSuscripcion).IsModified = true;
+                        cambio = true;
+                    }
                     
                     if (nuevoEstado != cuenta.Estado)
                     {
                         cuenta.Estado = nuevoEstado;
                         _context.Entry(cuenta).Property(c => c.Estado).IsModified = true;
+                        cambio = true;
+                    }
+                    
+                    if (cambio)
+                    {
                         actualizadas++;
                     }
                 }
@@ -551,7 +614,7 @@ namespace STREAMDOORSystem.Controllers
             try
             {
                 var cuentas = await _context.Cuentas
-                    .Where(c => c.Activo && c.Estado == "Disponible")
+                    .Where(c => c.Activo && c.Disponibilidad == "Disponible")  // Changed from Estado to Disponibilidad
                     .Include(c => c.Servicio)
                     .Include(c => c.Correo)
                     .Include(c => c.Perfiles.Where(p => p.Activo))
@@ -565,6 +628,8 @@ namespace STREAMDOORSystem.Controllers
                         NumeroPerfiles = c.Perfiles.Count(p => p.Activo),
                         PerfilesDisponibles = c.Perfiles.Count(p => p.Activo && p.Estado == "Disponible"),
                         Estado = c.Estado,
+                        Disponibilidad = c.Disponibilidad,
+                        EstadoSuscripcion = c.EstadoSuscripcion,
                         FechaCreacion = c.FechaCreacion,
                         FechaFinalizacion = c.FechaFinalizacion
                     })

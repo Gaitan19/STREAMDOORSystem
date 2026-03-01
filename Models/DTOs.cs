@@ -104,7 +104,9 @@ namespace STREAMDOORSystem.Models.DTOs
         public string TipoCuenta { get; set; } = string.Empty;
         public int NumeroPerfiles { get; set; }
         public int PerfilesDisponibles { get; set; }
-        public string Estado { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;  // Kept for backward compatibility
+        public string Disponibilidad { get; set; } = string.Empty;  // Profile availability status
+        public string EstadoSuscripcion { get; set; } = string.Empty;  // Subscription status
         public DateTime FechaCreacion { get; set; }
         public DateTime? FechaFinalizacion { get; set; }
         public string? Password { get; set; }

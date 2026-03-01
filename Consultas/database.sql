@@ -543,6 +543,69 @@ END
 GO
 
 -- ============================================
+-- MIGRACIÓN: Separar Disponibilidad y Estado de Suscripción en Cuentas
+-- ============================================
+-- Agregar Disponibilidad column to Cuentas
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Disponibilidad')
+BEGIN
+    ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NULL;
+    PRINT 'Column Disponibilidad added to Cuentas.';
+    
+    -- Migrate data: Set Disponibilidad based on current Estado
+    UPDATE Cuentas 
+    SET Disponibilidad = CASE 
+        WHEN Estado IN ('Disponible', 'Próxima a Vencer', 'Vencida') THEN 'Disponible'
+        WHEN Estado = 'No Disponible' THEN 'No Disponible'
+        ELSE 'Disponible'
+    END
+    WHERE Disponibilidad IS NULL;
+    
+    -- Make it NOT NULL after migration
+    ALTER TABLE Cuentas ALTER COLUMN Disponibilidad NVARCHAR(20) NOT NULL;
+    
+    -- Add constraint
+    ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
+        CHECK (Disponibilidad IN ('Disponible', 'No Disponible'));
+    
+    PRINT 'Disponibilidad data migrated from Estado.';
+END
+ELSE
+BEGIN
+    PRINT 'Column Disponibilidad already exists in Cuentas.';
+END
+GO
+
+-- Agregar EstadoSuscripcion column to Cuentas
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'EstadoSuscripcion')
+BEGIN
+    ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NULL;
+    PRINT 'Column EstadoSuscripcion added to Cuentas.';
+    
+    -- Migrate data: Set EstadoSuscripcion based on current Estado
+    UPDATE Cuentas 
+    SET EstadoSuscripcion = CASE 
+        WHEN Estado = 'Vencida' THEN 'Vencida'
+        WHEN Estado = 'Próxima a Vencer' THEN 'Próxima a Vencer'
+        ELSE 'Activo'
+    END
+    WHERE EstadoSuscripcion IS NULL;
+    
+    -- Make it NOT NULL after migration
+    ALTER TABLE Cuentas ALTER COLUMN EstadoSuscripcion NVARCHAR(30) NOT NULL;
+    
+    -- Add constraint
+    ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
+        CHECK (EstadoSuscripcion IN ('Activo', 'Próxima a Vencer', 'Vencida'));
+    
+    PRINT 'EstadoSuscripcion data migrated from Estado.';
+END
+ELSE
+BEGIN
+    PRINT 'Column EstadoSuscripcion already exists in Cuentas.';
+END
+GO
+
+-- ============================================
 -- Índices para mejor rendimiento
 -- ============================================
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Estado')
@@ -555,6 +618,14 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Estado')
     CREATE INDEX IX_Cuentas_Estado ON Cuentas(Estado);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Disponibilidad')
+    CREATE INDEX IX_Cuentas_Disponibilidad ON Cuentas(Disponibilidad);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_EstadoSuscripcion')
+    CREATE INDEX IX_Cuentas_EstadoSuscripcion ON Cuentas(EstadoSuscripcion);
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_VentaID')

@@ -119,7 +119,13 @@ namespace STREAMDOORSystem.Models
         public int PerfilesDisponibles { get; set; } = 1;
 
         [MaxLength(20)]
-        public string Estado { get; set; } = "Disponible";
+        public string Estado { get; set; } = "Disponible";  // Kept for backward compatibility
+        
+        [MaxLength(20)]
+        public string Disponibilidad { get; set; } = "Disponible";  // Profile availability
+        
+        [MaxLength(30)]
+        public string EstadoSuscripcion { get; set; } = "Activo";  // Subscription status
 
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
