@@ -490,9 +490,9 @@ const Clientes = () => {
                       <div className="flex-1">
                         <h5 className="font-semibold text-gray-900">{detalle.nombreServicio}</h5>
                         <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <p><strong>Correo/Código:</strong> {detalle.correoCuenta || detalle.codigoCuenta}</p>
-                          <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
+                          <p><strong>Correo:</strong> {detalle.correoCuenta}</p>
                           <p><strong>Contraseña:</strong> {detalle.passwordCuenta}</p>
+                          <p><strong>Perfil:</strong> Perfil {detalle.numeroPerfil}</p>
                           {detalle.pinPerfil && <p><strong>PIN:</strong> {detalle.pinPerfil}</p>}
                         </div>
                       </div>
