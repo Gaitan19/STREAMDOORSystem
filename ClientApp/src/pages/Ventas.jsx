@@ -471,9 +471,9 @@ const Ventas = () => {
       // Load complete sale details with credentials
       const ventaCompletaData = await ventasService.getCompleta(venta.ventaID);
       setVentaCompleta(ventaCompletaData);
-      // Load ALL accounts (not just disponibles) to allow reassignment
+      // Load only DISPONIBLE accounts for reassignment
       const cuentas = await cuentasService.getAll();
-      setCuentasDisponibles(cuentas.filter(c => c.activo));
+      setCuentasDisponibles(cuentas.filter(c => c.activo && c.estado === 'Disponible'));
       
       // Pre-load profiles for current accounts to enable profile-only changes
       const initialChanges = {};
