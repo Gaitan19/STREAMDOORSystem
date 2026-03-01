@@ -20,11 +20,13 @@ const Ventas = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [ventaCompleta, setVentaCompleta] = useState(null);
   const [editChanges, setEditChanges] = useState({}); // Track changes: {ventaDetalleID: {nuevaCuentaID, nuevoPerfilID}}
   const [alert, setAlert] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState('todas'); // Filter for sales status
+  const [createdSaleDetails, setCreatedSaleDetails] = useState(null);
   
   // Client search
   const [clienteSearch, setClienteSearch] = useState('');
@@ -454,9 +456,19 @@ const Ventas = () => {
         detalles
       };
 
-      await ventasService.create(ventaData);
-      showAlert('success', 'Venta creada exitosamente');
+      const createdVenta = await ventasService.create(ventaData);
       setModalOpen(false);
+      
+      // Load complete details of the created sale and show success modal
+      try {
+        const ventaCompleteData = await ventasService.getCompleta(createdVenta.ventaID);
+        setCreatedSaleDetails(ventaCompleteData);
+        setSuccessModalOpen(true);
+      } catch (err) {
+        console.error('Error loading created sale details:', err);
+        showAlert('success', 'Venta creada exitosamente');
+      }
+      
       loadData();
     } catch (error) {
       console.error('Error al crear venta:', error);
@@ -641,6 +653,87 @@ const Ventas = () => {
   const copyToClipboard = (text, label) => {
     navigator.clipboard.writeText(text);
     showAlert('success', `${label} copiado al portapapeles`);
+  };
+
+  // Format sale details for WhatsApp
+  const formatWhatsAppMessage = (venta) => {
+    if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
+
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    // Group services by combo
+    const comboGroups = {};
+    const individualServices = [];
+
+    venta.detalles.forEach(detalle => {
+      if (detalle.comboID) {
+        if (!comboGroups[detalle.comboID]) {
+          comboGroups[detalle.comboID] = {
+            nombreCombo: detalle.nombreCombo,
+            servicios: []
+          };
+        }
+        comboGroups[detalle.comboID].servicios.push(detalle);
+      } else {
+        individualServices.push(detalle);
+      }
+    });
+
+    let message = '';
+
+    // Format combos
+    Object.values(comboGroups).forEach(combo => {
+      const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
+      message += `🔥 COMBO ACTIVO [${serviceNames}]\n\n`;
+
+      combo.servicios.forEach(detalle => {
+        message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
+        message += `🆔 # VENTA: V-${venta.ventaID}\n`;
+        message += `🛡 CORREO: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
+        message += `⚔ CONTRASEÑA: ${detalle.passwordCuenta}\n`;
+        message += `👤 PERFIL: ${detalle.numeroPerfil}\n`;
+        if (detalle.pinPerfil) {
+          message += `🔐 PIN: ${detalle.pinPerfil}\n`;
+        }
+        message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
+        message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
+      });
+
+      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
+      message += `*💵 GRACIAS POR SU COMPRA 🛍`;
+    });
+
+    // Format individual services
+    individualServices.forEach((detalle, index) => {
+      if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n\n';
+      
+      message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
+      message += `Acceda con los siguientes datos por favor\n`;
+      message += `🛡 Correo: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
+      message += `⚔ Contraseña: ${detalle.passwordCuenta}\n`;
+      message += `⚙ Tipo: PERFIL\n\n`;
+      message += `👤 Perfil: ${detalle.numeroPerfil}`;
+      if (detalle.pinPerfil) {
+        message += `      🔐 Pin: ${detalle.pinPerfil}`;
+      }
+      message += `\n\n`;
+      message += `💰 Precio: ${detalle.precioUnitario?.toFixed(2) || '0.00'} ${venta.moneda}\n`;
+      if (venta.medioPago) {
+        message += `💸 Metodo de pago: ${venta.medioPago}\n`;
+      }
+      message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
+      message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
+      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
+      message += `_*💵 GRACIAS POR SU COMPRA 🛍`;
+    });
+
+    return message;
   };
 
   const columns = [
@@ -1718,7 +1811,18 @@ const Ventas = () => {
               ))}
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-between items-center pt-4 border-t">
+              <Button
+                onClick={() => {
+                  const message = formatWhatsAppMessage(ventaCompleta);
+                  copyToClipboard(message, 'Detalles');
+                }}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Copy size={16} />
+                Copiar Detalles
+              </Button>
               <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>
                 Cerrar
               </Button>
@@ -1933,6 +2037,78 @@ const Ventas = () => {
             </>
           )}
         </div>
+      </Modal>
+
+      {/* Modal Success - Show created sale details */}
+      <Modal
+        isOpen={successModalOpen}
+        onClose={() => {
+          setSuccessModalOpen(false);
+          setCreatedSaleDetails(null);
+        }}
+        title="✅ Venta Creada Exitosamente"
+        size="large"
+      >
+        {createdSaleDetails && (
+          <div className="space-y-6">
+            {/* Success Message */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 font-medium">
+                La venta ha sido registrada correctamente. A continuación, los detalles para entregar al cliente:
+              </p>
+            </div>
+
+            {/* Sale Information */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Información de la Venta</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <p className="text-sm text-gray-600"># Venta:</p>
+                  <p className="font-medium">V-{createdSaleDetails.ventaID}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Cliente:</p>
+                  <p className="font-medium">{createdSaleDetails.nombreCliente}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Monto Total:</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(createdSaleDetails.monto, createdSaleDetails.moneda)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Copy Button */}
+            <div className="flex justify-center">
+              <Button
+                onClick={() => {
+                  const message = formatWhatsAppMessage(createdSaleDetails);
+                  copyToClipboard(message, 'Detalles');
+                }}
+                className="flex items-center gap-2"
+              >
+                <Copy size={18} />
+                Copiar Detalles para WhatsApp
+              </Button>
+            </div>
+
+            {/* Preview of formatted message */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Vista Previa del Mensaje</h3>
+              <div className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap">
+                {formatWhatsAppMessage(createdSaleDetails)}
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => {
+                setSuccessModalOpen(false);
+                setCreatedSaleDetails(null);
+              }}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

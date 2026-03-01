@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign, Copy } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -52,6 +52,92 @@ const Clientes = () => {
   const showAlert = (type, message) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 5000);
+  };
+
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    showAlert('success', `${label} copiado al portapapeles`);
+  };
+
+  // Format sale details for WhatsApp
+  const formatWhatsAppMessage = (venta) => {
+    if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
+
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    // Group services by combo
+    const comboGroups = {};
+    const individualServices = [];
+
+    venta.detalles.forEach(detalle => {
+      if (detalle.comboID) {
+        if (!comboGroups[detalle.comboID]) {
+          comboGroups[detalle.comboID] = {
+            nombreCombo: detalle.nombreCombo,
+            servicios: []
+          };
+        }
+        comboGroups[detalle.comboID].servicios.push(detalle);
+      } else {
+        individualServices.push(detalle);
+      }
+    });
+
+    let message = '';
+
+    // Format combos
+    Object.values(comboGroups).forEach(combo => {
+      const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
+      message += `🔥 COMBO ACTIVO [${serviceNames}]\n\n`;
+
+      combo.servicios.forEach(detalle => {
+        message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
+        message += `🆔 # VENTA: V-${venta.ventaID}\n`;
+        message += `🛡 CORREO: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
+        message += `⚔ CONTRASEÑA: ${detalle.passwordCuenta}\n`;
+        message += `👤 PERFIL: ${detalle.numeroPerfil}\n`;
+        if (detalle.pinPerfil) {
+          message += `🔐 PIN: ${detalle.pinPerfil}\n`;
+        }
+        message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
+        message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
+      });
+
+      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
+      message += `*💵 GRACIAS POR SU COMPRA 🛍`;
+    });
+
+    // Format individual services
+    individualServices.forEach((detalle, index) => {
+      if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n\n';
+      
+      message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
+      message += `Acceda con los siguientes datos por favor\n`;
+      message += `🛡 Correo: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
+      message += `⚔ Contraseña: ${detalle.passwordCuenta}\n`;
+      message += `⚙ Tipo: PERFIL\n\n`;
+      message += `👤 Perfil: ${detalle.numeroPerfil}`;
+      if (detalle.pinPerfil) {
+        message += `      🔐 Pin: ${detalle.pinPerfil}`;
+      }
+      message += `\n\n`;
+      message += `💰 Precio: ${detalle.precioUnitario?.toFixed(2) || '0.00'} ${venta.moneda}\n`;
+      if (venta.medioPago) {
+        message += `💸 Metodo de pago: ${venta.medioPago}\n`;
+      }
+      message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
+      message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
+      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
+      message += `_*💵 GRACIAS POR SU COMPRA 🛍`;
+    });
+
+    return message;
   };
 
   const handleSearch = (searchTerm) => {
@@ -505,6 +591,26 @@ const Clientes = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <Button
+                onClick={() => {
+                  const message = formatWhatsAppMessage(selectedVenta);
+                  copyToClipboard(message, 'Detalles');
+                }}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Copy size={16} />
+                Copiar Detalles
+              </Button>
+              <Button variant="secondary" onClick={() => {
+                setDetallesModalOpen(false);
+                setSelectedVenta(null);
+              }}>
+                Cerrar
+              </Button>
             </div>
           </div>
         )}
