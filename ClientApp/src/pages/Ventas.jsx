@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy } from 'lucide-react';
 import Card from '../components/Card';
@@ -1690,7 +1691,7 @@ const Ventas = () => {
                   </div>
                   <div>
                     <span className="text-gray-600">Total:</span>
-                    <span className="ml-2 font-medium">{formatCurrency(ventaCompleta.total)} {ventaCompleta.moneda}</span>
+                    <span className="ml-2 font-medium">{ventaCompleta.moneda} {ventaCompleta.monto}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Estado:</span>
