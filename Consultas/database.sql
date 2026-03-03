@@ -560,9 +560,10 @@ BEGIN
             ELSE ''Disponible''
         END';
     
-    -- Add constraint
-    ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
-        CHECK (Disponibilidad IN ('Disponible', 'No Disponible'));
+    -- Add constraint using dynamic SQL to avoid parse-time validation
+    EXEC sp_executesql N'
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
+            CHECK (Disponibilidad IN (''Disponible'', ''No Disponible''))';
     
     PRINT 'Disponibilidad data migrated from Estado.';
 END
@@ -588,9 +589,10 @@ BEGIN
             ELSE ''Activo''
         END';
     
-    -- Add constraint
-    ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
-        CHECK (EstadoSuscripcion IN ('Activo', 'Próxima a Vencer', 'Vencida'));
+    -- Add constraint using dynamic SQL to avoid parse-time validation
+    EXEC sp_executesql N'
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
+            CHECK (EstadoSuscripcion IN (''Activo'', ''Próxima a Vencer'', ''Vencida''))';
     
     PRINT 'EstadoSuscripcion data migrated from Estado.';
 END
