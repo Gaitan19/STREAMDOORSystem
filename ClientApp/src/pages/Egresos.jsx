@@ -192,14 +192,14 @@ const Egresos = () => {
   };
 
   const columns = [
-    { key: 'fechaCreacion', label: 'Fecha', render: (value) => formatDate(value) },
-    { key: 'monto', label: 'Monto', render: (value) => formatCurrency(value) },
+    { key: 'fechaCreacion', label: 'Fecha', render: (row) => formatDate(row.fechaCreacion) },
+    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto) },
     { key: 'descripcion', label: 'Descripción' },
     { key: 'usuario', label: 'Usuario' },
     { 
       key: 'cuentaID', 
       label: 'Cuenta', 
-      render: (value) => value ? `CTA-${value}` : '-'
+      render: (row) => row.cuentaID ? `CTA-${row.cuentaID}` : '-'
     }
   ];
 
@@ -326,14 +326,7 @@ const Egresos = () => {
             )}
           </div>
 
-          <Input
-            label="ID de Cuenta (Opcional)"
-            name="cuentaID"
-            type="number"
-            value={formData.cuentaID || ''}
-            onChange={handleInputChange}
-            placeholder="Vincular con una cuenta específica"
-          />
+
 
           <div className="flex gap-3 justify-end pt-4">
             <Button

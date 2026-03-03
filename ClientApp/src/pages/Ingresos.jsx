@@ -192,14 +192,14 @@ const Ingresos = () => {
   };
 
   const columns = [
-    { key: 'fechaCreacion', label: 'Fecha', render: (value) => formatDate(value) },
-    { key: 'monto', label: 'Monto', render: (value) => formatCurrency(value) },
+    { key: 'fechaCreacion', label: 'Fecha', render: (row) => formatDate(row.fechaCreacion) },
+    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto) },
     { key: 'descripcion', label: 'Descripción' },
     { key: 'usuario', label: 'Usuario' },
     { 
       key: 'ventaID', 
       label: 'Venta', 
-      render: (value) => value ? `V-${value}` : '-'
+      render: (row) => row.ventaID ? `V-${row.ventaID}` : '-'
     }
   ];
 
@@ -326,14 +326,7 @@ const Ingresos = () => {
             )}
           </div>
 
-          <Input
-            label="ID de Venta (Opcional)"
-            name="ventaID"
-            type="number"
-            value={formData.ventaID || ''}
-            onChange={handleInputChange}
-            placeholder="Vincular con una venta específica"
-          />
+
 
           <div className="flex gap-3 justify-end pt-4">
             <Button
