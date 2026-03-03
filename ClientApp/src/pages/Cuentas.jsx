@@ -518,49 +518,54 @@ const Cuentas = () => {
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <Card>
-        <div className="mb-4 flex gap-4 items-center">
-          <div className="flex-1">
+        <div className="mb-4 space-y-4">
+          {/* Search Bar - Full width on mobile, stays on top */}
+          <div className="w-full">
             <SearchBar onSearch={handleSearch} placeholder="Buscar por email, servicio o estado..." />
           </div>
-          <div className="w-48">
-            <select
-              value={filtroServicio}
-              onChange={(e) => handleFiltroServicioChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          
+          {/* Filters and Button - Stack on mobile, row on larger screens */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="flex-1 sm:w-auto">
+              <select
+                value={filtroServicio}
+                onChange={(e) => handleFiltroServicioChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todos">📋 Todos los servicios</option>
+                {servicios.map(servicio => (
+                  <option key={servicio.servicioID} value={servicio.servicioID.toString()}>
+                    {servicio.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 sm:w-auto">
+              <select
+                value={filtroEstado}
+                onChange={(e) => handleFiltroChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todas">Todas las cuentas</option>
+                <option value="disponibles">✅ Disponibles</option>
+                <option value="no-disponibles">⛔ No Disponibles</option>
+                <option value="vencidas">🔴 Vencidas</option>
+                <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
+              </select>
+            </div>
+            <Button
+              onClick={handleVerificarEstados}
+              variant="secondary"
+              className="flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto"
+              disabled={loading}
             >
-              <option value="todos">📋 Todos los servicios</option>
-              {servicios.map(servicio => (
-                <option key={servicio.servicioID} value={servicio.servicioID.toString()}>
-                  {servicio.nombre}
-                </option>
-              ))}
-            </select>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              Verificar Estados
+            </Button>
           </div>
-          <div className="w-64">
-            <select
-              value={filtroEstado}
-              onChange={(e) => handleFiltroChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="todas">Todas las cuentas</option>
-              <option value="disponibles">✅ Disponibles</option>
-              <option value="no-disponibles">⛔ No Disponibles</option>
-              <option value="vencidas">🔴 Vencidas</option>
-              <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
-            </select>
-          </div>
-          <Button
-            onClick={handleVerificarEstados}
-            variant="secondary"
-            className="flex items-center gap-2 whitespace-nowrap"
-            disabled={loading}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            Verificar Estados
-          </Button>
         </div>
         <Table columns={columns} data={filteredCuentas} loading={loading} />
       </Card>

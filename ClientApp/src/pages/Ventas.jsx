@@ -895,38 +895,43 @@ const Ventas = () => {
       </div>
 
       <Card>
-        <div className="mb-4 flex gap-4 items-center">
-          <div className="flex-1">
+        <div className="mb-4 space-y-4">
+          {/* Search Bar - Full width on mobile, stays on top */}
+          <div className="w-full">
             <SearchBar
               placeholder="Buscar por # venta, cliente, teléfono o servicio..."
               onSearch={handleSearch}
             />
           </div>
-          <div className="w-64">
-            <select
-              value={filtroEstado}
-              onChange={(e) => handleFiltroChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          
+          {/* Filter and Button - Stack on mobile, row on larger screens */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="flex-1 sm:w-auto">
+              <select
+                value={filtroEstado}
+                onChange={(e) => handleFiltroChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todas">Todas las ventas</option>
+                <option value="activas">✅ Activas</option>
+                <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
+                <option value="vencidas">🔴 Vencidas</option>
+                <option value="canceladas">❌ Canceladas</option>
+              </select>
+            </div>
+            <Button
+              onClick={handleVerificarEstados}
+              variant="secondary"
+              className="flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto"
+              disabled={loading}
             >
-              <option value="todas">Todas las ventas</option>
-              <option value="activas">✅ Activas</option>
-              <option value="proximas-a-vencer">🟠 Próximas a Vencer (5 días)</option>
-              <option value="vencidas">🔴 Vencidas</option>
-              <option value="canceladas">❌ Canceladas</option>
-            </select>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              Verificar Estados
+            </Button>
           </div>
-          <Button
-            onClick={handleVerificarEstados}
-            variant="secondary"
-            className="flex items-center gap-2 whitespace-nowrap"
-            disabled={loading}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            Verificar Estados
-          </Button>
         </div>
 
         <Table
