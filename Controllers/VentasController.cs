@@ -230,7 +230,13 @@ namespace STREAMDOORSystem.Controllers
 
                 // Validar que FechaFin sea mayor que FechaInicio
                 var fechaInicio = DateTime.Now;
-                if (crearVentaDto.FechaFin <= fechaInicio)
+                
+                // Set FechaFin to 8:00 PM (20:00) Managua time on the selected date
+                // Parse the date from DTO and set time to 20:00:00
+                var fechaFinDate = crearVentaDto.FechaFin.Date;
+                var fechaFin = new DateTime(fechaFinDate.Year, fechaFinDate.Month, fechaFinDate.Day, 20, 0, 0);
+                
+                if (fechaFin <= fechaInicio)
                 {
                     return BadRequest(new { message = "La fecha de finalización debe ser mayor que la fecha actual" });
                 }
@@ -299,8 +305,8 @@ namespace STREAMDOORSystem.Controllers
                 {
                     ClienteID = crearVentaDto.ClienteID,
                     FechaInicio = fechaInicio,
-                    FechaFin = crearVentaDto.FechaFin,
-                    Duracion = (int)(crearVentaDto.FechaFin - fechaInicio).TotalDays,
+                    FechaFin = fechaFin, // Use the calculated 8:00 PM time
+                    Duracion = (int)(fechaFin - fechaInicio).TotalDays,
                     Monto = montoTotal,
                     Moneda = crearVentaDto.Moneda,
                     MedioPagoID = crearVentaDto.MedioPagoID,
@@ -647,15 +653,16 @@ namespace STREAMDOORSystem.Controllers
 
                 int ventasActualizadas = 0;
                 int perfilesLiberados = 0;
-                var hoy = DateTime.Now.Date;
+                var ahora = DateTime.Now;
 
                 foreach (var venta in ventas)
                 {
-                    var diasRestantes = (venta.FechaFin.Date - hoy).Days;
+                    // Compare with current time, not just date
+                    // Sales expire at 8:00 PM (20:00) on the expiration date
                     var estadoAnterior = venta.Estado;
                     string nuevoEstado;
 
-                    if (diasRestantes <= 0)
+                    if (venta.FechaFin <= ahora)
                     {
                         // Venta vencida - liberar cuentas y perfiles
                         nuevoEstado = "Vencido";
@@ -686,15 +693,22 @@ namespace STREAMDOORSystem.Controllers
                             }
                         }
                     }
-                    else if (diasRestantes <= 5)
-                    {
-                        // About to expire (5 days or less)
-                        nuevoEstado = "ProximoVencer";
-                    }
                     else
                     {
-                        // Still active
-                        nuevoEstado = "Activo";
+                        // Calculate days remaining based on full datetime comparison
+                        var tiempoRestante = venta.FechaFin - ahora;
+                        var diasRestantes = (int)tiempoRestante.TotalDays;
+                        
+                        if (diasRestantes <= 5)
+                        {
+                            // About to expire (5 days or less)
+                            nuevoEstado = "ProximoVencer";
+                        }
+                        else
+                        {
+                            // Still active
+                            nuevoEstado = "Activo";
+                        }
                     }
 
                     if (nuevoEstado != estadoAnterior)
