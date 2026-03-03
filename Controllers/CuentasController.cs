@@ -474,7 +474,9 @@ namespace STREAMDOORSystem.Controllers
         {
             // Calculate EstadoSuscripcion (subscription status)
             string estadoSuscripcion;
-            if (cuenta.FechaFinalizacion.HasValue && cuenta.FechaFinalizacion.Value < DateTime.Now)
+            bool estaVencida = cuenta.FechaFinalizacion.HasValue && cuenta.FechaFinalizacion.Value < DateTime.Now;
+            
+            if (estaVencida)
             {
                 estadoSuscripcion = "Vencida";
             }
@@ -490,8 +492,13 @@ namespace STREAMDOORSystem.Controllers
             }
 
             // Calculate Disponibilidad (profile availability)
+            // If account is expired, it should always be "No Disponible"
             string disponibilidad;
-            if (perfiles.Any(p => p.Activo) && perfiles.Where(p => p.Activo).All(p => p.Estado == "Ocupado"))
+            if (estaVencida)
+            {
+                disponibilidad = "No Disponible";
+            }
+            else if (perfiles.Any(p => p.Activo) && perfiles.Where(p => p.Activo).All(p => p.Estado == "Ocupado"))
             {
                 disponibilidad = "No Disponible";
             }
