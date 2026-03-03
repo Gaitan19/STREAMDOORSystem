@@ -231,8 +231,9 @@ namespace STREAMDOORSystem.Controllers
                 // Validar que FechaFin sea mayor que FechaInicio
                 var fechaInicio = DateTime.Now;
                 
-                // Set FechaFin to 8:00 PM (20:00) Managua time on the selected date
-                // Parse the date from DTO and set time to 20:00:00
+                // Set FechaFin to 8:00 PM (20:00) on the selected date
+                // Note: Assumes server timezone is Managua, Nicaragua (UTC-6)
+                // DateTime values are stored in server's local time
                 var fechaFinDate = crearVentaDto.FechaFin.Date;
                 var fechaFin = new DateTime(fechaFinDate.Year, fechaFinDate.Month, fechaFinDate.Day, 20, 0, 0);
                 
@@ -697,7 +698,8 @@ namespace STREAMDOORSystem.Controllers
                     {
                         // Calculate days remaining based on full datetime comparison
                         var tiempoRestante = venta.FechaFin - ahora;
-                        var diasRestantes = (int)tiempoRestante.TotalDays;
+                        // Use ceiling to avoid truncation issues (5.8 days should count as 6 days)
+                        var diasRestantes = (int)Math.Ceiling(tiempoRestante.TotalDays);
                         
                         if (diasRestantes <= 5)
                         {
