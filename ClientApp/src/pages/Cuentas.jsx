@@ -28,6 +28,7 @@ const Cuentas = () => {
   const [correos, setCorreos] = useState([]);
   const [correosDisponibles, setCorreosDisponibles] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('todas');
+  const [filtroServicio, setFiltroServicio] = useState('todos'); // NEW: Filter by service
   const [formData, setFormData] = useState({
     servicioID: '',
     correoID: '',
@@ -83,13 +84,33 @@ const Cuentas = () => {
   };
 
   const handleSearch = (searchTerm) => {
-    const filtered = cuentas.filter(cuenta =>
+    let filtered = cuentas.filter(cuenta =>
       cuenta.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.disponibilidad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.estadoSuscripcion?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    
+    // Apply service filter if not "todos"
+    if (filtroServicio !== 'todos') {
+      filtered = filtered.filter(cuenta => cuenta.servicioID?.toString() === filtroServicio);
+    }
+    
+    setFilteredCuentas(filtered);
+  };
+  
+  const handleFiltroServicioChange = (servicioID) => {
+    setFiltroServicio(servicioID);
+    
+    // Re-apply current search with new service filter
+    let filtered = cuentas;
+    
+    // Apply service filter
+    if (servicioID !== 'todos') {
+      filtered = filtered.filter(cuenta => cuenta.servicioID?.toString() === servicioID);
+    }
+    
     setFilteredCuentas(filtered);
   };
 
@@ -500,6 +521,20 @@ const Cuentas = () => {
         <div className="mb-4 flex gap-4 items-center">
           <div className="flex-1">
             <SearchBar onSearch={handleSearch} placeholder="Buscar por email, servicio o estado..." />
+          </div>
+          <div className="w-48">
+            <select
+              value={filtroServicio}
+              onChange={(e) => handleFiltroServicioChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="todos">📋 Todos los servicios</option>
+              {servicios.map(servicio => (
+                <option key={servicio.servicioID} value={servicio.servicioID.toString()}>
+                  {servicio.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="w-64">
             <select

@@ -122,6 +122,7 @@ const Ventas = () => {
 
   const handleSearch = (searchTerm) => {
     const filtered = ventas.filter(venta =>
+      venta.ventaID?.toString().includes(searchTerm) ||
       venta.nombreCliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venta.telefonoCliente?.includes(searchTerm) ||
       venta.detalles?.some(d => d.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -897,7 +898,7 @@ const Ventas = () => {
         <div className="mb-4 flex gap-4 items-center">
           <div className="flex-1">
             <SearchBar
-              placeholder="Buscar por cliente, teléfono o servicio..."
+              placeholder="Buscar por # venta, cliente, teléfono o servicio..."
               onSearch={handleSearch}
             />
           </div>
