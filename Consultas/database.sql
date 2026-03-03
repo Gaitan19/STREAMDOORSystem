@@ -552,12 +552,13 @@ BEGIN
     ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NOT NULL DEFAULT 'Disponible';
     PRINT 'Column Disponibilidad added to Cuentas with default value.';
     
-    -- Migrate data: Update Disponibilidad based on current Estado
-    UPDATE Cuentas 
-    SET Disponibilidad = CASE 
-        WHEN Estado = 'No Disponible' THEN 'No Disponible'
-        ELSE 'Disponible'
-    END;
+    -- Migrate data using dynamic SQL to avoid column validation errors
+    EXEC sp_executesql N'
+        UPDATE Cuentas 
+        SET Disponibilidad = CASE 
+            WHEN Estado = ''No Disponible'' THEN ''No Disponible''
+            ELSE ''Disponible''
+        END';
     
     -- Add constraint
     ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
@@ -578,13 +579,14 @@ BEGIN
     ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NOT NULL DEFAULT 'Activo';
     PRINT 'Column EstadoSuscripcion added to Cuentas with default value.';
     
-    -- Migrate data: Update EstadoSuscripcion based on current Estado
-    UPDATE Cuentas 
-    SET EstadoSuscripcion = CASE 
-        WHEN Estado = 'Vencida' THEN 'Vencida'
-        WHEN Estado = 'Próxima a Vencer' THEN 'Próxima a Vencer'
-        ELSE 'Activo'
-    END;
+    -- Migrate data using dynamic SQL to avoid column validation errors
+    EXEC sp_executesql N'
+        UPDATE Cuentas 
+        SET EstadoSuscripcion = CASE 
+            WHEN Estado = ''Vencida'' THEN ''Vencida''
+            WHEN Estado = ''Próxima a Vencer'' THEN ''Próxima a Vencer''
+            ELSE ''Activo''
+        END';
     
     -- Add constraint
     ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
@@ -613,12 +615,20 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Estado')
     CREATE INDEX IX_Cuentas_Estado ON Cuentas(Estado);
 GO
 
+-- Create index for Disponibilidad using dynamic SQL to avoid validation errors
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Disponibilidad')
-    CREATE INDEX IX_Cuentas_Disponibilidad ON Cuentas(Disponibilidad);
+BEGIN
+    EXEC sp_executesql N'CREATE INDEX IX_Cuentas_Disponibilidad ON Cuentas(Disponibilidad)';
+    PRINT 'Index IX_Cuentas_Disponibilidad created.';
+END
 GO
 
+-- Create index for EstadoSuscripcion using dynamic SQL to avoid validation errors
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_EstadoSuscripcion')
-    CREATE INDEX IX_Cuentas_EstadoSuscripcion ON Cuentas(EstadoSuscripcion);
+BEGIN
+    EXEC sp_executesql N'CREATE INDEX IX_Cuentas_EstadoSuscripcion ON Cuentas(EstadoSuscripcion)';
+    PRINT 'Index IX_Cuentas_EstadoSuscripcion created.';
+END
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_VentaID')
