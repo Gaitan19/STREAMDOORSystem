@@ -17,6 +17,7 @@ const Ingresos = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedIngreso, setSelectedIngreso] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [filterType, setFilterType] = useState('todos'); // 'todos', 'ventas', 'manuales'
   const [formData, setFormData] = useState({
     monto: '',
     descripcion: '',
@@ -47,12 +48,34 @@ const Ingresos = () => {
     setTimeout(() => setAlert(null), 5000);
   };
 
-  const handleSearch = (searchTerm) => {
-    const filtered = ingresos.filter(ingreso =>
-      ingreso.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ingreso.usuario?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const applyFilters = (searchTerm = '', filterType = 'todos') => {
+    let filtered = ingresos;
+
+    // Apply type filter
+    if (filterType === 'ventas') {
+      filtered = filtered.filter(ing => ing.ventaID != null);
+    } else if (filterType === 'manuales') {
+      filtered = filtered.filter(ing => ing.ventaID == null);
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(ingreso =>
+        ingreso.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ingreso.usuario?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     setFilteredIngresos(filtered);
+  };
+
+  const handleSearch = (searchTerm) => {
+    applyFilters(searchTerm, filterType);
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setFilterType(newFilter);
+    applyFilters('', newFilter);
   };
 
   const validate = () => {
@@ -233,11 +256,24 @@ const Ingresos = () => {
       </div>
 
       <Card>
-        <div className="mb-4">
-          <SearchBar
-            placeholder="Buscar por descripción o usuario..."
-            onSearch={handleSearch}
-          />
+        <div className="mb-4 flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <SearchBar
+              placeholder="Buscar por descripción o usuario..."
+              onSearch={handleSearch}
+            />
+          </div>
+          <div className="sm:w-48">
+            <select
+              value={filterType}
+              onChange={(e) => handleFilterChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todos</option>
+              <option value="ventas">De Ventas</option>
+              <option value="manuales">Manuales</option>
+            </select>
+          </div>
         </div>
 
         <Table

@@ -349,6 +349,20 @@ namespace STREAMDOORSystem.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                // Crear ingreso automáticamente por la venta
+                var usuarioNombreClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+                var ingreso = new Ingreso
+                {
+                    Monto = montoTotal,
+                    Descripcion = $"Ingreso por venta #{venta.VentaID}",
+                    VentaID = venta.VentaID,
+                    UsuarioID = usuarioId,
+                    Usuario = usuarioNombreClaim ?? "Sistema",
+                    FechaCreacion = DateTime.Now
+                };
+                _context.Ingresos.Add(ingreso);
+                await _context.SaveChangesAsync();
+
                 // Recargar la venta con todas las relaciones para el DTO de respuesta
                 var ventaCreada = await _context.Ventas
                     .Include(v => v.Cliente)

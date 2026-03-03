@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using STREAMDOORSystem.Data;
 using STREAMDOORSystem.Models;
 using STREAMDOORSystem.Models.DTOs;
+using System.Security.Claims;
 
 namespace STREAMDOORSystem.Controllers
 {
@@ -220,7 +221,34 @@ namespace STREAMDOORSystem.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                // Get servicio for egreso description
                 var servicio = await _context.Servicios.FindAsync(crearCuentaDto.ServicioID);
+
+                // Crear egreso automáticamente si la cuenta tiene costo
+                if (crearCuentaDto.Costo.HasValue && crearCuentaDto.Costo.Value > 0)
+                {
+                    var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var usuarioNombreClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+                    
+                    int? usuarioId = null;
+                    if (int.TryParse(usuarioIdClaim, out int parsedId))
+                    {
+                        usuarioId = parsedId;
+                    }
+
+                    var egreso = new Egreso
+                    {
+                        Monto = crearCuentaDto.Costo.Value,
+                        Descripcion = $"Egreso por creación de cuenta #{cuenta.CuentaID} ({servicio!.Nombre})",
+                        CuentaID = cuenta.CuentaID,
+                        UsuarioID = usuarioId,
+                        Usuario = usuarioNombreClaim ?? "Sistema",
+                        FechaCreacion = DateTime.Now
+                    };
+                    _context.Egresos.Add(egreso);
+                    await _context.SaveChangesAsync();
+                }
+
                 var correo = crearCuentaDto.CorreoID.HasValue ? await _context.Correos.FindAsync(crearCuentaDto.CorreoID) : null;
                 
                 var cuentaDto = new CuentaDTO
