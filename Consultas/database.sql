@@ -545,23 +545,19 @@ GO
 -- ============================================
 -- MIGRACIÓN: Separar Disponibilidad y Estado de Suscripción en Cuentas
 -- ============================================
--- Add Disponibilidad column to Cuentas
+-- Add Disponibilidad column to Cuentas with default value
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Disponibilidad')
 BEGIN
-    ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NULL;
-    PRINT 'Column Disponibilidad added to Cuentas.';
+    -- Add column with default value to avoid NULL issues
+    ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NOT NULL DEFAULT 'Disponible';
+    PRINT 'Column Disponibilidad added to Cuentas with default value.';
     
-    -- Migrate data: Set Disponibilidad based on current Estado
+    -- Migrate data: Update Disponibilidad based on current Estado
     UPDATE Cuentas 
     SET Disponibilidad = CASE 
-        WHEN Estado IN ('Disponible', 'Próxima a Vencer', 'Vencida') THEN 'Disponible'
         WHEN Estado = 'No Disponible' THEN 'No Disponible'
         ELSE 'Disponible'
-    END
-    WHERE Disponibilidad IS NULL;
-    
-    -- Make it NOT NULL after migration
-    ALTER TABLE Cuentas ALTER COLUMN Disponibilidad NVARCHAR(20) NOT NULL;
+    END;
     
     -- Add constraint
     ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
@@ -575,23 +571,20 @@ BEGIN
 END
 GO
 
--- Add EstadoSuscripcion column to Cuentas
+-- Add EstadoSuscripcion column to Cuentas with default value
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'EstadoSuscripcion')
 BEGIN
-    ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NULL;
-    PRINT 'Column EstadoSuscripcion added to Cuentas.';
+    -- Add column with default value to avoid NULL issues
+    ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NOT NULL DEFAULT 'Activo';
+    PRINT 'Column EstadoSuscripcion added to Cuentas with default value.';
     
-    -- Migrate data: Set EstadoSuscripcion based on current Estado
+    -- Migrate data: Update EstadoSuscripcion based on current Estado
     UPDATE Cuentas 
     SET EstadoSuscripcion = CASE 
         WHEN Estado = 'Vencida' THEN 'Vencida'
         WHEN Estado = 'Próxima a Vencer' THEN 'Próxima a Vencer'
         ELSE 'Activo'
-    END
-    WHERE EstadoSuscripcion IS NULL;
-    
-    -- Make it NOT NULL after migration
-    ALTER TABLE Cuentas ALTER COLUMN EstadoSuscripcion NVARCHAR(30) NOT NULL;
+    END;
     
     -- Add constraint
     ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
