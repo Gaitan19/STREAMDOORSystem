@@ -14,7 +14,8 @@ import {
   X,
   PackagePlus,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  User
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -104,6 +105,14 @@ const Layout = ({ children }) => {
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
+          <Link
+            to="/perfil"
+            onClick={() => setSidebarOpen(false)}
+            className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-1"
+          >
+            <User size={20} />
+            <span>Mi Perfil</span>
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -168,9 +168,12 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               ¿Olvidaste tu contraseña?{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <button
+                onClick={() => navigate('/recuperar-contrasena')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
                 Recuperar
-              </a>
+              </button>
             </p>
           </div>
         </div>

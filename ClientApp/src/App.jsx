@@ -3,6 +3,8 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import RecuperarContrasena from './pages/RecuperarContrasena';
+import Perfil from './pages/Perfil';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Servicios from './pages/Servicios';
@@ -21,6 +23,16 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <Perfil />
+              </ProtectedRoute>
+            }
+          />
           
           <Route
             path="/dashboard"

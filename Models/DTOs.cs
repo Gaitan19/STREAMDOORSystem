@@ -15,6 +15,23 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Token { get; set; } = string.Empty;
     }
 
+    public class RecoverPasswordDTO
+    {
+        public string Correo { get; set; } = string.Empty;
+    }
+
+    public class ChangePasswordDTO
+    {
+        public string OldPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class UpdateProfileDTO
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+    }
+
     // DTOs de Usuario
     public class UsuarioDTO
     {
