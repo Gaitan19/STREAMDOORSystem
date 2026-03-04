@@ -208,7 +208,8 @@ const Cuentas = () => {
         NumeroPerfiles: parseInt(formData.numeroPerfiles),
         FechaFinalizacion: formData.fechaFinalizacion || null,
         Password: formData.password,
-        CodigoCuenta: formData.codigoCuenta
+        CodigoCuenta: formData.codigoCuenta,
+        Costo: formData.costo ? parseFloat(formData.costo) : null
       };
 
       // For Propia accounts, use selected CorreoID
