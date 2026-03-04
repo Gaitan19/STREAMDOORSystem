@@ -7,11 +7,35 @@ GO
 
 
 -- ============================================
+-- Insertar Rol Administrador
+-- ============================================
+INSERT INTO Roles (Nombre, Descripcion, Activo)
+VALUES ('Administrador', 'Rol con acceso completo a todos los módulos del sistema', 1);
+
+DECLARE @AdminRolID INT = SCOPE_IDENTITY();
+
+INSERT INTO RolPermisos (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar) VALUES
+(@AdminRolID, 'dashboard',   1, 1, 1, 1),
+(@AdminRolID, 'clientes',    1, 1, 1, 1),
+(@AdminRolID, 'servicios',   1, 1, 1, 1),
+(@AdminRolID, 'combos',      1, 1, 1, 1),
+(@AdminRolID, 'correos',     1, 1, 1, 1),
+(@AdminRolID, 'cuentas',     1, 1, 1, 1),
+(@AdminRolID, 'ventas',      1, 1, 1, 1),
+(@AdminRolID, 'ingresos',    1, 1, 1, 1),
+(@AdminRolID, 'egresos',     1, 1, 1, 1),
+(@AdminRolID, 'medios-pago', 1, 1, 1, 1),
+(@AdminRolID, 'usuarios',    1, 1, 1, 1),
+(@AdminRolID, 'roles',       1, 1, 1, 1);
+GO
+
+-- ============================================
 -- Insertar Usuario Administrador
 -- ============================================
-INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash, Activo)
-VALUES ('admin', 'admin@gmail.com', '87549961',
-'$2a$11$f8XpVC0..VXSJYscHvg7LeT0/Ep8v8U/hhWHqW7IAQz2R1YN6booO', 1);
+INSERT INTO Usuarios (Nombre, Correo, Telefono, PasswordHash, Activo, RolID)
+SELECT 'admin', 'admin@gmail.com', '87549961',
+'$2a$11$f8XpVC0..VXSJYscHvg7LeT0/Ep8v8U/hhWHqW7IAQz2R1YN6booO', 1, RolID
+FROM Roles WHERE Nombre = 'Administrador';
 GO
 
 -- ============================================

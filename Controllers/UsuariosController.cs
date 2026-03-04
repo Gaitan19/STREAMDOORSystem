@@ -28,7 +28,7 @@ namespace STREAMDOORSystem.Controllers
         {
             try
             {
-                var query = _context.Usuarios.AsQueryable();
+                var query = _context.Usuarios.Include(u => u.Rol).AsQueryable();
                 
                 if (!includeInactive)
                 {
@@ -43,7 +43,9 @@ namespace STREAMDOORSystem.Controllers
                         Correo = u.Correo,
                         Telefono = u.Telefono,
                         FechaCreacion = u.FechaCreacion,
-                        Activo = u.Activo
+                        Activo = u.Activo,
+                        RolID = u.RolID,
+                        RolNombre = u.Rol != null ? u.Rol.Nombre : null
                     })
                     .ToListAsync();
 
@@ -61,7 +63,9 @@ namespace STREAMDOORSystem.Controllers
         {
             try
             {
-                var usuario = await _context.Usuarios.FindAsync(id);
+                var usuario = await _context.Usuarios
+                    .Include(u => u.Rol)
+                    .FirstOrDefaultAsync(u => u.UsuarioID == id);
 
                 if (usuario == null || !usuario.Activo)
                 {
@@ -75,7 +79,9 @@ namespace STREAMDOORSystem.Controllers
                     Correo = usuario.Correo,
                     Telefono = usuario.Telefono,
                     FechaCreacion = usuario.FechaCreacion,
-                    Activo = usuario.Activo
+                    Activo = usuario.Activo,
+                    RolID = usuario.RolID,
+                    RolNombre = usuario.Rol?.Nombre
                 };
 
                 return Ok(usuarioDto);
@@ -120,11 +126,16 @@ namespace STREAMDOORSystem.Controllers
                     Telefono = crearUsuarioDto.Telefono,
                     PasswordHash = _authService.HashPassword(crearUsuarioDto.Password),
                     FechaCreacion = DateTime.Now,
-                    Activo = true
+                    Activo = true,
+                    RolID = crearUsuarioDto.RolID
                 };
 
                 _context.Usuarios.Add(usuario);
                 await _context.SaveChangesAsync();
+
+                var rolNombre = crearUsuarioDto.RolID.HasValue
+                    ? (await _context.Roles.FindAsync(crearUsuarioDto.RolID.Value))?.Nombre
+                    : null;
 
                 var usuarioDto = new UsuarioDTO
                 {
@@ -133,7 +144,9 @@ namespace STREAMDOORSystem.Controllers
                     Correo = usuario.Correo,
                     Telefono = usuario.Telefono,
                     FechaCreacion = usuario.FechaCreacion,
-                    Activo = usuario.Activo
+                    Activo = usuario.Activo,
+                    RolID = usuario.RolID,
+                    RolNombre = rolNombre
                 };
 
                 return CreatedAtAction(nameof(GetUsuario), new { id = usuario.UsuarioID }, usuarioDto);
@@ -177,6 +190,7 @@ namespace STREAMDOORSystem.Controllers
                 usuario.Nombre = crearUsuarioDto.Nombre;
                 usuario.Correo = crearUsuarioDto.Correo;
                 usuario.Telefono = crearUsuarioDto.Telefono;
+                usuario.RolID = crearUsuarioDto.RolID;
                 
                 if (!string.IsNullOrEmpty(crearUsuarioDto.Password))
                 {

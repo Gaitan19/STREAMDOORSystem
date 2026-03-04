@@ -27,6 +27,8 @@ namespace STREAMDOORSystem.Controllers
         public async Task<ActionResult<LoginResponseDTO>> Login([FromBody] LoginDTO loginDto)
         {
             var usuario = await _context.Usuarios
+                .Include(u => u.Rol)
+                    .ThenInclude(r => r != null ? r.Permisos : null)
                 .FirstOrDefaultAsync(u => u.Correo == loginDto.Correo && u.Activo);
 
             if (usuario == null || !_authService.VerifyPassword(loginDto.Password, usuario.PasswordHash))
@@ -36,12 +38,24 @@ namespace STREAMDOORSystem.Controllers
 
             var token = _authService.GenerateJwtToken(usuario);
 
+            var permisos = usuario.Rol?.Permisos.Select(p => new PermisoDTO
+            {
+                Modulo = p.Modulo,
+                PuedeVer = p.PuedeVer,
+                PuedeCrear = p.PuedeCrear,
+                PuedeEditar = p.PuedeEditar,
+                PuedeEliminar = p.PuedeEliminar
+            }).ToList() ?? new List<PermisoDTO>();
+
             var response = new LoginResponseDTO
             {
                 UsuarioID = usuario.UsuarioID,
                 Nombre = usuario.Nombre,
                 Correo = usuario.Correo,
-                Token = token
+                Token = token,
+                RolID = usuario.RolID,
+                RolNombre = usuario.Rol?.Nombre,
+                Permisos = permisos
             };
 
             // Configurar cookie HttpOnly

@@ -10,6 +10,8 @@ namespace STREAMDOORSystem.Data
         {
         }
 
+        public DbSet<Rol> Roles { get; set; }
+        public DbSet<RolPermiso> RolPermisos { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Servicio> Servicios { get; set; }

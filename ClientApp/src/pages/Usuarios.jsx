@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, UserCog, Mail, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCog, Mail, Eye, EyeOff, Shield } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,7 +8,7 @@ import Select from '../components/Select';
 import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
-import { usuariosService } from '../services/apiService';
+import { usuariosService, rolesService } from '../services/apiService';
 import { validateEmail } from '../utils/helpers';
 
 const Usuarios = () => {
@@ -21,11 +21,13 @@ const Usuarios = () => {
   const [alert, setAlert] = useState(null);
   const [filter, setFilter] = useState('activos'); // 'activos' | 'inactivos'
   const [showPassword, setShowPassword] = useState(false);
+  const [roles, setRoles] = useState([]);
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
     telefono: '',
-    password: ''
+    password: '',
+    rolID: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -34,6 +36,10 @@ const Usuarios = () => {
   useEffect(() => {
     loadUsuarios();
   }, [filter]);
+
+  useEffect(() => {
+    rolesService.getAll().then(data => setRoles(data)).catch(() => {});
+  }, []);
 
   const loadUsuarios = async () => {
     try {
@@ -98,6 +104,8 @@ const Usuarios = () => {
 
     try {
       const payload = { ...formData };
+      payload.RolID = formData.rolID ? parseInt(formData.rolID) : null;
+      delete payload.rolID;
       
       // Si es edición y no se proporciona contraseña, no la enviamos
       if (selectedUsuario && !formData.password) {
@@ -133,7 +141,8 @@ const Usuarios = () => {
       nombre: usuario.nombre,
       correo: usuario.correo,
       telefono: usuario.telefono || '',
-      password: ''
+      password: '',
+      rolID: usuario.rolID ? String(usuario.rolID) : ''
     });
     setModalOpen(true);
   };
@@ -165,7 +174,8 @@ const Usuarios = () => {
       nombre: '',
       correo: '',
       telefono: '',
-      password: ''
+      password: '',
+      rolID: ''
     });
     setErrors({});
     setSelectedUsuario(null);
@@ -223,6 +233,22 @@ const Usuarios = () => {
         }`}>
           {row.activo ? 'Activo' : 'Inactivo'}
         </span>
+      )
+    },
+    { 
+      key: 'rol', 
+      label: 'Rol',
+      render: (row) => (
+        <div className="flex items-center gap-1.5">
+          {row.rolNombre ? (
+            <>
+              <Shield size={14} className="text-blue-500" />
+              <span className="text-sm text-blue-600 font-medium">{row.rolNombre}</span>
+            </>
+          ) : (
+            <span className="text-gray-400 text-sm">Sin rol</span>
+          )}
+        </div>
       )
     },
     {
@@ -392,6 +418,21 @@ const Usuarios = () => {
             {errors.password && (
               <p className="mt-1 text-sm text-red-600">{errors.password}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+            <select
+              name="rolID"
+              value={formData.rolID}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sin rol asignado</option>
+              {roles.map(r => (
+                <option key={r.RolID} value={r.RolID}>{r.Nombre}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

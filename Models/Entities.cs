@@ -3,6 +3,47 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace STREAMDOORSystem.Models
 {
+    [Table("Roles")]
+    public class Rol
+    {
+        [Key]
+        public int RolID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
+
+        public bool Activo { get; set; } = true;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        public ICollection<RolPermiso> Permisos { get; set; } = new List<RolPermiso>();
+    }
+
+    [Table("RolPermisos")]
+    public class RolPermiso
+    {
+        [Key]
+        public int RolPermisoID { get; set; }
+
+        public int RolID { get; set; }
+
+        [ForeignKey("RolID")]
+        public Rol? Rol { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Modulo { get; set; } = string.Empty;
+
+        public bool PuedeVer { get; set; } = false;
+        public bool PuedeCrear { get; set; } = false;
+        public bool PuedeEditar { get; set; } = false;
+        public bool PuedeEliminar { get; set; } = false;
+    }
+
     [Table("Usuarios")]
     public class Usuario
     {
@@ -27,6 +68,11 @@ namespace STREAMDOORSystem.Models
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
         public bool Activo { get; set; } = true;
+
+        public int? RolID { get; set; }
+
+        [ForeignKey("RolID")]
+        public Rol? Rol { get; set; }
     }
 
     [Table("Clientes")]

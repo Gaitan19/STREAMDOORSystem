@@ -13,6 +13,18 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Nombre { get; set; } = string.Empty;
         public string Correo { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
+        public int? RolID { get; set; }
+        public string? RolNombre { get; set; }
+        public List<PermisoDTO> Permisos { get; set; } = new List<PermisoDTO>();
+    }
+
+    public class PermisoDTO
+    {
+        public string Modulo { get; set; } = string.Empty;
+        public bool PuedeVer { get; set; }
+        public bool PuedeCrear { get; set; }
+        public bool PuedeEditar { get; set; }
+        public bool PuedeEliminar { get; set; }
     }
 
     public class RecoverPasswordDTO
@@ -41,6 +53,8 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Telefono { get; set; }
         public DateTime FechaCreacion { get; set; }
         public bool Activo { get; set; }
+        public int? RolID { get; set; }
+        public string? RolNombre { get; set; }
     }
 
     public class CrearUsuarioDTO
@@ -49,6 +63,33 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Correo { get; set; } = string.Empty;
         public string? Telefono { get; set; }
         public string? Password { get; set; }
+        public int? RolID { get; set; }
+    }
+
+    // DTOs de Roles
+    public class RolDTO
+    {
+        public int RolID { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public bool Activo { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public List<PermisoDTO> Permisos { get; set; } = new List<PermisoDTO>();
+    }
+
+    public class CrearRolDTO
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public List<PermisoDTO> Permisos { get; set; } = new List<PermisoDTO>();
+    }
+
+    public class ActualizarRolDTO
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public bool Activo { get; set; }
+        public List<PermisoDTO> Permisos { get; set; } = new List<PermisoDTO>();
     }
 
     // DTOs de Cliente

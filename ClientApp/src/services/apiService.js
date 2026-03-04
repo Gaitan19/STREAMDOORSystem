@@ -131,4 +131,13 @@ export const combosService = {
   delete: (id) => apiClient.delete(`/combos/${id}`),
 };
 
+export const rolesService = {
+  getAll: (includeInactive = false) => apiClient.get(`/roles?includeInactive=${includeInactive}`),
+  getById: (id) => apiClient.get(`/roles/${id}`),
+  getModulos: () => apiClient.get('/roles/modulos'),
+  create: (data) => apiClient.post('/roles', data),
+  update: (id, data) => apiClient.put(`/roles/${id}`, data),
+  delete: (id) => apiClient.delete(`/roles/${id}`),
+};
+
 export default apiClient;

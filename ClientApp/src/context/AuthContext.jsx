@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = () => {
-      // Check localStorage for user data (HttpOnly cookie cannot be read by JS)
       const userData = localStorage.getItem('user');
       
       if (userData) {
@@ -29,11 +28,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      // Backend returns: { UsuarioID, Nombre, Correo, Token }
-      // Note: Token is set as HttpOnly cookie by backend, we only store user data
+      // Backend returns: { UsuarioID, Nombre, Correo, Token, RolID, RolNombre, Permisos }
       const { Token, ...usuario } = response;
       
-      // Store user data in localStorage (HttpOnly cookie is handled by backend)
       localStorage.setItem('user', JSON.stringify(usuario));
       setUser(usuario);
       
@@ -48,7 +45,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Call backend to clear HttpOnly cookie
       await authService.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -57,12 +53,48 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Check if current user can access a module
+  const canAccess = (modulo) => {
+    if (!user) return false;
+    // If user has no role, deny access (except admin check)
+    if (!user.permisos && !user.Permisos) return false;
+    
+    const permisos = user.Permisos || user.permisos || [];
+    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    return permiso ? (permiso.PuedeVer || permiso.puedeVer) : false;
+  };
+
+  const canCreate = (modulo) => {
+    if (!user) return false;
+    const permisos = user.Permisos || user.permisos || [];
+    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    return permiso ? (permiso.PuedeCrear || permiso.puedeCrear) : false;
+  };
+
+  const canEdit = (modulo) => {
+    if (!user) return false;
+    const permisos = user.Permisos || user.permisos || [];
+    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    return permiso ? (permiso.PuedeEditar || permiso.puedeEditar) : false;
+  };
+
+  const canDelete = (modulo) => {
+    if (!user) return false;
+    const permisos = user.Permisos || user.permisos || [];
+    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    return permiso ? (permiso.PuedeEliminar || permiso.puedeEliminar) : false;
+  };
+
   const value = {
     user,
     login,
     logout,
     isAuthenticated: !!user,
-    loading
+    loading,
+    canAccess,
+    canCreate,
+    canEdit,
+    canDelete
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

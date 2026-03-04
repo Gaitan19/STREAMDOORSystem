@@ -17,6 +17,39 @@ USE DBStreamDoor;
 GO
 
 -- ============================================
+-- Tabla: Roles
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Roles')
+BEGIN
+    CREATE TABLE Roles (
+        RolID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL UNIQUE,
+        Descripcion NVARCHAR(255) NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: RolPermisos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'RolPermisos')
+BEGIN
+    CREATE TABLE RolPermisos (
+        RolPermisoID INT PRIMARY KEY IDENTITY(1,1),
+        RolID INT NOT NULL,
+        Modulo NVARCHAR(50) NOT NULL,
+        PuedeVer BIT DEFAULT 0,
+        PuedeCrear BIT DEFAULT 0,
+        PuedeEditar BIT DEFAULT 0,
+        PuedeEliminar BIT DEFAULT 0,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+END
+GO
+
+-- ============================================
 -- Tabla: Usuarios del Sistema
 -- ============================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Usuarios')
@@ -28,7 +61,9 @@ BEGIN
         Telefono NVARCHAR(20) NULL,
         PasswordHash NVARCHAR(255) NOT NULL,
         FechaCreacion DATETIME DEFAULT GETDATE(),
-        Activo BIT DEFAULT 1
+        Activo BIT DEFAULT 1,
+        RolID INT NULL,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
     );
 END
 GO
@@ -660,6 +695,89 @@ GO
 --   * Adición idempotente de columna MedioPagoID en tabla Ventas
 --   * Foreign Key FK_Ventas_MediosPago con verificación
 -- ============================================
+
+-- ============================================
+-- Migración: Módulo de Roles
+-- ============================================
+
+-- Add Roles table if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Roles')
+BEGIN
+    CREATE TABLE Roles (
+        RolID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL UNIQUE,
+        Descripcion NVARCHAR(255) NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+    PRINT 'Table Roles created.';
+END
+GO
+
+-- Add RolPermisos table if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'RolPermisos')
+BEGIN
+    CREATE TABLE RolPermisos (
+        RolPermisoID INT PRIMARY KEY IDENTITY(1,1),
+        RolID INT NOT NULL,
+        Modulo NVARCHAR(50) NOT NULL,
+        PuedeVer BIT DEFAULT 0,
+        PuedeCrear BIT DEFAULT 0,
+        PuedeEditar BIT DEFAULT 0,
+        PuedeEliminar BIT DEFAULT 0,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+    PRINT 'Table RolPermisos created.';
+END
+GO
+
+-- Add RolID column to Usuarios if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'RolID')
+BEGIN
+    ALTER TABLE Usuarios ADD RolID INT NULL;
+    PRINT 'Column RolID added to Usuarios.';
+END
+GO
+
+-- Add foreign key from Usuarios.RolID to Roles.RolID if not exists
+IF NOT EXISTS (
+    SELECT * FROM sys.foreign_keys 
+    WHERE name = 'FK_Usuarios_Roles' AND parent_object_id = OBJECT_ID('Usuarios')
+)
+BEGIN
+    ALTER TABLE Usuarios ADD CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (RolID) REFERENCES Roles(RolID);
+    PRINT 'Foreign Key FK_Usuarios_Roles added.';
+END
+GO
+
+-- Insert Administrador role if not exists and assign all permissions
+IF NOT EXISTS (SELECT * FROM Roles WHERE Nombre = 'Administrador')
+BEGIN
+    INSERT INTO Roles (Nombre, Descripcion, Activo)
+    VALUES ('Administrador', 'Rol con acceso completo a todos los módulos del sistema', 1);
+    
+    DECLARE @AdminRolID INT = SCOPE_IDENTITY();
+    
+    INSERT INTO RolPermisos (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar) VALUES
+    (@AdminRolID, 'dashboard',   1, 1, 1, 1),
+    (@AdminRolID, 'clientes',    1, 1, 1, 1),
+    (@AdminRolID, 'servicios',   1, 1, 1, 1),
+    (@AdminRolID, 'combos',      1, 1, 1, 1),
+    (@AdminRolID, 'correos',     1, 1, 1, 1),
+    (@AdminRolID, 'cuentas',     1, 1, 1, 1),
+    (@AdminRolID, 'ventas',      1, 1, 1, 1),
+    (@AdminRolID, 'ingresos',    1, 1, 1, 1),
+    (@AdminRolID, 'egresos',     1, 1, 1, 1),
+    (@AdminRolID, 'medios-pago', 1, 1, 1, 1),
+    (@AdminRolID, 'usuarios',    1, 1, 1, 1),
+    (@AdminRolID, 'roles',       1, 1, 1, 1);
+    
+    -- Assign Administrador role to all existing users
+    UPDATE Usuarios SET RolID = @AdminRolID WHERE RolID IS NULL;
+    
+    PRINT 'Rol Administrador creado y asignado a usuarios existentes.';
+END
+GO
 
 PRINT 'Base de datos DBStreamDoor creada exitosamente';
 GO

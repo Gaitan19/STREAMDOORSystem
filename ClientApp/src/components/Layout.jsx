@@ -15,29 +15,34 @@ import {
   PackagePlus,
   TrendingUp,
   TrendingDown,
-  User
+  User,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, canAccess } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/servicios', icon: Package, label: 'Servicios' },
-    { path: '/combos', icon: PackagePlus, label: 'Combos' },
-    { path: '/correos', icon: Mail, label: 'Correos' },
-    { path: '/cuentas', icon: CreditCard, label: 'Cuentas' },
-    { path: '/ventas', icon: ShoppingCart, label: 'Ventas' },
-    { path: '/ingresos', icon: TrendingUp, label: 'Ingresos' },
-    { path: '/egresos', icon: TrendingDown, label: 'Egresos' },
-    { path: '/medios-pago', icon: Wallet, label: 'Medios de Pago' },
-    { path: '/usuarios', icon: UserCog, label: 'Usuarios' },
+  const allMenuItems = [
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', modulo: 'dashboard' },
+    { path: '/clientes', icon: Users, label: 'Clientes', modulo: 'clientes' },
+    { path: '/servicios', icon: Package, label: 'Servicios', modulo: 'servicios' },
+    { path: '/combos', icon: PackagePlus, label: 'Combos', modulo: 'combos' },
+    { path: '/correos', icon: Mail, label: 'Correos', modulo: 'correos' },
+    { path: '/cuentas', icon: CreditCard, label: 'Cuentas', modulo: 'cuentas' },
+    { path: '/ventas', icon: ShoppingCart, label: 'Ventas', modulo: 'ventas' },
+    { path: '/ingresos', icon: TrendingUp, label: 'Ingresos', modulo: 'ingresos' },
+    { path: '/egresos', icon: TrendingDown, label: 'Egresos', modulo: 'egresos' },
+    { path: '/medios-pago', icon: Wallet, label: 'Medios de Pago', modulo: 'medios-pago' },
+    { path: '/usuarios', icon: UserCog, label: 'Usuarios', modulo: 'usuarios' },
+    { path: '/roles', icon: Shield, label: 'Roles', modulo: 'roles' },
   ];
+
+  // Filter menu items based on user permissions
+  const menuItems = allMenuItems.filter(item => canAccess(item.modulo));
 
   const handleLogout = () => {
     logout();
@@ -69,7 +74,7 @@ const Layout = ({ children }) => {
           <p className="text-sm text-gray-500 mt-1">Sistema de Gestión</p>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -95,14 +100,16 @@ const Layout = ({ children }) => {
           <div className="flex items-center gap-3 px-4 py-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
               <span className="text-blue-600 font-semibold text-sm">
-                {user?.nombre?.charAt(0).toUpperCase()}
+                {user?.Nombre?.charAt(0).toUpperCase() || user?.nombre?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.nombre}
+                {user?.Nombre || user?.nombre}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              {user?.RolNombre && (
+                <p className="text-xs text-blue-500 truncate">{user.RolNombre}</p>
+              )}
             </div>
           </div>
           <Link
