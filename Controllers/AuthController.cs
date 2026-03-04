@@ -27,8 +27,8 @@ namespace STREAMDOORSystem.Controllers
         public async Task<ActionResult<LoginResponseDTO>> Login([FromBody] LoginDTO loginDto)
         {
             var usuario = await _context.Usuarios
-                .Include(u => u.Rol)
-                    .ThenInclude(r => r != null ? r.Permisos : null)
+                .Include(u => u.Rol!)
+                    .ThenInclude(r => r.Permisos)
                 .FirstOrDefaultAsync(u => u.Correo == loginDto.Correo && u.Activo);
 
             if (usuario == null || !_authService.VerifyPassword(loginDto.Password, usuario.PasswordHash))
