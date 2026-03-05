@@ -6,7 +6,7 @@ export const generatePassword = (length = 16) => {
   // - No incluir ~
   // - No contraseñas simples
   
-  const prefix = 'StreamDoorNic';
+  const prefix = import.meta.env.VITE_PASSWORD_PREFIX || 'StreamDoorNic';
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';

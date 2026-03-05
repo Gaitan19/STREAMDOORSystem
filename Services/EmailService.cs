@@ -28,6 +28,7 @@ namespace STREAMDOORSystem.Services
                 var smtpPort = int.Parse(_configuration["EmailSettings:SmtpPort"] ?? "587");
                 var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
                 var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+                var appName = _configuration["AppSettings:AppName"] ?? "STREAMDOOR";
 
                 using var smtpClient = new SmtpClient(smtpHost, smtpPort)
                 {
@@ -37,9 +38,9 @@ namespace STREAMDOORSystem.Services
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(fromEmail!, "STREAMDOOR - Sistema de Gestión"),
-                    Subject = "Recuperación de Contraseña - STREAMDOOR",
-                    Body = GeneratePasswordResetEmailBody(userName, temporaryPassword),
+                    From = new MailAddress(fromEmail!, $"{appName} - Sistema de Gestión"),
+                    Subject = $"Recuperación de Contraseña - {appName}",
+                    Body = GeneratePasswordResetEmailBody(userName, temporaryPassword, appName),
                     IsBodyHtml = true
                 };
 
@@ -56,7 +57,7 @@ namespace STREAMDOORSystem.Services
             }
         }
 
-        private string GeneratePasswordResetEmailBody(string userName, string temporaryPassword)
+        private string GeneratePasswordResetEmailBody(string userName, string temporaryPassword, string appName = "STREAMDOOR")
         {
             return $@"
 <!DOCTYPE html>
@@ -142,7 +143,7 @@ namespace STREAMDOORSystem.Services
 <body>
     <div class=""container"">
         <div class=""header"">
-            <div class=""logo"">🎬 STREAMDOOR</div>
+            <div class=""logo"">🎬 {appName}</div>
             <p style=""color: #6c757d; margin: 0;"">Sistema de Gestión de Streaming</p>
         </div>
         
@@ -181,7 +182,7 @@ namespace STREAMDOORSystem.Services
         
         <div class=""footer"">
             <p>Si no solicitaste este cambio de contraseña, por favor contacta con soporte inmediatamente.</p>
-            <p style=""margin-top: 20px;"">© 2024 STREAMDOOR. Todos los derechos reservados.</p>
+            <p style=""margin-top: 20px;"">© 2024 {appName}. Todos los derechos reservados.</p>
         </div>
     </div>
 </body>

@@ -54,7 +54,7 @@ const Layout = ({ children }) => {
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-20 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-blue-600">STREAMDOOR</h1>
+          <h1 className="text-xl font-bold text-blue-600">{import.meta.env.VITE_APP_NAME || 'STREAMDOOR'}</h1>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-md hover:bg-gray-100"
@@ -70,7 +70,7 @@ const Layout = ({ children }) => {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       >
         <div className="p-6 border-b pb-1">
-          <h1 className="text-2xl font-bold text-blue-600">STREAMDOOR</h1>
+          <h1 className="text-2xl font-bold text-blue-600">{import.meta.env.VITE_APP_NAME || 'STREAMDOOR'}</h1>
           <p className="text-sm text-gray-500 mt-1">Sistema de Gestión</p>
         </div>
 

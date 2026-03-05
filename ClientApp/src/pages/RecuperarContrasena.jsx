@@ -88,7 +88,7 @@ const RecuperarContrasena = () => {
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
-              © 2024 STREAMDOOR. Todos los derechos reservados.
+              © 2024 {import.meta.env.VITE_APP_NAME || 'STREAMDOOR'}. Todos los derechos reservados.
             </p>
           </div>
         </div>
@@ -176,7 +176,7 @@ const RecuperarContrasena = () => {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
-            © 2024 STREAMDOOR. Todos los derechos reservados.
+            © 2024 {import.meta.env.VITE_APP_NAME || 'STREAMDOOR'}. Todos los derechos reservados.
           </p>
         </div>
       </div>
