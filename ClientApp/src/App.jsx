@@ -49,7 +49,7 @@ function App() {
           <Route
             path="/clientes"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="clientes">
                 <Layout>
                   <Clientes />
                 </Layout>
@@ -60,7 +60,7 @@ function App() {
           <Route
             path="/servicios"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="servicios">
                 <Layout>
                   <Servicios />
                 </Layout>
@@ -71,7 +71,7 @@ function App() {
           <Route
             path="/correos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="correos">
                 <Layout>
                   <Correos />
                 </Layout>
@@ -82,7 +82,7 @@ function App() {
           <Route
             path="/cuentas"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="cuentas">
                 <Layout>
                   <Cuentas />
                 </Layout>
@@ -93,7 +93,7 @@ function App() {
           <Route
             path="/ventas"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="ventas">
                 <Layout>
                   <Ventas />
                 </Layout>
@@ -104,7 +104,7 @@ function App() {
           <Route
             path="/medios-pago"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="medios-pago">
                 <Layout>
                   <MediosPago />
                 </Layout>
@@ -115,7 +115,7 @@ function App() {
           <Route
             path="/usuarios"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="usuarios">
                 <Layout>
                   <Usuarios />
                 </Layout>
@@ -126,7 +126,7 @@ function App() {
           <Route
             path="/combos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="combos">
                 <Layout>
                   <Combos />
                 </Layout>
@@ -137,7 +137,7 @@ function App() {
           <Route
             path="/ingresos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="ingresos">
                 <Layout>
                   <Ingresos />
                 </Layout>
@@ -148,7 +148,7 @@ function App() {
           <Route
             path="/egresos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="egresos">
                 <Layout>
                   <Egresos />
                 </Layout>
@@ -159,7 +159,7 @@ function App() {
           <Route
             path="/roles"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute modulo="roles">
                 <Layout>
                   <Roles />
                 </Layout>

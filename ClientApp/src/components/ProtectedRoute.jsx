@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute = ({ children, modulo }) => {
+  const { isAuthenticated, loading, canAccess } = useAuth();
 
   if (loading) {
     return (
@@ -14,6 +14,11 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If a module is specified, enforce the PuedeVer permission
+  if (modulo && !canAccess(modulo)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
