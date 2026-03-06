@@ -10,6 +10,7 @@ import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { serviciosService } from '../services/apiService';
 import { formatCurrency } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Servicios = () => {
   const [servicios, setServicios] = useState([]);
@@ -25,6 +26,8 @@ const Servicios = () => {
     precio: ''
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadServicios();
@@ -163,21 +166,25 @@ const Servicios = () => {
       label: 'Acciones',
       render: (row) => (
         <div className="flex gap-2">
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <Edit size={18} />
-          </button>
-          <button
-            onClick={() => {
-              setSelectedServicio(row);
-              setDeleteModalOpen(true);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 size={18} />
-          </button>
+          {canEdit('servicios') && (
+            <button
+              onClick={() => handleEdit(row)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Edit size={18} />
+            </button>
+          )}
+          {canDelete('servicios') && (
+            <button
+              onClick={() => {
+                setSelectedServicio(row);
+                setDeleteModalOpen(true);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       )
     }
@@ -190,16 +197,18 @@ const Servicios = () => {
           <h1 className="text-3xl font-bold text-gray-900">Servicios</h1>
           <p className="text-gray-600 mt-2">Gestión de servicios disponibles</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Servicio
-        </Button>
+        {canCreate('servicios') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nuevo Servicio
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

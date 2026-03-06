@@ -9,6 +9,7 @@ import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { correosService } from '../services/apiService';
 import { generatePassword, validateEmail } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Correos = () => {
   const [correos, setCorreos] = useState([]);
@@ -25,6 +26,8 @@ const Correos = () => {
     password: ''
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadCorreos();
@@ -232,23 +235,27 @@ const Correos = () => {
         <div className="flex gap-2">
           {row.activo ? (
             <>
-              <button
-                onClick={() => handleEdit(row)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Editar"
-              >
-                <Edit size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedCorreo(row);
-                  setDeleteModalOpen(true);
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 size={18} />
-              </button>
+              {canEdit('correos') && (
+                <button
+                  onClick={() => handleEdit(row)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Editar"
+                >
+                  <Edit size={18} />
+                </button>
+              )}
+              {canDelete('correos') && (
+                <button
+                  onClick={() => {
+                    setSelectedCorreo(row);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
             </>
           ) : (
             <button
@@ -271,16 +278,18 @@ const Correos = () => {
           <h1 className="text-3xl font-bold text-gray-900">Correos</h1>
           <p className="text-gray-600 mt-2">Gestión de correos electrónicos</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Correo
-        </Button>
+        {canCreate('correos') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nuevo Correo
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

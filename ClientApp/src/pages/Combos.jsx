@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { combosService, serviciosService } from '../services/apiService';
 import Button from '../components/Button';
 import { FaPlus, FaEdit, FaTrash, FaBox } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const Combos = () => {
   const [combos, setCombos] = useState([]);
@@ -16,6 +17,8 @@ const Combos = () => {
     serviciosIDs: [],
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -159,10 +162,12 @@ const Combos = () => {
           <FaBox className="text-blue-600" />
           Combos de Servicios
         </h1>
-        <Button onClick={() => handleOpenModal()} variant="primary">
-          <FaPlus className="mr-2" />
-          Nuevo Combo
-        </Button>
+        {canCreate('combos') && (
+          <Button onClick={() => handleOpenModal()} variant="primary">
+            <FaPlus className="mr-2" />
+            Nuevo Combo
+          </Button>
+        )}
       </div>
 
       {/* Combos Grid */}
@@ -175,20 +180,24 @@ const Combos = () => {
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-semibold text-gray-800">{combo.nombre}</h3>
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleOpenModal(combo)}
-                  className="text-blue-600 hover:text-blue-800"
-                  title="Editar"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={() => handleDelete(combo.comboID)}
-                  className="text-red-600 hover:text-red-800"
-                  title="Eliminar"
-                >
-                  <FaTrash />
-                </button>
+                {canEdit('combos') && (
+                  <button
+                    onClick={() => handleOpenModal(combo)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Editar"
+                  >
+                    <FaEdit />
+                  </button>
+                )}
+                {canDelete('combos') && (
+                  <button
+                    onClick={() => handleDelete(combo.comboID)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Eliminar"
+                  >
+                    <FaTrash />
+                  </button>
+                )}
               </div>
             </div>
 

@@ -8,6 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { formatDate, formatCurrency } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Ingresos = () => {
   const [ingresos, setIngresos] = useState([]);
@@ -24,6 +25,8 @@ const Ingresos = () => {
     ventaID: null
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadIngresos();
@@ -204,18 +207,18 @@ const Ingresos = () => {
   ];
 
   const actions = [
-    {
+    ...(canEdit('ingresos') ? [{
       icon: Edit,
       label: 'Editar',
       onClick: openEditModal,
       className: 'text-blue-600 hover:text-blue-800'
-    },
-    {
+    }] : []),
+    ...(canDelete('ingresos') ? [{
       icon: Trash2,
       label: 'Eliminar',
       onClick: openDeleteModal,
       className: 'text-red-600 hover:text-red-800'
-    }
+    }] : []),
   ];
 
   const totalIngresos = filteredIngresos.reduce((sum, ing) => sum + ing.monto, 0);
@@ -229,9 +232,11 @@ const Ingresos = () => {
           <h1 className="text-2xl font-bold text-gray-800">Ingresos</h1>
           <p className="text-gray-600 mt-1">Gestión de ingresos del sistema</p>
         </div>
-        <Button onClick={openCreateModal} icon={Plus}>
-          Nuevo Ingreso
-        </Button>
+        {canCreate('ingresos') && (
+          <Button onClick={openCreateModal} icon={Plus}>
+            Nuevo Ingreso
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

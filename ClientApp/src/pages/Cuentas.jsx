@@ -11,6 +11,7 @@ import Alert from '../components/Alert';
 import PerfilesModal from '../components/PerfilesModal';
 import { cuentasService, serviciosService } from '../services/apiService';
 import { formatDate, getEstadoColor, copyToClipboard, getRowColorClass, generatePassword, generateCodigoCuenta } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Cuentas = () => {
   const [cuentas, setCuentas] = useState([]);
@@ -42,6 +43,8 @@ const Cuentas = () => {
     costo: ''
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -461,13 +464,15 @@ const Cuentas = () => {
       label: 'Acciones',
       render: (row) => (
         <div className="flex gap-1">
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Editar"
-          >
-            <Edit size={18} />
-          </button>
+          {canEdit('cuentas') && (
+            <button
+              onClick={() => handleEdit(row)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Editar"
+            >
+              <Edit size={18} />
+            </button>
+          )}
           <button
             onClick={() => handleVerPerfiles(row)}
             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -482,16 +487,18 @@ const Cuentas = () => {
           >
             <Eye size={18} />
           </button>
-          <button
-            onClick={() => {
-              setSelectedCuenta(row);
-              setDeleteModalOpen(true);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 size={18} />
-          </button>
+          {canDelete('cuentas') && (
+            <button
+              onClick={() => {
+                setSelectedCuenta(row);
+                setDeleteModalOpen(true);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Eliminar"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       )
     }
@@ -504,16 +511,18 @@ const Cuentas = () => {
           <h1 className="text-3xl font-bold text-gray-900">Cuentas</h1>
           <p className="text-gray-600 mt-2">Gestión de cuentas de servicios</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nueva Cuenta
-        </Button>
+        {canCreate('cuentas') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nueva Cuenta
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

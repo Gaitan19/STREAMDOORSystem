@@ -7,6 +7,7 @@ import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import Table from '../components/Table';
 import { Shield, Plus, Edit, Trash2, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const MODULOS = [
   { id: 'dashboard', nombre: 'Dashboard' },
@@ -62,6 +63,8 @@ const Roles = () => {
   const [editingRol, setEditingRol] = useState(null);
   const [formData, setFormData] = useState({ Nombre: '', Descripcion: '', Activo: true, Permisos: defaultPermisos() });
   const [saving, setSaving] = useState(false);
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     fetchRoles();
@@ -247,20 +250,24 @@ const Roles = () => {
           >
             <Eye size={16} />
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); openEdit(row); }}
-            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-            title="Editar"
-          >
-            <Edit size={16} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); openDelete(row); }}
-            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 size={16} />
-          </button>
+          {canEdit('roles') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="Editar"
+            >
+              <Edit size={16} />
+            </button>
+          )}
+          {canDelete('roles') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openDelete(row); }}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              title="Eliminar"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       )
     },
@@ -279,10 +286,12 @@ const Roles = () => {
             <p className="text-sm text-gray-500">Gestión de roles y permisos del sistema</p>
           </div>
         </div>
-        <Button onClick={openCreate} className="flex items-center gap-2">
-          <Plus size={18} />
-          <span>Nuevo Rol</span>
-        </Button>
+        {canCreate('roles') && (
+          <Button onClick={openCreate} className="flex items-center gap-2">
+            <Plus size={18} />
+            <span>Nuevo Rol</span>
+          </Button>
+        )}
       </div>
 
       {alert && (

@@ -8,6 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { formatDate, formatCurrency } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Egresos = () => {
   const [egresos, setEgresos] = useState([]);
@@ -24,6 +25,8 @@ const Egresos = () => {
     cuentaID: null
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadEgresos();
@@ -204,18 +207,18 @@ const Egresos = () => {
   ];
 
   const actions = [
-    {
+    ...(canEdit('egresos') ? [{
       icon: Edit,
       label: 'Editar',
       onClick: openEditModal,
       className: 'text-blue-600 hover:text-blue-800'
-    },
-    {
+    }] : []),
+    ...(canDelete('egresos') ? [{
       icon: Trash2,
       label: 'Eliminar',
       onClick: openDeleteModal,
       className: 'text-red-600 hover:text-red-800'
-    }
+    }] : []),
   ];
 
   const totalEgresos = filteredEgresos.reduce((sum, egr) => sum + egr.monto, 0);
@@ -229,9 +232,11 @@ const Egresos = () => {
           <h1 className="text-2xl font-bold text-gray-800">Egresos</h1>
           <p className="text-gray-600 mt-1">Gestión de egresos del sistema</p>
         </div>
-        <Button onClick={openCreateModal} icon={Plus}>
-          Nuevo Egreso
-        </Button>
+        {canCreate('egresos') && (
+          <Button onClick={openCreateModal} icon={Plus}>
+            Nuevo Egreso
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

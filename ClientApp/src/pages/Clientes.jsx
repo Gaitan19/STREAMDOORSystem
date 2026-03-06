@@ -10,6 +10,7 @@ import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import { clientesService, ventasService } from '../services/apiService';
 import { validatePhone } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
@@ -31,6 +32,8 @@ const Clientes = () => {
     telefono: ''
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadClientes();
@@ -324,23 +327,27 @@ const Clientes = () => {
           >
             <ShoppingBag size={18} />
           </button>
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Editar"
-          >
-            <Edit size={18} />
-          </button>
-          <button
-            onClick={() => {
-              setSelectedCliente(row);
-              setDeleteModalOpen(true);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 size={18} />
-          </button>
+          {canEdit('clientes') && (
+            <button
+              onClick={() => handleEdit(row)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Editar"
+            >
+              <Edit size={18} />
+            </button>
+          )}
+          {canDelete('clientes') && (
+            <button
+              onClick={() => {
+                setSelectedCliente(row);
+                setDeleteModalOpen(true);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Eliminar"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       )
     }
@@ -353,16 +360,18 @@ const Clientes = () => {
           <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
           <p className="text-gray-600 mt-2">Gestión de clientes del sistema</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Cliente
-        </Button>
+        {canCreate('clientes') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nuevo Cliente
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

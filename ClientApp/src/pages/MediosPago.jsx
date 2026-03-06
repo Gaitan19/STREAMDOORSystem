@@ -8,6 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { mediosPagoService } from '../services/apiService';
+import { useAuth } from '../context/AuthContext';
 
 const MediosPago = () => {
   const [mediosPago, setMediosPago] = useState([]);
@@ -25,6 +26,8 @@ const MediosPago = () => {
     moneda: 'C$'
   });
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadMediosPago();
@@ -177,21 +180,25 @@ const MediosPago = () => {
       label: 'Acciones',
       render: (row) => (
         <div className="flex gap-2">
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <Edit size={18} />
-          </button>
-          <button
-            onClick={() => {
-              setSelectedMedioPago(row);
-              setDeleteModalOpen(true);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 size={18} />
-          </button>
+          {canEdit('medios-pago') && (
+            <button
+              onClick={() => handleEdit(row)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Edit size={18} />
+            </button>
+          )}
+          {canDelete('medios-pago') && (
+            <button
+              onClick={() => {
+                setSelectedMedioPago(row);
+                setDeleteModalOpen(true);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       )
     }
@@ -204,16 +211,18 @@ const MediosPago = () => {
           <h1 className="text-3xl font-bold text-gray-900">Medios de Pago</h1>
           <p className="text-gray-600 mt-2">Gestión de medios de pago disponibles</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Medio de Pago
-        </Button>
+        {canCreate('medios-pago') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nuevo Medio de Pago
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

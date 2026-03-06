@@ -10,6 +10,7 @@ import Table from '../components/Table';
 import Alert from '../components/Alert';
 import { usuariosService, rolesService } from '../services/apiService';
 import { validateEmail } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -31,7 +32,7 @@ const Usuarios = () => {
   });
   const [errors, setErrors] = useState({});
 
-
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadUsuarios();
@@ -258,23 +259,27 @@ const Usuarios = () => {
         <div className="flex gap-2">
           {row.activo ? (
             <>
-              <button
-                onClick={() => handleEdit(row)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Editar"
-              >
-                <Edit size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedUsuario(row);
-                  setDeleteModalOpen(true);
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 size={18} />
-              </button>
+              {canEdit('usuarios') && (
+                <button
+                  onClick={() => handleEdit(row)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Editar"
+                >
+                  <Edit size={18} />
+                </button>
+              )}
+              {canDelete('usuarios') && (
+                <button
+                  onClick={() => {
+                    setSelectedUsuario(row);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
             </>
           ) : (
             <button
@@ -297,16 +302,18 @@ const Usuarios = () => {
           <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
           <p className="text-gray-600 mt-2">Gestión de usuarios del sistema</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Usuario
-        </Button>
+        {canCreate('usuarios') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nuevo Usuario
+          </Button>
+        )}
       </div>
 
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}

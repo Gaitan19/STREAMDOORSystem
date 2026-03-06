@@ -11,6 +11,7 @@ import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService, combosService } from '../services/apiService';
 import { formatDate, formatCurrency } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const Ventas = () => {
   const [ventas, setVentas] = useState([]);
@@ -68,6 +69,8 @@ const Ventas = () => {
   });
   
   const [errors, setErrors] = useState({});
+
+  const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -856,27 +859,31 @@ const Ventas = () => {
           >
             <Eye size={16} />
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleEdit(row)}
-            disabled={row.estado === 'Cancelado'}
-            title="Editar venta"
-          >
-            <Edit size={16} />
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => {
-              setSelectedVenta(row);
-              setDeleteModalOpen(true);
-            }}
-            disabled={row.estado === 'Cancelado'}
-            title="Cancelar venta"
-          >
-            <Trash2 size={16} />
-          </Button>
+          {canEdit('ventas') && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleEdit(row)}
+              disabled={row.estado === 'Cancelado'}
+              title="Editar venta"
+            >
+              <Edit size={16} />
+            </Button>
+          )}
+          {canDelete('ventas') && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setSelectedVenta(row);
+                setDeleteModalOpen(true);
+              }}
+              disabled={row.estado === 'Cancelado'}
+              title="Cancelar venta"
+            >
+              <Trash2 size={16} />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -888,10 +895,12 @@ const Ventas = () => {
 
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Ventas</h1>
-        <Button onClick={handleCreate}>
-          <Plus size={20} />
-          Nueva Venta
-        </Button>
+        {canCreate('ventas') && (
+          <Button onClick={handleCreate}>
+            <Plus size={20} />
+            Nueva Venta
+          </Button>
+        )}
       </div>
 
       <Card>
