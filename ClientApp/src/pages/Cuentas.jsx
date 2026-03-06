@@ -1045,13 +1045,20 @@ const Cuentas = () => {
               </div>
               {/* Renewal button for expired accounts */}
               {selectedCuenta.estadoSuscripcion === 'Vencida' && canEdit('Cuentas') && (
-                <div className="mt-4">
+                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-2xl">🔄</span>
+                    <div>
+                      <p className="text-sm font-semibold text-orange-800">Cuenta Vencida</p>
+                      <p className="text-xs text-orange-600">Selecciona una nueva fecha de vencimiento para renovar esta cuenta.</p>
+                    </div>
+                  </div>
                   <Button
                     variant="warning"
                     onClick={handleRenovar}
                     className="w-full"
                   >
-                    🔄 Renovar Cuenta
+                    Renovar Cuenta
                   </Button>
                 </div>
               )}

@@ -239,7 +239,7 @@ namespace STREAMDOORSystem.Controllers
                     var egreso = new Egreso
                     {
                         Monto = crearCuentaDto.Costo.Value,
-                        Descripcion = $"Egreso por creación de cuenta #{cuenta.CuentaID} ({servicio!.Nombre})",
+                        Descripcion = $"Egreso por adquisición de cuenta {cuenta.CodigoCuenta} ({servicio!.Nombre}) — registrada el {DateTime.Now:dd/MM/yyyy}.",
                         CuentaID = cuenta.CuentaID,
                         UsuarioID = usuarioId,
                         Usuario = usuarioNombreClaim ?? "Sistema",
@@ -367,7 +367,7 @@ namespace STREAMDOORSystem.Controllers
                     var egreso = new Egreso
                     {
                         Monto = cuenta.Costo.Value,
-                        Descripcion = $"Renovación de cuenta #{cuenta.CuentaID} ({cuenta.Servicio?.Nombre ?? "Sin servicio"}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
+                        Descripcion = $"Renovación de cuenta {cuenta.CodigoCuenta} ({cuenta.Servicio?.Nombre ?? "Sin servicio"}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
                         CuentaID = cuenta.CuentaID,
                         UsuarioID = usuarioId,
                         Usuario = usuarioNombreClaim ?? "Sistema",

@@ -202,7 +202,7 @@ const Egresos = () => {
     { 
       key: 'cuentaID', 
       label: 'Cuenta', 
-      render: (row) => row.cuentaID ? `CTA-${row.cuentaID}` : '-'
+      render: (row) => row.codigoCuenta ? row.codigoCuenta : (row.cuentaID ? `CTA-${row.cuentaID}` : '-')
     }
   ];
 

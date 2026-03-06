@@ -45,7 +45,8 @@ namespace STREAMDOORSystem.Controllers
                     UsuarioID = e.UsuarioID,
                     Usuario = e.Usuario,
                     Descripcion = e.Descripcion,
-                    CuentaID = e.CuentaID
+                    CuentaID = e.CuentaID,
+                    CodigoCuenta = e.Cuenta != null ? e.Cuenta.CodigoCuenta : null
                 })
                 .ToListAsync();
 
@@ -66,7 +67,8 @@ namespace STREAMDOORSystem.Controllers
                     UsuarioID = e.UsuarioID,
                     Usuario = e.Usuario,
                     Descripcion = e.Descripcion,
-                    CuentaID = e.CuentaID
+                    CuentaID = e.CuentaID,
+                    CodigoCuenta = e.Cuenta != null ? e.Cuenta.CodigoCuenta : null
                 })
                 .FirstOrDefaultAsync();
 

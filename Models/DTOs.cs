@@ -463,6 +463,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Usuario { get; set; }
         public string? Descripcion { get; set; }
         public int? CuentaID { get; set; }
+        public string? CodigoCuenta { get; set; }
     }
 
     public class CrearEgresoDTO
