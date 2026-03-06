@@ -430,7 +430,7 @@ const Usuarios = () => {
             >
               <option value="">Sin rol asignado</option>
               {roles.map(r => (
-                <option key={r.RolID} value={r.RolID}>{r.Nombre}</option>
+                <option key={r.rolID} value={r.rolID}>{r.nombre}</option>
               ))}
             </select>
           </div>

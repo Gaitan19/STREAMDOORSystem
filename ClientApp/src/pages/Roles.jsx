@@ -39,7 +39,17 @@ const defaultPermisos = () =>
     PuedeEliminar: false,
   }));
 
-const getPermisos = (rol) => Array.isArray(rol?.Permisos) ? rol.Permisos : [];
+const getPermisos = (rol) => {
+  const raw = Array.isArray(rol?.permisos) ? rol.permisos
+            : Array.isArray(rol?.Permisos) ? rol.Permisos : [];
+  return raw.map(p => ({
+    Modulo: p.modulo ?? p.Modulo ?? '',
+    PuedeVer: p.puedeVer ?? p.PuedeVer ?? false,
+    PuedeCrear: p.puedeCrear ?? p.PuedeCrear ?? false,
+    PuedeEditar: p.puedeEditar ?? p.PuedeEditar ?? false,
+    PuedeEliminar: p.puedeEliminar ?? p.PuedeEliminar ?? false,
+  }));
+};
 
 const Roles = () => {
   const [roles, setRoles] = useState([]);
@@ -89,7 +99,10 @@ const Roles = () => {
         ? { Modulo: m.id, PuedeVer: existing.PuedeVer, PuedeCrear: existing.PuedeCrear, PuedeEditar: existing.PuedeEditar, PuedeEliminar: existing.PuedeEliminar }
         : { Modulo: m.id, PuedeVer: false, PuedeCrear: false, PuedeEditar: false, PuedeEliminar: false };
     });
-    setFormData({ Nombre: rol.Nombre, Descripcion: rol.Descripcion || '', Activo: rol.Activo, Permisos: permisos });
+    const nombre = rol.nombre ?? rol.Nombre ?? '';
+    const descripcion = rol.descripcion ?? rol.Descripcion ?? '';
+    const activo = rol.activo !== undefined ? rol.activo : (rol.Activo !== undefined ? rol.Activo : true);
+    setFormData({ Nombre: nombre, Descripcion: descripcion, Activo: activo, Permisos: permisos });
     setModalOpen(true);
   };
 
@@ -149,7 +162,7 @@ const Roles = () => {
     setSaving(true);
     try {
       if (editingRol) {
-        await rolesService.update(editingRol.RolID, formData);
+        await rolesService.update(editingRol.rolID ?? editingRol.RolID, formData);
         showAlert('success', 'Rol actualizado exitosamente');
       } else {
         await rolesService.create(formData);
@@ -167,7 +180,7 @@ const Roles = () => {
   const handleDelete = async () => {
     if (!selectedRol) return;
     try {
-      await rolesService.delete(selectedRol.RolID);
+      await rolesService.delete(selectedRol.rolID ?? selectedRol.RolID);
       showAlert('success', 'Rol eliminado exitosamente');
       await fetchRoles();
       setDeleteModalOpen(false);
@@ -188,7 +201,7 @@ const Roles = () => {
           <div className="p-1.5 bg-blue-100 rounded-md">
             <Shield size={14} className="text-blue-600" />
           </div>
-          <span className="font-medium text-gray-900">{row.Nombre}</span>
+          <span className="font-medium text-gray-900">{row.nombre ?? row.Nombre}</span>
         </div>
       )
     },
@@ -196,7 +209,7 @@ const Roles = () => {
       key: 'Descripcion',
       label: 'Descripción',
       render: (row) => (
-        <span className="text-gray-500 text-sm">{row.Descripcion || '—'}</span>
+        <span className="text-gray-500 text-sm">{row.descripcion ?? row.Descripcion ?? '—'}</span>
       )
     },
     {
@@ -213,11 +226,14 @@ const Roles = () => {
     {
       key: 'Activo',
       label: 'Estado',
-      render: (row) => (
-        <Badge variant={row.Activo ? 'success' : 'gray'}>
-          {row.Activo ? 'Activo' : 'Inactivo'}
-        </Badge>
-      )
+      render: (row) => {
+        const activo = row.activo !== undefined ? row.activo : row.Activo;
+        return (
+          <Badge variant={activo ? 'success' : 'gray'}>
+            {activo ? 'Activo' : 'Inactivo'}
+          </Badge>
+        );
+      }
     },
     {
       key: 'acciones',
@@ -403,7 +419,7 @@ const Roles = () => {
       <Modal
         isOpen={permisosModalOpen}
         onClose={() => setPermisosModalOpen(false)}
-        title={`Permisos — ${selectedRol?.Nombre || ''}`}
+        title={`Permisos — ${selectedRol?.nombre ?? selectedRol?.Nombre ?? ''}`}
         size="md"
       >
         {selectedRol && (
@@ -451,7 +467,7 @@ const Roles = () => {
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            ¿Estás seguro de que deseas eliminar el rol <strong>{selectedRol?.Nombre}</strong>? Esta acción no se puede deshacer si hay usuarios asignados.
+            ¿Estás seguro de que deseas eliminar el rol <strong>{selectedRol?.nombre ?? selectedRol?.Nombre}</strong>? Esta acción no se puede deshacer si hay usuarios asignados.
           </p>
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>
