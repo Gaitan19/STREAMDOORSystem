@@ -343,13 +343,13 @@ namespace STREAMDOORSystem.Controllers
                 // Update expiration date
                 cuenta.FechaFinalizacion = dto.NuevaFechaFinalizacion;
 
-                // Recalculate subscription status
+                // Recalculate subscription status (values must match CK_Cuentas_EstadoSuscripcion constraint)
                 if (dto.NuevaFechaFinalizacion < DateTime.Now)
                     cuenta.EstadoSuscripcion = "Vencida";
                 else if (dto.NuevaFechaFinalizacion <= DateTime.Now.AddDays(5))
                     cuenta.EstadoSuscripcion = "Próxima a Vencer";
                 else
-                    cuenta.EstadoSuscripcion = "Activa";
+                    cuenta.EstadoSuscripcion = "Activo";
 
                 _context.Cuentas.Update(cuenta);
                 await _context.SaveChangesAsync();
@@ -367,7 +367,7 @@ namespace STREAMDOORSystem.Controllers
                     var egreso = new Egreso
                     {
                         Monto = cuenta.Costo.Value,
-                        Descripcion = $"Renovación de cuenta #{cuenta.CuentaID} ({cuenta.Servicio!.Nombre}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
+                        Descripcion = $"Renovación de cuenta #{cuenta.CuentaID} ({cuenta.Servicio?.Nombre ?? "Sin servicio"}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
                         CuentaID = cuenta.CuentaID,
                         UsuarioID = usuarioId,
                         Usuario = usuarioNombreClaim ?? "Sistema",
