@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { rolesService } from '../services/apiService';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import Table from '../components/Table';
-import { Shield, Plus, Edit, Trash2, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Shield, Plus, Edit, Trash2, CheckCircle, XCircle, Eye, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const MODULOS = [
@@ -63,8 +63,10 @@ const Roles = () => {
   const [editingRol, setEditingRol] = useState(null);
   const [formData, setFormData] = useState({ Nombre: '', Descripcion: '', Activo: true, Permisos: defaultPermisos() });
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterEstado, setFilterEstado] = useState('todos');
 
-  const { canCreate, canEdit, canDelete } = useAuth();
+  const { canCreate, canEdit, canDelete, refreshPermissions } = useAuth();
 
   useEffect(() => {
     fetchRoles();
@@ -81,6 +83,17 @@ const Roles = () => {
       setLoading(false);
     }
   };
+
+  const filteredRoles = useMemo(() => {
+    return roles.filter(r => {
+      const nombre = (r.nombre ?? r.Nombre ?? '').toLowerCase();
+      const descripcion = (r.descripcion ?? r.Descripcion ?? '').toLowerCase();
+      const activo = r.activo !== undefined ? r.activo : r.Activo;
+      const matchSearch = !searchTerm || nombre.includes(searchTerm.toLowerCase()) || descripcion.includes(searchTerm.toLowerCase());
+      const matchEstado = filterEstado === 'todos' || (filterEstado === 'activo' ? activo : !activo);
+      return matchSearch && matchEstado;
+    });
+  }, [roles, searchTerm, filterEstado]);
 
   const showAlert = (type, message) => {
     setAlert({ type, message });
@@ -172,6 +185,8 @@ const Roles = () => {
         showAlert('success', 'Rol creado exitosamente');
       }
       await fetchRoles();
+      // Refresh current user's permissions in case their role was updated
+      await refreshPermissions();
       setModalOpen(false);
     } catch (err) {
       showAlert('error', err.response?.data?.message || 'Error al guardar el rol');
@@ -298,11 +313,41 @@ const Roles = () => {
         <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
       )}
 
+      {/* Search & Filters */}
+      <Card>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o descripción..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <select
+            value={filterEstado}
+            onChange={e => setFilterEstado(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[140px]"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        {(searchTerm || filterEstado !== 'todos') && (
+          <p className="text-xs text-gray-400 mt-2">
+            {filteredRoles.length} de {roles.length} roles
+          </p>
+        )}
+      </Card>
+
       {/* Roles Table */}
       <Card>
         <Table
           columns={columns}
-          data={roles}
+          data={filteredRoles}
           loading={loading}
         />
       </Card>

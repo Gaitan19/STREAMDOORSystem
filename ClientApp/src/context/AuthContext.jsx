@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/apiService';
 
 const AuthContext = createContext(null);
@@ -24,6 +24,36 @@ export const AuthProvider = ({ children }) => {
     
     initAuth();
   }, []);
+
+  // Refresh permissions from backend without requiring re-login
+  const refreshPermissions = useCallback(async () => {
+    const userData = localStorage.getItem('user');
+    if (!userData) return;
+    try {
+      const fresh = await authService.getMe();
+      const updated = {
+        ...JSON.parse(userData),
+        Permisos: fresh.Permisos ?? fresh.permisos ?? [],
+        RolNombre: fresh.RolNombre ?? fresh.rolNombre,
+        RolID: fresh.RolID ?? fresh.rolID,
+      };
+      localStorage.setItem('user', JSON.stringify(updated));
+      setUser(updated);
+    } catch {
+      // silently ignore — user is still logged in with existing permissions
+    }
+  }, []);
+
+  // Auto-refresh when the tab regains focus (handles admin updating another user's role)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshPermissions();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshPermissions]);
 
   const login = async (email, password) => {
     try {
@@ -94,7 +124,8 @@ export const AuthProvider = ({ children }) => {
     canAccess,
     canCreate,
     canEdit,
-    canDelete
+    canDelete,
+    refreshPermissions,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

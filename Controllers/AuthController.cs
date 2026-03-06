@@ -88,6 +88,39 @@ namespace STREAMDOORSystem.Controllers
             return Ok(new { authenticated = true });
         }
 
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult> GetCurrentUser()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var usuario = await _context.Usuarios
+                .Include(u => u.Rol!)
+                    .ThenInclude(r => r.Permisos)
+                .FirstOrDefaultAsync(u => u.UsuarioID == userId && u.Activo);
+
+            if (usuario == null)
+                return NotFound();
+
+            var permisos = usuario.Rol?.Permisos.Select(p => new PermisoDTO
+            {
+                Modulo = p.Modulo,
+                PuedeVer = p.PuedeVer,
+                PuedeCrear = p.PuedeCrear,
+                PuedeEditar = p.PuedeEditar,
+                PuedeEliminar = p.PuedeEliminar
+            }).ToList() ?? new List<PermisoDTO>();
+
+            return Ok(new
+            {
+                UsuarioID = usuario.UsuarioID,
+                Nombre = usuario.Nombre,
+                Correo = usuario.Correo,
+                RolID = usuario.RolID,
+                RolNombre = usuario.Rol?.Nombre,
+                Permisos = permisos
+            });
+        }
+
         [HttpPost("recover-password")]
         public async Task<IActionResult> RecoverPassword([FromBody] RecoverPasswordDTO recoverDto)
         {

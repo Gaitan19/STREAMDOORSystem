@@ -39,6 +39,7 @@ export const authService = {
     apiClient.post('/auth/login', { correo, password }),
   logout: () => apiClient.post('/auth/logout'),
   verify: () => apiClient.get('/auth/verify'),
+  getMe: () => apiClient.get('/auth/me'),
 };
 
 export const clientesService = {
