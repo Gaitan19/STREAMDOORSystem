@@ -22,6 +22,9 @@ const Cuentas = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [perfilesModalOpen, setPerfilesModalOpen] = useState(false);
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
+  const [renovarModalOpen, setRenovarModalOpen] = useState(false);
+  const [nuevaFechaFin, setNuevaFechaFin] = useState('');
+  const [renovarLoading, setRenovarLoading] = useState(false);
   const [selectedCuenta, setSelectedCuenta] = useState(null);
   const [selectedCuentaForPerfiles, setSelectedCuentaForPerfiles] = useState(null);
   const [perfilesDetalles, setPerfilesDetalles] = useState([]); // NEW: For detalles modal
@@ -324,6 +327,29 @@ const Cuentas = () => {
       setPerfilesDetalles([]);
       setSelectedCuenta(cuenta);
       setDetallesModalOpen(true);
+    }
+  };
+
+  const handleRenovar = () => {
+    setNuevaFechaFin('');
+    setRenovarModalOpen(true);
+  };
+
+  const handleConfirmarRenovacion = async () => {
+    if (!nuevaFechaFin) return;
+    setRenovarLoading(true);
+    try {
+      await cuentasService.renovar(selectedCuenta.cuentaID, { nuevaFechaFinalizacion: nuevaFechaFin });
+      showAlert('success', `Cuenta ${selectedCuenta.codigoCuenta} renovada correctamente hasta el ${new Date(nuevaFechaFin).toLocaleDateString('es-NI')}.`);
+      setRenovarModalOpen(false);
+      setDetallesModalOpen(false);
+      setSelectedCuenta(null);
+      setPerfilesDetalles([]);
+      loadData(filtroEstado);
+    } catch {
+      showAlert('error', 'Error al renovar la cuenta. Intente nuevamente.');
+    } finally {
+      setRenovarLoading(false);
     }
   };
 
@@ -996,9 +1022,9 @@ const Cuentas = () => {
               </div>
             </div>
 
-            {/* Dates Section */}
+            {/* Dates & Cost Section */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Fechas</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Fechas y Costo</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Fecha de Creación</label>
@@ -1010,7 +1036,25 @@ const Cuentas = () => {
                     <p className="text-base">{formatDate(selectedCuenta.fechaFinalizacion)}</p>
                   </div>
                 )}
+                {selectedCuenta.costo != null && selectedCuenta.costo > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Costo de la Cuenta</label>
+                    <p className="text-base font-semibold text-green-700">C$ {Number(selectedCuenta.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                )}
               </div>
+              {/* Renewal button for expired accounts */}
+              {selectedCuenta.estadoSuscripcion === 'Vencida' && canEdit('Cuentas') && (
+                <div className="mt-4">
+                  <Button
+                    variant="warning"
+                    onClick={handleRenovar}
+                    className="w-full"
+                  >
+                    🔄 Renovar Cuenta
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Profiles Section */}
@@ -1051,6 +1095,48 @@ const Cuentas = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Renovar Cuenta Modal */}
+      <Modal
+        isOpen={renovarModalOpen}
+        onClose={() => setRenovarModalOpen(false)}
+        title={`Renovar Cuenta — ${selectedCuenta?.codigoCuenta || ''}`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Selecciona la nueva fecha de vencimiento para la cuenta <strong>{selectedCuenta?.codigoCuenta}</strong> ({selectedCuenta?.nombreServicio}).
+            {selectedCuenta?.costo > 0 && (
+              <span> Se generará automáticamente un egreso por <strong>C$ {Number(selectedCuenta?.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</strong>.</span>
+            )}
+          </p>
+          <Input
+            label="Nueva Fecha de Vencimiento"
+            type="date"
+            value={nuevaFechaFin}
+            onChange={e => setNuevaFechaFin(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+          />
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setRenovarModalOpen(false)}
+              className="flex-1"
+              disabled={renovarLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmarRenovacion}
+              className="flex-1"
+              disabled={!nuevaFechaFin || renovarLoading}
+            >
+              {renovarLoading ? 'Renovando...' : 'Confirmar Renovación'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

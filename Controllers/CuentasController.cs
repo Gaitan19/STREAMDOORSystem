@@ -327,6 +327,64 @@ namespace STREAMDOORSystem.Controllers
             }
         }
 
+        // POST: api/Cuentas/5/renovar
+        [HttpPost("{id}/renovar")]
+        public async Task<IActionResult> RenovarCuenta(int id, [FromBody] RenovarCuentaDTO dto)
+        {
+            try
+            {
+                var cuenta = await _context.Cuentas
+                    .Include(c => c.Servicio)
+                    .FirstOrDefaultAsync(c => c.CuentaID == id && c.Activo);
+
+                if (cuenta == null)
+                    return NotFound(new { message = "Cuenta no encontrada" });
+
+                // Update expiration date
+                cuenta.FechaFinalizacion = dto.NuevaFechaFinalizacion;
+
+                // Recalculate subscription status
+                if (dto.NuevaFechaFinalizacion < DateTime.Now)
+                    cuenta.EstadoSuscripcion = "Vencida";
+                else if (dto.NuevaFechaFinalizacion <= DateTime.Now.AddDays(5))
+                    cuenta.EstadoSuscripcion = "Próxima a Vencer";
+                else
+                    cuenta.EstadoSuscripcion = "Activa";
+
+                _context.Cuentas.Update(cuenta);
+                await _context.SaveChangesAsync();
+
+                // Create automatic Egreso if account has a cost
+                if (cuenta.Costo.HasValue && cuenta.Costo.Value > 0)
+                {
+                    var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var usuarioNombreClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+
+                    int? usuarioId = null;
+                    if (int.TryParse(usuarioIdClaim, out int parsedId))
+                        usuarioId = parsedId;
+
+                    var egreso = new Egreso
+                    {
+                        Monto = cuenta.Costo.Value,
+                        Descripcion = $"Renovación de cuenta #{cuenta.CuentaID} ({cuenta.Servicio!.Nombre}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
+                        CuentaID = cuenta.CuentaID,
+                        UsuarioID = usuarioId,
+                        Usuario = usuarioNombreClaim ?? "Sistema",
+                        FechaCreacion = DateTime.Now
+                    };
+                    _context.Egresos.Add(egreso);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(new { message = "Cuenta renovada correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al renovar cuenta", error = ex.Message });
+            }
+        }
+
         // DELETE: api/Cuentas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCuenta(int id)

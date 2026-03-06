@@ -337,6 +337,11 @@ namespace STREAMDOORSystem.Models.DTOs
         public int Duracion { get; set; }
     }
 
+    public class RenovarCuentaDTO
+    {
+        public DateTime NuevaFechaFinalizacion { get; set; }
+    }
+
     // DTOs de Pago
     public class PagoDTO
     {

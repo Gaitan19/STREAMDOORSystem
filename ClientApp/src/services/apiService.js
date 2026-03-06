@@ -82,6 +82,7 @@ export const cuentasService = {
   create: (data) => apiClient.post('/cuentas', data),
   update: (id, data) => apiClient.put(`/cuentas/${id}`, data),
   delete: (id) => apiClient.delete(`/cuentas/${id}`),
+  renovar: (id, data) => apiClient.post(`/cuentas/${id}/renovar`, data),
   generateCredentials: () => apiClient.post('/cuentas/generar-credenciales'),
 };
 
