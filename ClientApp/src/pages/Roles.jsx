@@ -260,7 +260,7 @@ const Roles = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => { e.stopPropagation(); openPermisos(row); }}
-            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
             title="Ver permisos"
           >
             <Eye size={16} />
@@ -268,7 +268,7 @@ const Roles = () => {
           {canEdit('roles') && (
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(row); }}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors"
               title="Editar"
             >
               <Edit size={16} />
@@ -277,7 +277,7 @@ const Roles = () => {
           {canDelete('roles') && (
             <button
               onClick={(e) => { e.stopPropagation(); openDelete(row); }}
-              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
               title="Eliminar"
             >
               <Trash2 size={16} />
