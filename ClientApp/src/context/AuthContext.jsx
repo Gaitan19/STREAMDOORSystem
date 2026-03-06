@@ -90,28 +90,32 @@ export const AuthProvider = ({ children }) => {
     if (!user.permisos && !user.Permisos) return false;
     
     const permisos = user.Permisos || user.permisos || [];
-    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    const key = (modulo || '').toLowerCase();
+    const permiso = permisos.find(p => (p.Modulo || p.modulo || '').toLowerCase() === key);
     return permiso ? (permiso.PuedeVer || permiso.puedeVer) : false;
   };
 
   const canCreate = (modulo) => {
     if (!user) return false;
     const permisos = user.Permisos || user.permisos || [];
-    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    const key = (modulo || '').toLowerCase();
+    const permiso = permisos.find(p => (p.Modulo || p.modulo || '').toLowerCase() === key);
     return permiso ? (permiso.PuedeCrear || permiso.puedeCrear) : false;
   };
 
   const canEdit = (modulo) => {
     if (!user) return false;
     const permisos = user.Permisos || user.permisos || [];
-    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    const key = (modulo || '').toLowerCase();
+    const permiso = permisos.find(p => (p.Modulo || p.modulo || '').toLowerCase() === key);
     return permiso ? (permiso.PuedeEditar || permiso.puedeEditar) : false;
   };
 
   const canDelete = (modulo) => {
     if (!user) return false;
     const permisos = user.Permisos || user.permisos || [];
-    const permiso = permisos.find(p => (p.Modulo || p.modulo) === modulo);
+    const key = (modulo || '').toLowerCase();
+    const permiso = permisos.find(p => (p.Modulo || p.modulo || '').toLowerCase() === key);
     return permiso ? (permiso.PuedeEliminar || permiso.puedeEliminar) : false;
   };
 
