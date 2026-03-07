@@ -141,15 +141,17 @@ namespace STREAMDOORSystem.Controllers
 
                 // ── Ventas por servicio (top 10, periodo) ────────────────────
                 var ventasPorServicio = await _context.VentasDetalles
-                    .Include(vd => vd.Servicio)
-                    .Include(vd => vd.Venta)
                     .Where(vd => vd.Venta!.FechaCreacion >= inicio && vd.Venta.FechaCreacion <= fin)
-                    .GroupBy(vd => vd.Servicio!.Nombre)
+                    .Join(_context.Servicios,
+                          vd => vd.ServicioID,
+                          s  => s.ServicioID,
+                          (vd, s) => new { s.Nombre, vd.PrecioUnitario })
+                    .GroupBy(x => x.Nombre)
                     .Select(g => new ServicioVentasChartDTO
                     {
                         Servicio = g.Key ?? "Sin servicio",
                         Ventas   = g.Count(),
-                        Monto    = g.Sum(vd => vd.PrecioUnitario)
+                        Monto    = g.Sum(x => x.PrecioUnitario)
                     })
                     .OrderByDescending(s => s.Ventas)
                     .Take(10)
@@ -224,17 +226,25 @@ namespace STREAMDOORSystem.Controllers
 
                 // ── Top clientes (por monto total de ventas, global) ─────────
                 var topClientes = await _context.Ventas
-                    .Include(v => v.Cliente)
-                    .GroupBy(v => new { v.ClienteID, v.Cliente!.Nombre, v.Cliente.Apellido })
-                    .Select(g => new TopClienteDTO
+                    .GroupBy(v => v.ClienteID)
+                    .Select(g => new
                     {
-                        ClienteID   = g.Key.ClienteID,
-                        Nombre      = g.Key.Nombre + " " + g.Key.Apellido,
+                        ClienteID   = g.Key,
                         TotalVentas = g.Count(),
                         TotalMonto  = g.Sum(v => v.Monto)
                     })
                     .OrderByDescending(t => t.TotalMonto)
                     .Take(5)
+                    .Join(_context.Clientes,
+                          t => t.ClienteID,
+                          c => c.ClienteID,
+                          (t, c) => new TopClienteDTO
+                          {
+                              ClienteID   = t.ClienteID,
+                              Nombre      = c.Nombre + " " + c.Apellido,
+                              TotalVentas = t.TotalVentas,
+                              TotalMonto  = t.TotalMonto
+                          })
                     .ToListAsync();
 
                 // ── Ensamble ─────────────────────────────────────────────────
