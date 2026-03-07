@@ -112,7 +112,7 @@ const Dashboard = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const userName = user?.Nombre || user?.nombre || user?.Correo || user?.correo || 'Usuario';
+  const userName = user?.Nombre || user?.Correo || 'Usuario';
 
   const handleExport = async (format) => {
     if (!data) return;
