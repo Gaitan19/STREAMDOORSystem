@@ -166,7 +166,9 @@ export function generatePDF(data, userName, periodoLabel) {
       headStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       margin: { left: 14, right: 14 },
-      tableWidth: MW,
+      // Do NOT set tableWidth here — it conflicts with per-column cellWidth in
+      // columnStyles and causes headers to misalign with body cells.
+      // The column widths already sum to MW so the total table width is correct.
       columnStyles: colStyles || {},
       tableLineColor: [229, 231, 235],
       tableLineWidth: 0.3,
