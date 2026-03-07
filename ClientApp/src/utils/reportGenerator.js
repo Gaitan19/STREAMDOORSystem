@@ -502,6 +502,18 @@ export async function generateExcel(data, userName, periodoLabel) {
     {
       sheets: ['Resumen', 'Ingresos vs Egresos', 'Servicios', 'Top Clientes', 'Alertas'],
       fileName: `${name}.xlsx`,
+      columns: [
+        // Sheet 1 – Resumen: 2 columns
+        [{ width: 42 }, { width: 22 }],
+        // Sheet 2 – Ingresos vs Egresos: 4 columns
+        [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }],
+        // Sheet 3 – Servicios: 3 columns
+        [{ width: 35 }, { width: 15 }, { width: 22 }],
+        // Sheet 4 – Top Clientes: 3 columns
+        [{ width: 35 }, { width: 15 }, { width: 22 }],
+        // Sheet 5 – Alertas: 4 columns
+        [{ width: 16 }, { width: 35 }, { width: 22 }, { width: 18 }],
+      ],
     }
   );
 }
