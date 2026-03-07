@@ -31,8 +31,8 @@ namespace STREAMDOORSystem.Controllers
             {
                 var hoy = DateTime.Now.Date;
                 // When sinFiltro=true show all records regardless of date
-                var inicio = sinFiltro ? DateTime.MinValue : (fechaInicio?.Date ?? hoy);
-                var fin    = sinFiltro ? DateTime.MaxValue : ((fechaFin?.Date ?? hoy).AddDays(1).AddSeconds(-1));
+                var inicio = sinFiltro ? new DateTime(1900, 1, 1) : (fechaInicio?.Date ?? hoy);
+                var fin    = sinFiltro ? new DateTime(9999, 12, 31, 23, 59, 59) : ((fechaFin?.Date ?? hoy).AddDays(1).AddSeconds(-1));
 
                 // ── KPIs financieros del periodo ─────────────────────────────
                 var totalIngresos = await _context.Ingresos
