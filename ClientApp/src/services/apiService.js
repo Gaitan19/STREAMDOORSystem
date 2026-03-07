@@ -121,8 +121,14 @@ export const usuariosService = {
 };
 
 export const dashboardService = {
-  getStats: () => apiClient.get('/dashboard/stats'),
-  getRecentActivity: () => apiClient.get('/dashboard/recent-activity'),
+  getCompleto: (fechaInicio, fechaFin) => {
+    const params = new URLSearchParams();
+    if (fechaInicio) params.append('fechaInicio', fechaInicio);
+    if (fechaFin) params.append('fechaFin', fechaFin);
+    return apiClient.get(`/dashboard/completo?${params.toString()}`);
+  },
+  getStats: () => apiClient.get('/dashboard/resumen'),
+  getRecentActivity: () => apiClient.get('/dashboard/resumen'),
 };
 
 export const combosService = {

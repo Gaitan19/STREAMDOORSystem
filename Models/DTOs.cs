@@ -479,4 +479,91 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Descripcion { get; set; }
         public int? CuentaID { get; set; }
     }
+
+    // ─── Dashboard completo ────────────────────────────────────────────────────
+
+    public class DashboardCompletoDTO
+    {
+        // KPIs financieros del periodo
+        public decimal TotalIngresos { get; set; }
+        public decimal TotalEgresos { get; set; }
+        public decimal GananciaNeta { get; set; }
+
+        // KPIs de ventas del periodo
+        public int TotalVentasPeriodo { get; set; }
+        public decimal MontoVentasPeriodo { get; set; }
+
+        // KPIs globales (sin filtro de fecha)
+        public int TotalClientes { get; set; }
+        public int TotalCuentas { get; set; }
+        public int TotalCorreos { get; set; }
+        public int TotalServicios { get; set; }
+        public int TotalMediosPago { get; set; }
+
+        // Estado de cuentas (global)
+        public int CuentasDisponibles { get; set; }
+        public int CuentasOcupadas { get; set; }
+        public int CuentasVencidas { get; set; }
+        public int CuentasProximasVencer { get; set; }
+
+        // Gráfico ingresos vs egresos
+        public List<IngresoEgresoChartDTO> IngresosEgresosChart { get; set; } = new();
+
+        // Gráfico ventas por servicio (top 10)
+        public List<ServicioVentasChartDTO> VentasPorServicio { get; set; } = new();
+
+        // Cuentas por estado (para gráfico de distribución)
+        public List<CuentaEstadoChartDTO> CuentasPorEstado { get; set; } = new();
+
+        // Alertas
+        public List<CuentaAlertaDTO> CuentasProximasVencerList { get; set; } = new();
+        public List<CuentaAlertaDTO> CuentasVencidasList { get; set; } = new();
+        public List<AlertaVencimientoDTO> VentasProximasVencer { get; set; } = new();
+
+        // Top clientes
+        public List<TopClienteDTO> TopClientes { get; set; } = new();
+
+        // Renovaciones pendientes (cuentas vencidas sin renovar)
+        public int RenovacionesPendientes { get; set; }
+    }
+
+    public class IngresoEgresoChartDTO
+    {
+        public string Periodo { get; set; } = string.Empty;
+        public decimal Ingresos { get; set; }
+        public decimal Egresos { get; set; }
+        public decimal Ganancia { get; set; }
+    }
+
+    public class ServicioVentasChartDTO
+    {
+        public string Servicio { get; set; } = string.Empty;
+        public int Ventas { get; set; }
+        public decimal Monto { get; set; }
+    }
+
+    public class CuentaEstadoChartDTO
+    {
+        public string Estado { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+    }
+
+    public class CuentaAlertaDTO
+    {
+        public int CuentaID { get; set; }
+        public string CodigoCuenta { get; set; } = string.Empty;
+        public string Servicio { get; set; } = string.Empty;
+        public string EstadoSuscripcion { get; set; } = string.Empty;
+        public DateTime? FechaFinalizacion { get; set; }
+        public int? DiasRestantes { get; set; }
+        public decimal? Costo { get; set; }
+    }
+
+    public class TopClienteDTO
+    {
+        public int ClienteID { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public int TotalVentas { get; set; }
+        public decimal TotalMonto { get; set; }
+    }
 }
