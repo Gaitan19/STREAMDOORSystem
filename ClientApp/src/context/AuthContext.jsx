@@ -8,20 +8,22 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       const userData = localStorage.getItem('user');
-      
+
       if (userData) {
         try {
+          // Verify the token cookie is still valid before trusting localStorage data
+          await authService.verify();
           setUser(JSON.parse(userData));
-        } catch (error) {
-          console.error('Failed to parse user data:', error);
+        } catch {
+          // Token is expired or invalid – clear session and force re-login
           localStorage.removeItem('user');
         }
       }
       setLoading(false);
     };
-    
+
     initAuth();
   }, []);
 
@@ -58,8 +60,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      // Backend returns: { UsuarioID, Nombre, Correo, Token, RolID, RolNombre, Permisos }
-      const { Token, ...usuario } = response;
+      // Backend sets the HttpOnly cookie; user data is returned without the token
+      const usuario = response;
       
       localStorage.setItem('user', JSON.stringify(usuario));
       setUser(usuario);
