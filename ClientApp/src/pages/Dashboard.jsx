@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Users, ShoppingCart, AlertTriangle, TrendingUp, TrendingDown,
   Package, Mail, CreditCard, DollarSign, RefreshCw, Calendar,
-  Activity, BarChart2, CheckCircle, XCircle
+  Activity, BarChart2, CheckCircle, XCircle, Download, FileText,
+  FileSpreadsheet, ChevronDown
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -13,6 +14,8 @@ import Alert from '../components/Alert';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { Link } from 'react-router-dom';
 import { dashboardService } from '../services/apiService';
+import { useAuth } from '../context/AuthContext';
+import { generatePDF, generateExcel } from '../utils/reportGenerator';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const toISO = (d) => d.toISOString().split('T')[0];
@@ -62,12 +65,16 @@ const KPICard = ({ icon: Icon, label, value, sub, color, iconBg }) => (
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const { user } = useAuth();
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [data, setData]             = useState(null);
   const [preset, setPreset]         = useState('mes');
   const [customInicio, setCustomInicio] = useState('');
   const [customFin, setCustomFin]       = useState('');
+  const [exporting, setExporting]       = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef(null);
 
   const derivedRange = useCallback(() => {
     if (preset === 'custom') {
@@ -93,6 +100,46 @@ const Dashboard = () => {
   }, [derivedRange]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const userName = user?.Nombre || user?.nombre || user?.Correo || user?.correo || 'Usuario';
+
+  const handleExport = async (format) => {
+    if (!data) return;
+    setShowExportMenu(false);
+    setExporting(true);
+    const label = buildPeriodoLabel();
+    try {
+      if (format === 'pdf') {
+        generatePDF(data, userName, label);
+      } else {
+        await generateExcel(data, userName, label);
+      }
+    } catch (err) {
+      console.error('Error al generar reporte:', err);
+      alert('No se pudo generar el reporte. Intente nuevamente.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const buildPeriodoLabel = () => {
+    if (preset === 'custom') {
+      return `${customInicio || '—'} al ${customFin || '—'}`;
+    }
+    const labels = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', mes: 'Este mes' };
+    return labels[preset] || preset;
+  };
 
   // ── loading / error ────────────────────────────────────────────────────────
   if (loading) {
@@ -172,6 +219,39 @@ const Dashboard = () => {
             <RefreshCw size={14} />
             Actualizar
           </button>
+
+          {/* Export dropdown */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setShowExportMenu(p => !p)}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-sm bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-60"
+            >
+              {exporting ? (
+                <><RefreshCw size={14} className="animate-spin" /> Generando…</>
+              ) : (
+                <><Download size={14} /> Exportar <ChevronDown size={12} /></>
+              )}
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                >
+                  <FileText size={15} className="text-red-500" />
+                  Exportar PDF
+                </button>
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                >
+                  <FileSpreadsheet size={15} className="text-green-600" />
+                  Exportar Excel
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
