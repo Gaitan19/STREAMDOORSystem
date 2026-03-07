@@ -522,7 +522,7 @@ namespace STREAMDOORSystem.Controllers
                         NombreServicio = d.Cuenta!.Servicio!.Nombre,
                         CodigoCuenta = d.Cuenta.CodigoCuenta ?? "",
                         EmailCuenta = d.Cuenta.Correo?.Email ?? "",
-                        PasswordCuenta = d.Cuenta.Correo?.Password ?? "",
+                        PasswordCuenta = d.Cuenta.Password ?? d.Cuenta.Correo?.Password ?? "",
                         NumeroPerfil = d.Perfil!.NumeroPerfil,
                         PinPerfil = d.Perfil.PIN,
                         PrecioUnitario = d.PrecioUnitario,
