@@ -114,18 +114,26 @@ namespace STREAMDOORSystem.Controllers
                         .OrderBy(m => m.Year).ThenBy(m => m.Month)
                         .ToList();
 
-                    // Fill in any months in range that have no data — use HashSet for O(1) lookup
+                    // Fill in any months between the first and last months that have actual data.
+                    // Using data-range boundaries avoids iterating millions of empty months when
+                    // sinFiltro=true (which would set inicio=1900 and fin=9999).
                     var monthSet = new HashSet<(int Year, int Month)>(
                         months.Select(m => (m.Year, m.Month)));
-                    var cur = new DateTime(inicio.Year, inicio.Month, 1);
-                    var last = new DateTime(fin.Year, fin.Month, 1);
-                    while (cur <= last)
+                    if (months.Count > 0)
                     {
-                        if (monthSet.Add((cur.Year, cur.Month)))
-                            months.Add(new { cur.Year, cur.Month });
-                        cur = cur.AddMonths(1);
+                        // months is already sorted — first/last give us the data boundaries
+                        var firstMonth = months.First();
+                        var lastMonth  = months.Last();
+                        var cur  = new DateTime(firstMonth.Year, firstMonth.Month, 1);
+                        var last = new DateTime(lastMonth.Year,  lastMonth.Month,  1);
+                        while (cur <= last)
+                        {
+                            if (monthSet.Add((cur.Year, cur.Month)))
+                                months.Add(new { cur.Year, cur.Month });
+                            cur = cur.AddMonths(1);
+                        }
+                        months = months.OrderBy(m => m.Year).ThenBy(m => m.Month).ToList();
                     }
-                    months = months.OrderBy(m => m.Year).ThenBy(m => m.Month).ToList();
 
                     chartData = months.Select(m =>
                     {
