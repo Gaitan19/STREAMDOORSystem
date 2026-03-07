@@ -17,8 +17,8 @@ function manaTime() {
 
 /** Format: 07/03/2026 */
 function fmtDate(d) {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
@@ -26,8 +26,8 @@ function fmtDate(d) {
 /** Format: 01:05:30 PM */
 function fmtTime12(d) {
   let h = d.getHours();
-  const min = String(d.getMinutes()).padStart(2, '0');
-  const sec = String(d.getSeconds()).padStart(2, '0');
+  const min  = String(d.getMinutes()).padStart(2, '0');
+  const sec  = String(d.getSeconds()).padStart(2, '0');
   const ampm = h >= 12 ? 'PM' : 'AM';
   h = h % 12 || 12;
   return `${String(h).padStart(2, '0')}:${min}:${sec} ${ampm}`;
@@ -49,10 +49,48 @@ function fmt(n) {
   return `C$ ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Null-safe date string */
+/**
+ * Null-safe date string — always includes day/month/year.
+ * Uses explicit options so the locale can't drop the year.
+ */
 function safeDate(v) {
-  if (!v) return '—';
-  return new Date(v).toLocaleDateString('es-NI');
+  if (!v) return '-';
+  return new Date(v).toLocaleDateString('es-NI', {
+    day:   '2-digit',
+    month: '2-digit',
+    year:  'numeric',
+  });
+}
+
+/**
+ * jsPDF's built-in Helvetica font cannot render emoji characters or many
+ * extended-Latin glyphs — they appear as hollow rectangles ("weird symbols").
+ * This helper strips emoji (Unicode ranges) and transliterates the most common
+ * accented characters to their ASCII equivalents for PDF output only.
+ * Excel does NOT need this — write-excel-file handles full Unicode.
+ */
+function pdfSafe(str) {
+  if (!str && str !== 0) return '-';
+  return String(str)
+    // Remove emoji (broad Unicode ranges that Helvetica can't render)
+    .replace(/[\u{1F300}-\u{1FFFF}|\u{2600}-\u{27FF}|\u{2B00}-\u{2BFF}|\u{FE00}-\u{FEFF}]/gu, '')
+    // Transliterate common accented chars
+    .replace(/[áàâä]/gi, (c) => (c === c.toUpperCase() ? 'A' : 'a'))
+    .replace(/[éèêë]/gi, (c) => (c === c.toUpperCase() ? 'E' : 'e'))
+    .replace(/[íìîï]/gi, (c) => (c === c.toUpperCase() ? 'I' : 'i'))
+    .replace(/[óòôö]/gi, (c) => (c === c.toUpperCase() ? 'O' : 'o'))
+    .replace(/[úùûü]/gi, (c) => (c === c.toUpperCase() ? 'U' : 'u'))
+    .replace(/[ñ]/g, 'n')
+    .replace(/[Ñ]/g, 'N')
+    // Trim leftover whitespace that might be left after emoji removal
+    .trim();
+}
+
+/**
+ * Apply pdfSafe to every cell in a table body row array.
+ */
+function safePdfRows(rows) {
+  return rows.map(row => row.map(cell => pdfSafe(cell)));
 }
 
 // ─── Brand colors ─────────────────────────────────────────────────────────────
@@ -61,7 +99,6 @@ const DARK    = [17, 24, 39];   // gray-900
 const GRAY    = [107, 114, 128];
 const WHITE   = [255, 255, 255];
 const LIGHT   = [243, 244, 246];
-const GREEN   = [5, 150, 105];
 const RED_C   = [220, 38, 38];
 const ORANGE  = [234, 88, 12];
 
@@ -72,7 +109,12 @@ export function generatePDF(data, userName, periodoLabel) {
   const name = buildFileName(now);
   const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PW   = doc.internal.pageSize.getWidth();  // 210
+  const MW   = PW - 28;  // usable table width (margin 14 each side)
   let   y    = 0;
+
+  // Safe versions of meta strings for Helvetica encoding
+  const safeUser   = pdfSafe(userName);
+  const safePeriod = pdfSafe(periodoLabel);
 
   // ── Branded header ─────────────────────────────────────────────────────────
   doc.setFillColor(...BRAND);
@@ -85,15 +127,15 @@ export function generatePDF(data, userName, periodoLabel) {
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistema de Gestión de Cuentas de Streaming', 14, 19);
+  doc.text('Sistema de Gestion de Cuentas de Streaming', 14, 19);
 
   doc.setFontSize(8);
-  doc.text(`Generado el ${fmtDate(now)} a las ${fmtTime12(now)}  |  Usuario: ${userName}`, 14, 25.5);
+  doc.text(`Generado el ${fmtDate(now)} a las ${fmtTime12(now)}  |  Usuario: ${safeUser}`, 14, 25.5);
 
   // Right side: period
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(periodoLabel, PW - 14, 19, { align: 'right' });
+  doc.text(safePeriod, PW - 14, 19, { align: 'right' });
 
   y = 36;
 
@@ -101,25 +143,31 @@ export function generatePDF(data, userName, periodoLabel) {
   const section = (title, fillColor = BRAND) => {
     if (y > 260) { doc.addPage(); y = 14; }
     doc.setFillColor(...fillColor);
-    doc.roundedRect(14, y, PW - 28, 7, 1, 1, 'F');
+    doc.roundedRect(14, y, MW, 7, 1, 1, 'F');
     doc.setTextColor(...WHITE);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text(title, 17, y + 4.8);
+    doc.text(pdfSafe(title), 17, y + 4.8);
     doc.setTextColor(...DARK);
     y += 10;
   };
 
-  const table = (head, body, colWidths) => {
+  /**
+   * @param {string[]} head   - Column headers
+   * @param {any[][]}  body   - Row data (will be pdfSafe'd)
+   * @param {object}   colStyles - jspdf-autotable columnStyles object
+   */
+  const table = (head, body, colStyles) => {
     autoTable(doc, {
       startY: y,
-      head: [head],
-      body,
-      styles: { fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      head:   [head.map(h => pdfSafe(h))],
+      body:   safePdfRows(body),
+      styles: { fontSize: 8, cellPadding: 2.5, textColor: DARK, overflow: 'linebreak' },
       headStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       margin: { left: 14, right: 14 },
-      columnStyles: colWidths || {},
+      tableWidth: MW,
+      columnStyles: colStyles || {},
       tableLineColor: [229, 231, 235],
       tableLineWidth: 0.3,
     });
@@ -127,7 +175,7 @@ export function generatePDF(data, userName, periodoLabel) {
   };
 
   // ── 1. Financial KPIs ───────────────────────────────────────────────────────
-  section('📊 Indicadores Financieros del Período');
+  section('Indicadores Financieros del Periodo');
   table(
     ['Concepto', 'Monto'],
     [
@@ -136,97 +184,125 @@ export function generatePDF(data, userName, periodoLabel) {
       ['Ganancia Neta',     fmt(data.gananciaNeta)],
       [`Ventas (${data.totalVentasPeriodo} operaciones)`, fmt(data.montoVentasPeriodo)],
     ],
-    { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' } }
+    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
   );
 
   // ── 2. Global KPIs ──────────────────────────────────────────────────────────
-  section('🌐 Indicadores Globales');
+  section('Indicadores Globales');
   table(
-    ['Categoría', 'Total'],
+    ['Categoria', 'Total'],
     [
-      ['Clientes Activos',   data.totalClientes],
-      ['Cuentas Activas',    data.totalCuentas],
-      ['Correos Registrados', data.totalCorreos],
-      ['Servicios',          data.totalServicios],
-      ['Medios de Pago',     data.totalMediosPago],
-      ['Renovaciones Pendientes', data.renovacionesPendientes],
+      ['Clientes Activos',         data.totalClientes],
+      ['Cuentas Activas',          data.totalCuentas],
+      ['Correos Registrados',      data.totalCorreos],
+      ['Servicios',                data.totalServicios],
+      ['Medios de Pago',           data.totalMediosPago],
+      ['Renovaciones Pendientes',  data.renovacionesPendientes],
     ],
-    { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' } }
+    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
   );
 
   // ── 3. Account status ───────────────────────────────────────────────────────
-  section('🗂️ Estado de Cuentas');
+  section('Estado de Cuentas');
   table(
     ['Estado', 'Cantidad'],
     (data.cuentasPorEstado || []).map(c => [c.estado, c.cantidad]),
-    { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' } }
+    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
   );
 
   // ── 4. Ingresos vs Egresos ──────────────────────────────────────────────────
   if (data.ingresosEgresosChart?.length) {
-    section('📈 Ingresos vs Egresos vs Ganancia por Período');
+    section('Ingresos vs Egresos vs Ganancia por Periodo');
     table(
-      ['Período', 'Ingresos', 'Egresos', 'Ganancia'],
+      ['Periodo', 'Ingresos', 'Egresos', 'Ganancia'],
       data.ingresosEgresosChart.map(r => [
         r.periodo, fmt(r.ingresos), fmt(r.egresos), fmt(r.ganancia)
       ]),
-      { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.22 },
+        1: { cellWidth: MW * 0.26, halign: 'right' },
+        2: { cellWidth: MW * 0.26, halign: 'right' },
+        3: { cellWidth: MW * 0.26, halign: 'right' },
+      }
     );
   }
 
   // ── 5. Top services ─────────────────────────────────────────────────────────
   if (data.ventasPorServicio?.length) {
-    section('🏆 Top Servicios por Ventas (Período)');
+    section('Top Servicios por Ventas (Periodo)');
     table(
       ['Servicio', 'Ventas', 'Monto Total'],
       data.ventasPorServicio.map(s => [s.servicio, s.ventas, fmt(s.monto)]),
-      { 1: { halign: 'right' }, 2: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.50 },
+        1: { cellWidth: MW * 0.18, halign: 'right' },
+        2: { cellWidth: MW * 0.32, halign: 'right' },
+      }
     );
   }
 
   // ── 6. Top clients ──────────────────────────────────────────────────────────
   if (data.topClientes?.length) {
-    section('👥 Top 5 Clientes');
+    section('Top 5 Clientes');
     table(
-      ['Cliente', 'N° Ventas', 'Monto Total'],
+      ['Cliente', 'No. Ventas', 'Monto Total'],
       data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto)]),
-      { 1: { halign: 'right' }, 2: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.50 },
+        1: { cellWidth: MW * 0.18, halign: 'right' },
+        2: { cellWidth: MW * 0.32, halign: 'right' },
+      }
     );
   }
 
   // ── 7. Upcoming expiry ──────────────────────────────────────────────────────
   if (data.cuentasProximasVencerList?.length) {
-    section('⚠️ Cuentas Próximas a Vencer', ORANGE);
+    section('Cuentas Proximas a Vencer', ORANGE);
     table(
-      ['Código', 'Servicio', 'Vencimiento', 'Días Restantes'],
+      ['Codigo', 'Servicio', 'Vencimiento', 'Dias Restantes'],
       data.cuentasProximasVencerList.map(c => [
-        c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), c.diasRestantes ?? '—'
+        c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), c.diasRestantes ?? '-'
       ]),
-      { 2: { halign: 'center' }, 3: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.20 },
+        1: { cellWidth: MW * 0.35 },
+        2: { cellWidth: MW * 0.25, halign: 'center' },
+        3: { cellWidth: MW * 0.20, halign: 'right' },
+      }
     );
   }
 
   // ── 8. Expired accounts ─────────────────────────────────────────────────────
   if (data.cuentasVencidasList?.length) {
-    section('🔴 Cuentas Vencidas', RED_C);
+    section('Cuentas Vencidas', RED_C);
     table(
-      ['Código', 'Servicio', 'Venció', 'Costo'],
+      ['Codigo', 'Servicio', 'Vencio', 'Costo'],
       data.cuentasVencidasList.map(c => [
         c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), fmt(c.costo)
       ]),
-      { 2: { halign: 'center' }, 3: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.20 },
+        1: { cellWidth: MW * 0.35 },
+        2: { cellWidth: MW * 0.18, halign: 'center' },
+        3: { cellWidth: MW * 0.27, halign: 'right' },
+      }
     );
   }
 
   // ── 9. Sales expiring this week ─────────────────────────────────────────────
   if (data.ventasProximasVencer?.length) {
-    section('🛒 Ventas que Vencen Esta Semana', [202, 138, 4]);
+    section('Ventas que Vencen Esta Semana', [202, 138, 4]);
     table(
-      ['Cliente', 'Servicio', 'Vencimiento', 'Días'],
+      ['Cliente', 'Servicio', 'Vencimiento', 'Dias'],
       data.ventasProximasVencer.map(v => [
         v.cliente, v.servicio, safeDate(v.fechaFin), v.diasRestantes
       ]),
-      { 2: { halign: 'center' }, 3: { halign: 'right' } }
+      {
+        0: { cellWidth: MW * 0.28 },
+        1: { cellWidth: MW * 0.35 },
+        2: { cellWidth: MW * 0.22, halign: 'center' },
+        3: { cellWidth: MW * 0.15, halign: 'right' },
+      }
     );
   }
 
@@ -239,8 +315,8 @@ export function generatePDF(data, userName, periodoLabel) {
     doc.setFontSize(7);
     doc.setTextColor(...GRAY);
     doc.setFont('helvetica', 'normal');
-    doc.text('STREAMDOOR — Sistema de Gestión de Cuentas de Streaming', 14, 291);
-    doc.text(`Página ${p} de ${total}`, PW - 14, 291, { align: 'right' });
+    doc.text('STREAMDOOR - Sistema de Gestion de Cuentas de Streaming', 14, 291);
+    doc.text(`Pagina ${p} de ${total}`, PW - 14, 291, { align: 'right' });
   }
 
   doc.save(`${name}.pdf`);
@@ -386,8 +462,8 @@ export async function generateExcel(data, userName, periodoLabel) {
     ...(data.cuentasProximasVencerList || []).map(c => [
       { value: c.codigoCuenta,                               ...LABEL_STYLE },
       { value: c.servicio,                                   ...LABEL_STYLE },
-      { value: c.fechaFinalizacion ? new Date(c.fechaFinalizacion).toLocaleDateString('es-NI') : '—', ...LABEL_STYLE },
-      { value: c.diasRestantes ?? 0,                         ...VALUE_STYLE },
+      { value: safeDate(c.fechaFinalizacion), ...LABEL_STYLE },
+      { value: c.diasRestantes ?? 0,         ...VALUE_STYLE },
     ]),
     [],
     [{ value: 'Cuentas Vencidas', ...LABEL_STYLE, span: 4 }],
@@ -398,24 +474,24 @@ export async function generateExcel(data, userName, periodoLabel) {
       { value: 'Costo',     ...HEADER_STYLE },
     ],
     ...(data.cuentasVencidasList || []).map(c => [
-      { value: c.codigoCuenta,                                              ...LABEL_STYLE },
-      { value: c.servicio,                                                  ...LABEL_STYLE },
-      { value: c.fechaFinalizacion ? new Date(c.fechaFinalizacion).toLocaleDateString('es-NI') : '—', ...LABEL_STYLE },
-      { value: c.costo ?? 0, format: '"C$"#,##0.00',                       ...VALUE_STYLE },
+      { value: c.codigoCuenta,                        ...LABEL_STYLE },
+      { value: c.servicio,                            ...LABEL_STYLE },
+      { value: safeDate(c.fechaFinalizacion),         ...LABEL_STYLE },
+      { value: c.costo ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
     ]),
     [],
     [{ value: 'Ventas que Vencen Esta Semana', ...LABEL_STYLE, span: 4 }],
     [
-      { value: 'Cliente',   ...HEADER_STYLE },
-      { value: 'Servicio',  ...HEADER_STYLE },
+      { value: 'Cliente',     ...HEADER_STYLE },
+      { value: 'Servicio',    ...HEADER_STYLE },
       { value: 'Vencimiento', ...HEADER_STYLE },
-      { value: 'Días',      ...HEADER_STYLE },
+      { value: 'Días',        ...HEADER_STYLE },
     ],
     ...(data.ventasProximasVencer || []).map(v => [
-      { value: v.cliente,    ...LABEL_STYLE },
-      { value: v.servicio,   ...LABEL_STYLE },
-      { value: v.fechaFin ? new Date(v.fechaFin).toLocaleDateString('es-NI') : '—', ...LABEL_STYLE },
-      { value: v.diasRestantes ?? 0, ...VALUE_STYLE },
+      { value: v.cliente,              ...LABEL_STYLE },
+      { value: v.servicio,             ...LABEL_STYLE },
+      { value: safeDate(v.fechaFin),   ...LABEL_STYLE },
+      { value: v.diasRestantes ?? 0,   ...VALUE_STYLE },
     ]),
   ];
 
