@@ -22,6 +22,8 @@ const Ventas = () => {
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [editSuccessModalOpen, setEditSuccessModalOpen] = useState(false);
+  const [editSuccessDetails, setEditSuccessDetails] = useState(null);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [ventaCompleta, setVentaCompleta] = useState(null);
   const [editChanges, setEditChanges] = useState({}); // Track changes: {ventaDetalleID: {nuevaCuentaID, nuevoPerfilID}}
@@ -353,6 +355,7 @@ const Ventas = () => {
     
     const nuevoServicioCombo = {
       comboID: comboSeleccionado.comboID,
+      nombreCombo: comboSeleccionado.nombre,
       cuentaID: cuentaSeleccionada.cuentaID,
       perfilID: perfilSeleccionado.perfilID,
       servicioID: servicioComboSeleccionado.servicioID,
@@ -642,7 +645,16 @@ const Ventas = () => {
       }
 
       await ventasService.actualizar(selectedVenta.ventaID, updateDTO);
-      showAlert('success', 'Venta actualizada correctamente');
+      
+      // Fetch updated sale details to show copy-details modal
+      try {
+        const updatedDetails = await ventasService.getCompleta(selectedVenta.ventaID);
+        setEditSuccessDetails(updatedDetails);
+        setEditSuccessModalOpen(true);
+      } catch (_) {
+        showAlert('success', 'Venta actualizada correctamente');
+      }
+      
       setEditModalOpen(false);
       setEditChanges({});
       setSelectedVenta(null);
@@ -744,6 +756,34 @@ const Ventas = () => {
     }
 
     return message;
+  };
+
+  // Format account-change details as WhatsApp message
+  const formatWhatsAppChangeMessage = (venta) => {
+    if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
+
+    const fmtDate = (date) => {
+      const d = new Date(date);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+
+    let message = '';
+    venta.detalles.forEach((detalle) => {
+      const serviceName = (detalle.nombreServicio || '').toUpperCase();
+      message += `📧 *CAMBIO DE CORREO [${serviceName}]*\n\n`;
+      message += `_Acceda nuevamente con los siguientes datos por favor_\n`;
+      message += `🛡 *Correo:* ${detalle.correoCuenta || detalle.emailCuenta || ''}\n`;
+      message += `⚔ *Contraseña:* ${detalle.passwordCuenta || ''}\n`;
+      message += `⚙ Tipo: PERFIL \n\n`;
+      message += `👤 Perfil: ${detalle.numeroPerfil}`;
+      if (detalle.pinPerfil) {
+        message += `      🔐 Pin: ${detalle.pinPerfil}`;
+      }
+      message += `\n\n`;
+      message += `⏳ Fecha de inicio: ${fmtDate(venta.fechaInicio)}\n`;
+      message += `✂ Fecha de corte: ${fmtDate(venta.fechaFin)}\n\n`;
+    });
+    return message.trim();
   };
 
   const columns = [
@@ -2170,6 +2210,74 @@ const Ventas = () => {
             </>
           )}
         </div>
+      </Modal>
+
+      {/* Modal Edit Success - Copy updated assignment details */}
+      <Modal
+        isOpen={editSuccessModalOpen}
+        onClose={() => {
+          setEditSuccessModalOpen(false);
+          setEditSuccessDetails(null);
+        }}
+        title="✅ Asignación Actualizada"
+        size="large"
+      >
+        {editSuccessDetails && (
+          <div className="space-y-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 font-medium">
+                Los cambios fueron guardados correctamente. Puede copiar los nuevos datos de acceso para enviarlos al cliente.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Información de la Venta</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <p className="text-sm text-gray-600"># Venta:</p>
+                  <p className="font-medium">V-{editSuccessDetails.ventaID}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Cliente:</p>
+                  <p className="font-medium">{editSuccessDetails.nombreCliente}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Monto Total:</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(editSuccessDetails.monto, editSuccessDetails.moneda)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={() => {
+                  const message = formatWhatsAppChangeMessage(editSuccessDetails);
+                  copyToClipboard(message, 'Detalles de cambio');
+                }}
+                className="flex items-center gap-2"
+              >
+                <Copy size={18} />
+                Copiar Detalles de Cambio para WhatsApp
+              </Button>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Vista Previa del Mensaje</h3>
+              <div className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap">
+                {formatWhatsAppChangeMessage(editSuccessDetails)}
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => {
+                setEditSuccessModalOpen(false);
+                setEditSuccessDetails(null);
+              }}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Modal Success - Show created sale details */}
