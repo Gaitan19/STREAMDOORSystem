@@ -1826,7 +1826,7 @@ const Ventas = () => {
                                     <div>
                                       <p className="text-xs text-gray-600 mb-1">Email:</p>
                                       <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded border text-xs">
-                                        <span className="font-mono flex-1 truncate">{detalle.emailCuenta}</span>
+                                        <span className="font-mono flex-1 break-all">{detalle.emailCuenta}</span>
                                         <button
                                           onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
                                           className="text-blue-600 hover:text-blue-700"
@@ -1910,7 +1910,7 @@ const Ventas = () => {
                             <div>
                               <p className="text-sm text-gray-600 mb-1">Email:</p>
                               <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border">
-                                <span className="font-mono text-sm flex-1 truncate">{detalle.emailCuenta}</span>
+                                <span className="font-mono text-sm flex-1 break-all">{detalle.emailCuenta}</span>
                                 <button
                                   onClick={() => copyToClipboard(detalle.emailCuenta, 'Email')}
                                   className="text-blue-600 hover:text-blue-700"

@@ -52,7 +52,7 @@ const KPICard = ({ icon: Icon, label, value, sub, color, iconBg }) => (
   <Card>
     <div className="flex items-center justify-between">
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">{label}</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide break-words">{label}</p>
         <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
         {sub && <p className={`text-xs mt-1 ${color || 'text-gray-500'}`}>{sub}</p>}
       </div>
@@ -440,7 +440,7 @@ const Dashboard = () => {
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{c.nombre}</p>
+                    <p className="text-sm font-medium text-gray-900 break-words">{c.nombre}</p>
                     <p className="text-xs text-gray-500">{c.totalVentas} venta(s)</p>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600 flex-shrink-0">

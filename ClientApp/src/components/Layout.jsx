@@ -104,11 +104,11 @@ const Layout = ({ children }) => {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-gray-900 break-words">
                 {user?.Nombre || user?.nombre}
               </p>
               {user?.RolNombre && (
-                <p className="text-xs text-blue-500 truncate">{user.RolNombre}</p>
+                <p className="text-xs text-blue-500 break-words">{user.RolNombre}</p>
               )}
             </div>
           </div>
