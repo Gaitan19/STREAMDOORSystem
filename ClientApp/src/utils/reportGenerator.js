@@ -5,7 +5,6 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import writeXlsxFile from 'write-excel-file/browser';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -153,46 +152,79 @@ export function generatePDF(data, userName, periodoLabel) {
   };
 
   /**
-   * @param {string[]} head    - Column headers
-   * @param {any[][]}  body    - Row data (will be pdfSafe'd)
-   * @param {object}   haligns - Map of column index → halign string, e.g. { 1: 'right', 2: 'center' }
-   * @param {number[]} ratios  - Relative widths per column (e.g. [3, 1] means 75%/25%).
-   *                            Defaults to equal distribution.
+   * Draws a table using raw jsPDF primitives so header and body columns share
+   * the exact same x positions — no third-party layout engine, no alignment drift.
    *
-   * Width strategy: compute an explicit cellWidth for EVERY column so they sum
-   * exactly to MW.  jspdf-autotable applies cellWidth identically to both the
-   * header row and all body rows, which is the only way to guarantee perfect
-   * column alignment regardless of content length.  tableWidth is intentionally
-   * NOT set here — it conflicts with per-column cellWidth in v5.
+   * @param {string[]} head    - Column headers
+   * @param {any[][]}  body    - Row data (will be pdfSafe'd automatically)
+   * @param {object}   haligns - { colIndex: 'left'|'center'|'right' }
+   * @param {number[]} ratios  - Relative widths per column (default: equal).
    */
   const table = (head, body, haligns = {}, ratios = null) => {
-    const n  = head.length;
-    const r  = ratios || new Array(n).fill(1);
-    const tR = r.reduce((a, b) => a + b, 0);
+    const n   = head.length;
+    const r   = ratios || new Array(n).fill(1);
+    const tR  = r.reduce((a, b) => a + b, 0);
+    const LX  = 14;             // left page margin (mm)
 
-    // Compute integer pixel widths; assign any rounding remainder to the last col
+    // Integer widths that sum exactly to MW
     const widths = r.map(v => Math.floor(MW * v / tR));
     widths[n - 1] = MW - widths.slice(0, n - 1).reduce((a, b) => a + b, 0);
 
-    const colStyles = {};
-    head.forEach((_, i) => {
-      colStyles[i] = { cellWidth: widths[i] };
-      if (haligns[i]) colStyles[i].halign = haligns[i];
-    });
+    // Left-edge x for each column — computed ONCE, shared by header AND body
+    const xs = [];
+    let cx = LX;
+    for (let i = 0; i < n; i++) { xs.push(cx); cx += widths[i]; }
 
-    autoTable(doc, {
-      startY: y,
-      head:   [head.map(h => pdfSafe(h))],
-      body:   safePdfRows(body),
-      styles: { fontSize: 8, cellPadding: 2.5, textColor: DARK, overflow: 'linebreak' },
-      headStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [249, 250, 251] },
-      margin:      { left: 14, right: 14 },
-      columnStyles: colStyles,
-      tableLineColor: [229, 231, 235],
-      tableLineWidth: 0.3,
-    });
-    y = (doc.lastAutoTable.finalY || y) + 6;
+    const ROW_H = 7.5;   // row height in mm
+    const BASE  = 5.2;   // text baseline from top of row  (8 pt ≈ 2.8 mm, visually centred)
+    const HP    = 2.5;   // horizontal padding inside each cell
+
+    // Truncate + ellipsis so text never overflows its cell
+    const clip = (txt, w) => {
+      doc.setFontSize(8);
+      const s   = String(txt ?? '-');
+      const max = w - HP * 2;
+      if (doc.getTextWidth(s) <= max) return s;
+      let t = s;
+      while (t.length > 1 && doc.getTextWidth(t + '..') > max) t = t.slice(0, -1);
+      return t + '..';
+    };
+
+    // Draw one row at the current y; handles page-break automatically
+    const drawRow = (cells, bold, fill) => {
+      if (y + ROW_H > 283) { doc.addPage(); y = 14; }
+      if (fill) { doc.setFillColor(...fill); doc.rect(LX, y, MW, ROW_H, 'F'); }
+      doc.setFontSize(8);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(...DARK);
+      for (let i = 0; i < n; i++) {
+        const al = haligns[i] || 'left';
+        const tx = clip(cells[i], widths[i]);
+        if      (al === 'right')  doc.text(tx, xs[i] + widths[i] - HP, y + BASE, { align: 'right' });
+        else if (al === 'center') doc.text(tx, xs[i] + widths[i] / 2,  y + BASE, { align: 'center' });
+        else                      doc.text(tx, xs[i] + HP,              y + BASE);
+      }
+      // Bottom border
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.line(LX, y + ROW_H, LX + MW, y + ROW_H);
+      y += ROW_H;
+    };
+
+    // Top border
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.3);
+    doc.line(LX, y, LX + MW, y);
+
+    // Header row
+    drawRow(head.map(h => pdfSafe(h)), true, LIGHT);
+
+    // Body rows
+    safePdfRows(body).forEach((rowCells, ri) =>
+      drawRow(rowCells, false, ri % 2 === 1 ? [249, 250, 251] : null)
+    );
+
+    y += 6;
   };
 
   // ── 1. Financial KPIs ───────────────────────────────────────────────────────
