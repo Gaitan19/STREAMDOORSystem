@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -7,15 +7,22 @@ import Input from '../components/Input';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   const validate = () => {
     const newErrors = {};
@@ -50,7 +57,7 @@ const Login = () => {
     
     if (!validate()) return;
 
-    setLoading(true);
+    setSubmitting(true);
     setErrorMessage('');
 
     try {
@@ -64,9 +71,14 @@ const Login = () => {
     } catch {
       setErrorMessage('Error al conectar con el servidor');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  // While auth state is being verified, show nothing to avoid flash
+  if (loading) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -151,10 +163,10 @@ const Login = () => {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full py-3"
             >
-              {loading ? (
+              {submitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   Iniciando sesión...

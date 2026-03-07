@@ -52,19 +52,18 @@ namespace STREAMDOORSystem.Controllers
                 UsuarioID = usuario.UsuarioID,
                 Nombre = usuario.Nombre,
                 Correo = usuario.Correo,
-                Token = token,
                 RolID = usuario.RolID,
                 RolNombre = usuario.Rol?.Nombre,
                 Permisos = permisos
             };
 
-            // Configurar cookie HttpOnly
+            // Configurar cookie HttpOnly – el token no se expone en el cuerpo de la respuesta
             Response.Cookies.Append("authToken", token, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddDays(7)
+                Expires = DateTimeOffset.UtcNow.AddHours(24)
             });
 
             return Ok(response);

@@ -38,7 +38,7 @@ namespace STREAMDOORSystem.Services
                 issuer: _configuration["Jwt:Issuer"] ?? "StreamDoorIssuer",
                 audience: _configuration["Jwt:Audience"] ?? "StreamDoorAudience",
                 claims: claims,
-                expires: DateTime.Now.AddDays(7),
+                expires: DateTime.Now.AddHours(24),
                 signingCredentials: credentials
             );
 

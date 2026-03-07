@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 // Use relative path for API calls so Vite proxy can handle them
 // In development: Vite proxy will forward /api to https://localhost:44447
@@ -11,23 +10,14 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies
-});
-
-apiClient.interceptors.request.use((config) => {
-  const token = Cookies.get('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true, // Sends the HttpOnly authToken cookie automatically
 });
 
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      Cookies.remove('authToken');
-      Cookies.remove('user');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
