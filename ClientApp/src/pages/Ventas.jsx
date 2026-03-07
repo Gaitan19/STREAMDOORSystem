@@ -813,26 +813,6 @@ const Ventas = () => {
       )
     },
     { 
-      key: 'servicios', 
-      label: 'Servicios',
-      render: (row) => {
-        const detalles = row.detalles || row.Detalles || [];
-        return (
-          <div className="space-y-1">
-            {detalles.map((detalle, idx) => {
-              const nombre = detalle.nombreServicio || detalle.NombreServicio || '';
-              const perfil = detalle.numeroPerfil || detalle.NumeroPerfil || '';
-              return (
-                <Badge key={idx} variant="primary" size="sm">
-                  {nombre} (P{perfil})
-                </Badge>
-              );
-            })}
-          </div>
-        );
-      }
-    },
-    { 
       key: 'fechas', 
       label: 'Período',
       render: (row) => (

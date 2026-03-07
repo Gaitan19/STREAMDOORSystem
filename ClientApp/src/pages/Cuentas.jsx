@@ -92,6 +92,7 @@ const Cuentas = () => {
   const handleSearch = (searchTerm) => {
     let filtered = cuentas.filter(cuenta =>
       cuenta.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cuenta.codigoCuenta?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cuenta.disponibilidad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
