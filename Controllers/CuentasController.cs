@@ -640,6 +640,48 @@ namespace STREAMDOORSystem.Controllers
             }
         }
 
+        // POST: api/cuentas/actualizar-disponibilidad
+        // Lightweight check used by Ventas after create/cancel/edit-assignment.
+        // Only updates the Disponibilidad field (no expiry check).
+        [HttpPost("actualizar-disponibilidad")]
+        public async Task<ActionResult> ActualizarDisponibilidad()
+        {
+            try
+            {
+                var cuentas = await _context.Cuentas
+                    .Where(c => c.Activo)
+                    .Include(c => c.Perfiles.Where(p => p.Activo))
+                    .ToListAsync();
+
+                int actualizadas = 0;
+                foreach (var cuenta in cuentas)
+                {
+                    var perfiles = cuenta.Perfiles.ToList();
+                    // "Disponible" when there is at least one available profile
+                    // "Ocupada" when all profiles are occupied or none exist
+                    var nuevaDisponibilidad = perfiles.Any(p => p.Estado == "Disponible")
+                        ? "Disponible"
+                        : "Ocupada";
+
+                    if (nuevaDisponibilidad != cuenta.Disponibilidad)
+                    {
+                        cuenta.Disponibilidad = nuevaDisponibilidad;
+                        _context.Entry(cuenta).Property(c => c.Disponibilidad).IsModified = true;
+                        actualizadas++;
+                    }
+                }
+
+                if (actualizadas > 0)
+                    await _context.SaveChangesAsync();
+
+                return Ok(new { message = $"{actualizadas} cuenta(s) actualizada(s)", actualizadas });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al actualizar disponibilidad", error = ex.Message });
+            }
+        }
+
         // POST: api/cuentas/verificar-estados
         [HttpPost("verificar-estados")]
         public async Task<ActionResult> VerificarEstados()

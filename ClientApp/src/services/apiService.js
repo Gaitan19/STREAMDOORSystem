@@ -80,6 +80,7 @@ export const cuentasService = {
   getByFiltro: (filtro) => apiClient.get(`/cuentas/filtro/${filtro}`),
   validarCodigo: (codigo) => apiClient.get(`/cuentas/validar-codigo/${codigo}`),
   verificarEstados: () => apiClient.post('/cuentas/verificar-estados'),
+  actualizarDisponibilidad: () => apiClient.post('/cuentas/actualizar-disponibilidad'),
   create: (data) => apiClient.post('/cuentas', data),
   update: (id, data) => apiClient.put(`/cuentas/${id}`, data),
   delete: (id) => apiClient.delete(`/cuentas/${id}`),

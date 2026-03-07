@@ -477,6 +477,7 @@ const Ventas = () => {
       }
       
       loadData();
+      cuentasService.actualizarDisponibilidad().catch(() => {});
     } catch (error) {
       console.error('Error al crear venta:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error al crear venta';
@@ -490,6 +491,7 @@ const Ventas = () => {
       showAlert('success', 'Venta cancelada exitosamente');
       setDeleteModalOpen(false);
       loadData();
+      cuentasService.actualizarDisponibilidad().catch(() => {});
     } catch (error) {
       console.error('Error al eliminar venta:', error);
       showAlert('error', 'Error al cancelar venta');
@@ -660,6 +662,7 @@ const Ventas = () => {
       setSelectedVenta(null);
       setVentaCompleta(null);
       loadData(); // Reload sales list
+      cuentasService.actualizarDisponibilidad().catch(() => {});
     } catch (error) {
       console.error('Error al actualizar venta:', error);
       showAlert('error', error.response?.data?.message || 'Error al actualizar venta');

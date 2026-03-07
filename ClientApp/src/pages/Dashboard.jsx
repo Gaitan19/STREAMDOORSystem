@@ -83,7 +83,7 @@ const Dashboard = () => {
       setError(null);
       const { inicio, fin } = derivedRange();
       const res = await dashboardService.getCompleto(inicio, fin);
-      setData(res.data);
+      setData(res);
     } catch (err) {
       console.error(err);
       setError('No se pudo cargar la información del dashboard.');
