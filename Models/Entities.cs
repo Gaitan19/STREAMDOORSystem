@@ -1,0 +1,501 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace STREAMDOORSystem.Models
+{
+    [Table("Roles")]
+    public class Rol
+    {
+        [Key]
+        public int RolID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
+
+        public bool Activo { get; set; } = true;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        public ICollection<RolPermiso> Permisos { get; set; } = new List<RolPermiso>();
+    }
+
+    [Table("RolPermisos")]
+    public class RolPermiso
+    {
+        [Key]
+        public int RolPermisoID { get; set; }
+
+        public int RolID { get; set; }
+
+        [ForeignKey("RolID")]
+        public Rol? Rol { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Modulo { get; set; } = string.Empty;
+
+        public bool PuedeVer { get; set; } = false;
+        public bool PuedeCrear { get; set; } = false;
+        public bool PuedeEditar { get; set; } = false;
+        public bool PuedeEliminar { get; set; } = false;
+    }
+
+    [Table("Usuarios")]
+    public class Usuario
+    {
+        [Key]
+        public int UsuarioID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string Correo { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string? Telefono { get; set; }
+
+        [Required]
+        [MaxLength(255)]
+        public string PasswordHash { get; set; } = string.Empty;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        public bool Activo { get; set; } = true;
+
+        public int? RolID { get; set; }
+
+        [ForeignKey("RolID")]
+        public Rol? Rol { get; set; }
+    }
+
+    [Table("Clientes")]
+    public class Cliente
+    {
+        [Key]
+        public int ClienteID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? SegundoNombre { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Apellido { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? SegundoApellido { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string Telefono { get; set; } = string.Empty;
+
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
+        public bool Activo { get; set; } = true;
+    }
+
+    [Table("Servicios")]
+    public class Servicio
+    {
+        [Key]
+        public int ServicioID { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? Precio { get; set; }
+
+        public bool Activo { get; set; } = true;
+    }
+
+    [Table("Correos")]
+    public class Correo
+    {
+        [Key]
+        public int CorreoID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(255)]
+        public string Password { get; set; } = string.Empty;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [MaxLength(500)]
+        public string? Notas { get; set; }
+
+        public bool Activo { get; set; } = true;
+    }
+
+    [Table("Cuentas")]
+    public class Cuenta
+    {
+        [Key]
+        public int CuentaID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        public int? CorreoID { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string TipoCuenta { get; set; } = "Propia";
+
+        public int NumeroPerfiles { get; set; } = 1;
+
+        public int PerfilesDisponibles { get; set; } = 1;
+
+        [MaxLength(20)]
+        public string Estado { get; set; } = "Disponible";  // Kept for backward compatibility
+        
+        [MaxLength(20)]
+        public string Disponibilidad { get; set; } = "Disponible";  // Profile availability
+        
+        [MaxLength(30)]
+        public string EstadoSuscripcion { get; set; } = "Activo";  // Subscription status
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Column(TypeName = "datetime")]
+        public DateTime? FechaFinalizacion { get; set; }
+
+        [MaxLength(100)]
+        public string? Password { get; set; }
+
+        [MaxLength(100)]
+        public string? CorreoTerceros { get; set; }
+
+        [MaxLength(10)]
+        public string? CodigoCuenta { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? Costo { get; set; }
+
+        public bool Activo { get; set; } = true;
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
+
+        [ForeignKey("CorreoID")]
+        public virtual Correo? Correo { get; set; }
+
+        public virtual ICollection<Perfil> Perfiles { get; set; } = new List<Perfil>();
+    }
+
+    [Table("Perfiles")]
+    public class Perfil
+    {
+        [Key]
+        public int PerfilID { get; set; }
+
+        [Required]
+        public int CuentaID { get; set; }
+
+        [Required]
+        public int NumeroPerfil { get; set; }
+
+        [MaxLength(10)]
+        public string? PIN { get; set; }
+
+        [MaxLength(20)]
+        public string Estado { get; set; } = "Disponible";
+
+        public bool Activo { get; set; } = true;
+
+        [ForeignKey("CuentaID")]
+        public virtual Cuenta? Cuenta { get; set; }
+    }
+
+    [Table("MediosPago")]
+    public class MedioPago
+    {
+        [Key]
+        public int MedioPagoID { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Tipo { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string? NumeroCuenta { get; set; }
+
+        [MaxLength(100)]
+        public string? Beneficiario { get; set; }
+
+        [Required]
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
+
+        public bool Activo { get; set; } = true;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+    }
+
+    [Table("Ventas")]
+    public class Venta
+    {
+        [Key]
+        public int VentaID { get; set; }
+
+        [Required]
+        public int ClienteID { get; set; }
+
+        [Required]
+        public DateTime FechaInicio { get; set; }
+
+        [Required]
+        public DateTime FechaFin { get; set; }
+
+        public int? Duracion { get; set; } // Nullable para compatibilidad
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        [Required]
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
+
+        [MaxLength(20)]
+        public string Estado { get; set; } = "Activo";
+
+        public int? MedioPagoID { get; set; }  // Medio de pago usado
+
+        public int? UsuarioID { get; set; } // Usuario que realizó la venta
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [ForeignKey("ClienteID")]
+        public virtual Cliente? Cliente { get; set; }
+
+        [ForeignKey("MedioPagoID")]
+        public virtual MedioPago? MedioPago { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? Usuario { get; set; }
+
+        public virtual ICollection<VentaDetalle> Detalles { get; set; } = new List<VentaDetalle>();
+    }
+
+    [Table("VentasDetalles")]
+    public class VentaDetalle
+    {
+        [Key]
+        public int VentaDetalleID { get; set; }
+
+        [Required]
+        public int VentaID { get; set; }
+
+        [Required]
+        public int CuentaID { get; set; }
+
+        [Required]
+        public int PerfilID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        public int? ComboID { get; set; } // Nullable - solo se llena si la venta fue de un combo
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal PrecioUnitario { get; set; }
+
+        public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+
+        [ForeignKey("VentaID")]
+        public virtual Venta? Venta { get; set; }
+
+        [ForeignKey("CuentaID")]
+        public virtual Cuenta? Cuenta { get; set; }
+
+        [ForeignKey("PerfilID")]
+        public virtual Perfil? Perfil { get; set; }
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
+
+        [ForeignKey("ComboID")]
+        public virtual Combo? Combo { get; set; }
+    }
+
+    [Table("Combos")]
+    public class Combo
+    {
+        [Key]
+        public int ComboID { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Precio { get; set; }
+
+        public bool Activo { get; set; } = true;
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        public virtual ICollection<ComboServicio> ComboServicios { get; set; } = new List<ComboServicio>();
+    }
+
+    [Table("ComboServicios")]
+    public class ComboServicio
+    {
+        [Key]
+        public int ComboServicioID { get; set; }
+
+        [Required]
+        public int ComboID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        [ForeignKey("ComboID")]
+        public virtual Combo? Combo { get; set; }
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
+    }
+
+    [Table("Pagos")]
+    public class Pago
+    {
+        [Key]
+        public int PagoID { get; set; }
+
+        [Required]
+        public int VentaID { get; set; }
+
+        [Required]
+        public int MedioPagoID { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        [Required]
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
+
+        public DateTime FechaPago { get; set; } = DateTime.Now;
+
+        [MaxLength(100)]
+        public string? Referencia { get; set; }
+
+        [MaxLength(500)]
+        public string? Notas { get; set; }
+
+        [ForeignKey("VentaID")]
+        public virtual Venta? Venta { get; set; }
+
+        [ForeignKey("MedioPagoID")]
+        public virtual MedioPago? MedioPago { get; set; }
+    }
+
+    [Table("CorreosServicios")]
+    public class CorreoServicio
+    {
+        [Key]
+        public int CorreoServicioID { get; set; }
+
+        [Required]
+        public int CorreoID { get; set; }
+
+        [Required]
+        public int ServicioID { get; set; }
+
+        public DateTime FechaAsociacion { get; set; } = DateTime.Now;
+
+        [ForeignKey("CorreoID")]
+        public virtual Correo? Correo { get; set; }
+
+        [ForeignKey("ServicioID")]
+        public virtual Servicio? Servicio { get; set; }
+    }
+
+    [Table("Ingresos")]
+    public class Ingreso
+    {
+        [Key]
+        public int IngresoID { get; set; }
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        public int? UsuarioID { get; set; }
+
+        [MaxLength(100)]
+        public string? Usuario { get; set; }
+
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        public int? VentaID { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? UsuarioNav { get; set; }
+
+        [ForeignKey("VentaID")]
+        public virtual Venta? Venta { get; set; }
+    }
+
+    [Table("Egresos")]
+    public class Egreso
+    {
+        [Key]
+        public int EgresoID { get; set; }
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Monto { get; set; }
+
+        public int? UsuarioID { get; set; }
+
+        [MaxLength(100)]
+        public string? Usuario { get; set; }
+
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        public int? CuentaID { get; set; }
+
+        [ForeignKey("UsuarioID")]
+        public virtual Usuario? UsuarioNav { get; set; }
+
+        [ForeignKey("CuentaID")]
+        public virtual Cuenta? Cuenta { get; set; }
+    }
+}

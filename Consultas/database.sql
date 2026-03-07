@@ -1,0 +1,783 @@
+-- ============================================
+-- Nombre de la Base de Datos: DBStreamDoor
+-- Sistema de Gestión de Streaming
+-- ============================================
+
+USE master;
+GO
+
+-- Crear la base de datos si no existe
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'DBStreamDoor')
+BEGIN
+    CREATE DATABASE DBStreamDoor;
+END
+GO
+
+USE DBStreamDoor;
+GO
+
+-- ============================================
+-- Tabla: Roles
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Roles')
+BEGIN
+    CREATE TABLE Roles (
+        RolID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL UNIQUE,
+        Descripcion NVARCHAR(255) NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: RolPermisos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'RolPermisos')
+BEGIN
+    CREATE TABLE RolPermisos (
+        RolPermisoID INT PRIMARY KEY IDENTITY(1,1),
+        RolID INT NOT NULL,
+        Modulo NVARCHAR(50) NOT NULL,
+        PuedeVer BIT DEFAULT 0,
+        PuedeCrear BIT DEFAULT 0,
+        PuedeEditar BIT DEFAULT 0,
+        PuedeEliminar BIT DEFAULT 0,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Usuarios del Sistema
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Usuarios')
+BEGIN
+    CREATE TABLE Usuarios (
+        UsuarioID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL,
+        Correo NVARCHAR(100) NOT NULL UNIQUE,
+        Telefono NVARCHAR(20) NULL,
+        PasswordHash NVARCHAR(255) NOT NULL,
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Activo BIT DEFAULT 1,
+        RolID INT NULL,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Clientes
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Clientes')
+BEGIN
+    CREATE TABLE Clientes (
+        ClienteID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL,
+        SegundoNombre NVARCHAR(100) NULL,
+        Apellido NVARCHAR(100) NOT NULL,
+        SegundoApellido NVARCHAR(100) NULL,
+        Telefono NVARCHAR(20) NOT NULL,
+        FechaRegistro DATETIME DEFAULT GETDATE(),
+        Activo BIT DEFAULT 1
+    );
+END
+GO
+
+-- Migración: Actualizar tabla Clientes existente
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Clientes')
+BEGIN
+    -- Renombrar WhatsApp a Telefono si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'WhatsApp')
+    BEGIN
+        EXEC sp_rename 'Clientes.WhatsApp', 'Telefono', 'COLUMN';
+    END
+
+    -- Agregar SegundoNombre si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'SegundoNombre')
+    BEGIN
+        ALTER TABLE Clientes ADD SegundoNombre NVARCHAR(100) NULL;
+    END
+
+    -- Agregar SegundoApellido si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'SegundoApellido')
+    BEGIN
+        ALTER TABLE Clientes ADD SegundoApellido NVARCHAR(100) NULL;
+    END
+
+    -- Eliminar Correo si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'Correo')
+    BEGIN
+        ALTER TABLE Clientes DROP COLUMN Correo;
+    END
+
+    -- Eliminar Direccion si existe
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'Direccion')
+    BEGIN
+        ALTER TABLE Clientes DROP COLUMN Direccion;
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: Servicios de Streaming (Plataformas)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Servicios')
+BEGIN
+    CREATE TABLE Servicios (
+        ServicioID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(50) NOT NULL,
+        Descripcion NVARCHAR(255) NULL,
+        Precio DECIMAL(10,2) NULL,
+        Activo BIT DEFAULT 1
+    );
+END
+GO
+
+-- Migración: Agregar columna Precio si no existe
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'Servicios') AND name = 'Precio')
+BEGIN
+    ALTER TABLE Servicios ADD Precio DECIMAL(10,2) NULL;
+END
+GO
+
+-- ============================================
+-- Tabla: Correos (Gestión de correos para cuentas)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Correos')
+BEGIN
+    CREATE TABLE Correos (
+        CorreoID INT PRIMARY KEY IDENTITY(1,1),
+        Email NVARCHAR(100) NOT NULL UNIQUE,
+        Password NVARCHAR(255) NOT NULL,
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Notas NVARCHAR(500) NULL,
+        Activo BIT DEFAULT 1
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Cuentas de Streaming
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    CREATE TABLE Cuentas (
+        CuentaID INT PRIMARY KEY IDENTITY(1,1),
+        ServicioID INT NOT NULL,
+        CorreoID INT NULL, -- NULL si es cuenta propia, FK si es de terceros
+        TipoCuenta NVARCHAR(20) NOT NULL CHECK (TipoCuenta IN ('Propia', 'Terceros')),
+        NumeroPerfiles INT DEFAULT 1,
+        PerfilesDisponibles INT DEFAULT 1,
+        Estado NVARCHAR(30) DEFAULT 'Disponible' CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible')),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Activo BIT DEFAULT 1,
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID),
+        FOREIGN KEY (CorreoID) REFERENCES Correos(CorreoID)
+    );
+END
+GO
+
+-- Migración: Actualizar tabla Cuentas existente
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    -- Agregar FechaFinalizacion si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'FechaFinalizacion')
+    BEGIN
+        ALTER TABLE Cuentas ADD FechaFinalizacion DATETIME NULL;
+        PRINT 'Column FechaFinalizacion added to Cuentas table.';
+    END
+    
+    -- Agregar Password si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'Password')
+    BEGIN
+        ALTER TABLE Cuentas ADD Password NVARCHAR(100) NULL;
+        PRINT 'Column Password added to Cuentas table.';
+    END
+    
+    -- Agregar CorreoTerceros si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'CorreoTerceros')
+    BEGIN
+        ALTER TABLE Cuentas ADD CorreoTerceros NVARCHAR(100) NULL;
+        PRINT 'Column CorreoTerceros added to Cuentas table.';
+    END
+    
+    -- Agregar CodigoCuenta si no existe
+    IF NOT EXISTS (SELECT * FROM sys.columns 
+                   WHERE object_id = OBJECT_ID('Cuentas') 
+                   AND name = 'CodigoCuenta')
+    BEGIN
+        ALTER TABLE Cuentas ADD CodigoCuenta NVARCHAR(10) NULL;
+        PRINT 'Column CodigoCuenta added to Cuentas table.';
+    END
+    
+    -- Agregar constraint UNIQUE a CodigoCuenta si no existe
+    IF NOT EXISTS (SELECT * FROM sys.indexes 
+                   WHERE name = 'UQ_Cuentas_CodigoCuenta' 
+                   AND object_id = OBJECT_ID('Cuentas'))
+    BEGIN
+        ALTER TABLE Cuentas ADD CONSTRAINT UQ_Cuentas_CodigoCuenta UNIQUE (CodigoCuenta);
+        PRINT 'UNIQUE constraint added to CodigoCuenta column.';
+    END
+    
+    -- Actualizar constraint CHECK de Estado para incluir nuevos valores
+    DECLARE @ConstraintName NVARCHAR(200);
+    SELECT @ConstraintName = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID('Cuentas') 
+    AND COL_NAME(parent_object_id, parent_column_id) = 'Estado';
+    
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        DECLARE @SQL NVARCHAR(MAX);
+        SET @SQL = 'ALTER TABLE Cuentas DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
+        EXEC sp_executesql @SQL;
+        PRINT 'Dropped old Estado CHECK constraint: ' + @ConstraintName;
+        
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Estado 
+            CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible'));
+        PRINT 'Added new Estado CHECK constraint with extended values.';
+    END
+    ELSE
+    BEGIN
+        -- Si no existe constraint, agregar uno nuevo
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Estado 
+            CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible'));
+        PRINT 'Added Estado CHECK constraint.';
+    END
+    
+    -- Ampliar el tamaño de la columna Estado si es necesario
+    IF EXISTS (SELECT * FROM sys.columns 
+               WHERE object_id = OBJECT_ID('Cuentas') 
+               AND name = 'Estado' 
+               AND max_length < 60)  -- NVARCHAR(30) = 60 bytes
+    BEGIN
+        ALTER TABLE Cuentas ALTER COLUMN Estado NVARCHAR(30) NOT NULL;
+        PRINT 'Estado column resized to NVARCHAR(30).';
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: Perfiles de Cuentas (para cuentas de terceros)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Perfiles')
+BEGIN
+    CREATE TABLE Perfiles (
+        PerfilID INT PRIMARY KEY IDENTITY(1,1),
+        CuentaID INT NOT NULL,
+        NumeroPerfil INT NOT NULL,
+        PIN NVARCHAR(10) NULL,
+        Estado NVARCHAR(20) DEFAULT 'Disponible' CHECK (Estado IN ('Disponible', 'Ocupado', 'Vencido')),
+        Activo BIT DEFAULT 1,
+        FOREIGN KEY (CuentaID) REFERENCES Cuentas(CuentaID)
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Medios de Pago (Catálogos editables)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MediosPago')
+BEGIN
+    CREATE TABLE MediosPago (
+        MedioPagoID INT PRIMARY KEY IDENTITY(1,1),
+        Tipo NVARCHAR(50) NOT NULL, -- Banco, Billetera Móvil, etc.
+        Nombre NVARCHAR(100) NOT NULL,
+        NumeroCuenta NVARCHAR(50) NULL,
+        Beneficiario NVARCHAR(100) NULL,
+        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Ventas
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    CREATE TABLE Ventas (
+        VentaID INT PRIMARY KEY IDENTITY(1,1),
+        ClienteID INT NOT NULL,
+        FechaInicio DATETIME NOT NULL,
+        FechaFin DATETIME NOT NULL,
+        Duracion INT NULL, -- En días (opcional, para compatibilidad)
+        Monto DECIMAL(10,2) NOT NULL,
+        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        MedioPagoID INT NULL, -- Medio de pago utilizado
+        Estado NVARCHAR(20) DEFAULT 'Activo' CHECK (Estado IN ('Activo', 'ProximoVencer', 'Vencido', 'Cancelado')),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID),
+        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
+    );
+END
+GO
+
+-- Migración: Actualizar tabla Ventas existente para quitar CuentaID y PerfilID
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    -- Hacer Duracion nullable para compatibilidad
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'Duracion')
+    BEGIN
+        ALTER TABLE Ventas ALTER COLUMN Duracion INT NULL;
+    END
+
+    -- Eliminar CuentaID si existe (los datos se migrarán a VentasDetalles)
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'CuentaID')
+    BEGIN
+        -- Primero eliminar el foreign key constraint
+        DECLARE @ConstraintName nvarchar(200)
+        SELECT @ConstraintName = name FROM sys.foreign_keys 
+        WHERE parent_object_id = OBJECT_ID('Ventas') AND referenced_object_id = OBJECT_ID('Cuentas')
+        IF @ConstraintName IS NOT NULL
+            EXEC('ALTER TABLE Ventas DROP CONSTRAINT ' + @ConstraintName)
+        
+        -- Ahora eliminar la columna
+        ALTER TABLE Ventas DROP COLUMN CuentaID;
+    END
+
+    -- Eliminar PerfilID si existe (los datos se migrarán a VentasDetalles)
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'PerfilID')
+    BEGIN
+        -- Primero eliminar el foreign key constraint
+        DECLARE @ConstraintName2 nvarchar(200)
+        SELECT @ConstraintName2 = name FROM sys.foreign_keys 
+        WHERE parent_object_id = OBJECT_ID('Ventas') AND referenced_object_id = OBJECT_ID('Perfiles')
+        IF @ConstraintName2 IS NOT NULL
+            EXEC('ALTER TABLE Ventas DROP CONSTRAINT ' + @ConstraintName2)
+        
+        -- Ahora eliminar la columna
+        ALTER TABLE Ventas DROP COLUMN PerfilID;
+    END
+
+    -- Agregar MedioPagoID si no existe (consolidado de migracion_mediopago_pagos.sql)
+    PRINT 'Verificando columna MedioPagoID en Ventas...';
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'MedioPagoID')
+    BEGIN
+        PRINT 'Agregando columna MedioPagoID a Ventas...';
+        ALTER TABLE Ventas ADD MedioPagoID INT NULL;
+        PRINT 'Columna MedioPagoID agregada exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Columna MedioPagoID ya existe en Ventas.';
+    END
+    
+    -- Verificar y agregar Foreign Key FK_Ventas_MediosPago
+    PRINT 'Verificando Foreign Key FK_Ventas_MediosPago...';
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Ventas_MediosPago')
+    BEGIN
+        PRINT 'Creando Foreign Key FK_Ventas_MediosPago...';
+        ALTER TABLE Ventas ADD CONSTRAINT FK_Ventas_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
+        PRINT 'Foreign Key FK_Ventas_MediosPago creado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Foreign Key FK_Ventas_MediosPago ya existe.';
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: VentasDetalles (Detalle de servicios por venta)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'VentasDetalles')
+BEGIN
+    CREATE TABLE VentasDetalles (
+        VentaDetalleID INT PRIMARY KEY IDENTITY(1,1),
+        VentaID INT NOT NULL,
+        CuentaID INT NOT NULL,
+        PerfilID INT NOT NULL,
+        ServicioID INT NOT NULL,
+        PrecioUnitario DECIMAL(10,2) NOT NULL,
+        FechaAsignacion DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
+        FOREIGN KEY (CuentaID) REFERENCES Cuentas(CuentaID),
+        FOREIGN KEY (PerfilID) REFERENCES Perfiles(PerfilID),
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID)
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Pagos (con verificación de integridad)
+-- Migración consolidada de migracion_mediopago_pagos.sql
+-- ============================================
+PRINT 'Verificando tabla Pagos...';
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Pagos')
+BEGIN
+    PRINT 'Creando tabla Pagos...';
+    CREATE TABLE Pagos (
+        PagoID INT PRIMARY KEY IDENTITY(1,1),
+        VentaID INT NOT NULL,
+        MedioPagoID INT NOT NULL,
+        Monto DECIMAL(10,2) NOT NULL,
+        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        FechaPago DATETIME DEFAULT GETDATE(),
+        Referencia NVARCHAR(100) NULL,
+        Notas NVARCHAR(500) NULL,
+        CONSTRAINT FK_Pagos_Ventas FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID),
+        CONSTRAINT FK_Pagos_MediosPago FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID)
+    );
+    PRINT 'Tabla Pagos creada exitosamente.';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla Pagos ya existe.';
+    
+    -- Verificar y reparar foreign keys si faltan
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_Ventas')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_Ventas...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_Ventas 
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID);
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Pagos_MediosPago')
+    BEGIN
+        PRINT 'Agregando FK_Pagos_MediosPago...';
+        ALTER TABLE Pagos 
+        ADD CONSTRAINT FK_Pagos_MediosPago 
+        FOREIGN KEY (MedioPagoID) REFERENCES MediosPago(MedioPagoID);
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: Relación Correos-Servicios
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'CorreosServicios')
+BEGIN
+    CREATE TABLE CorreosServicios (
+        CorreoServicioID INT PRIMARY KEY IDENTITY(1,1),
+        CorreoID INT NOT NULL,
+        ServicioID INT NOT NULL,
+        FechaAsociacion DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (CorreoID) REFERENCES Correos(CorreoID),
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID)
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: Combos (Paquetes de Servicios)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Combos')
+BEGIN
+    CREATE TABLE Combos (
+        ComboID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL,
+        Descripcion NVARCHAR(255) NULL,
+        Precio DECIMAL(10,2) NOT NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ============================================
+-- Tabla: ComboServicios (Relación Many-to-Many entre Combos y Servicios)
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ComboServicios')
+BEGIN
+    CREATE TABLE ComboServicios (
+        ComboServicioID INT PRIMARY KEY IDENTITY(1,1),
+        ComboID INT NOT NULL,
+        ServicioID INT NOT NULL,
+        FOREIGN KEY (ComboID) REFERENCES Combos(ComboID) ON DELETE CASCADE,
+        FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID),
+        CONSTRAINT UQ_ComboServicios_Combo_Servicio UNIQUE(ComboID, ServicioID)
+    );
+END
+GO
+
+-- Migración: Agregar columna ComboID a VentasDetalles si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'VentasDetalles')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('VentasDetalles') AND name = 'ComboID')
+    BEGIN
+        ALTER TABLE VentasDetalles ADD ComboID INT NULL;
+        ALTER TABLE VentasDetalles ADD CONSTRAINT FK_VentasDetalles_Combos FOREIGN KEY (ComboID) REFERENCES Combos(ComboID);
+        PRINT 'Column ComboID added to VentasDetalles table.';
+    END
+END
+GO
+
+-- Migración: Agregar columna Costo a Cuentas si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Costo')
+    BEGIN
+        ALTER TABLE Cuentas ADD Costo DECIMAL(10,2) NULL;
+        PRINT 'Column Costo added to Cuentas table.';
+    END
+END
+GO
+
+-- Migración: Agregar columna UsuarioID a Ventas si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ventas') AND name = 'UsuarioID')
+    BEGIN
+        ALTER TABLE Ventas ADD UsuarioID INT NULL;
+        ALTER TABLE Ventas ADD CONSTRAINT FK_Ventas_Usuarios FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID);
+        PRINT 'Column UsuarioID added to Ventas table.';
+    END
+END
+GO
+
+-- ============================================
+-- Tabla: Ingresos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Ingresos')
+BEGIN
+    CREATE TABLE Ingresos (
+        IngresoID INT PRIMARY KEY IDENTITY(1,1),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Monto DECIMAL(10,2) NOT NULL,
+        UsuarioID INT NULL,
+        Usuario NVARCHAR(100) NULL,
+        Descripcion NVARCHAR(500) NULL,
+        VentaID INT NULL,
+        FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID),
+        FOREIGN KEY (VentaID) REFERENCES Ventas(VentaID)
+    );
+    PRINT 'Table Ingresos created.';
+END
+GO
+
+-- ============================================
+-- Tabla: Egresos
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Egresos')
+BEGIN
+    CREATE TABLE Egresos (
+        EgresoID INT PRIMARY KEY IDENTITY(1,1),
+        FechaCreacion DATETIME DEFAULT GETDATE(),
+        Monto DECIMAL(10,2) NOT NULL,
+        UsuarioID INT NULL,
+        Usuario NVARCHAR(100) NULL,
+        Descripcion NVARCHAR(500) NULL,
+        CuentaID INT NULL,
+        FOREIGN KEY (UsuarioID) REFERENCES Usuarios(UsuarioID),
+        FOREIGN KEY (CuentaID) REFERENCES Cuentas(CuentaID)
+    );
+    PRINT 'Table Egresos created.';
+END
+GO
+
+-- ============================================
+-- MIGRACIÓN: Separar Disponibilidad y Estado de Suscripción en Cuentas
+-- ============================================
+-- Add Disponibilidad column to Cuentas with default value
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Disponibilidad')
+BEGIN
+    -- Add column with default value to avoid NULL issues
+    ALTER TABLE Cuentas ADD Disponibilidad NVARCHAR(20) NOT NULL DEFAULT 'Disponible';
+    PRINT 'Column Disponibilidad added to Cuentas with default value.';
+    
+    -- Migrate data using dynamic SQL to avoid column validation errors
+    EXEC sp_executesql N'
+        UPDATE Cuentas 
+        SET Disponibilidad = CASE 
+            WHEN Estado = ''No Disponible'' THEN ''No Disponible''
+            ELSE ''Disponible''
+        END';
+    
+    -- Add constraint using dynamic SQL to avoid parse-time validation
+    EXEC sp_executesql N'
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Disponibilidad 
+            CHECK (Disponibilidad IN (''Disponible'', ''No Disponible''))';
+    
+    PRINT 'Disponibilidad data migrated from Estado.';
+END
+ELSE
+BEGIN
+    PRINT 'Column Disponibilidad already exists in Cuentas.';
+END
+GO
+
+-- Add EstadoSuscripcion column to Cuentas with default value
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'EstadoSuscripcion')
+BEGIN
+    -- Add column with default value to avoid NULL issues
+    ALTER TABLE Cuentas ADD EstadoSuscripcion NVARCHAR(30) NOT NULL DEFAULT 'Activo';
+    PRINT 'Column EstadoSuscripcion added to Cuentas with default value.';
+    
+    -- Migrate data using dynamic SQL to avoid column validation errors
+    EXEC sp_executesql N'
+        UPDATE Cuentas 
+        SET EstadoSuscripcion = CASE 
+            WHEN Estado = ''Vencida'' THEN ''Vencida''
+            WHEN Estado = ''Próxima a Vencer'' THEN ''Próxima a Vencer''
+            ELSE ''Activo''
+        END';
+    
+    -- Add constraint using dynamic SQL to avoid parse-time validation
+    EXEC sp_executesql N'
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_EstadoSuscripcion 
+            CHECK (EstadoSuscripcion IN (''Activo'', ''Próxima a Vencer'', ''Vencida''))';
+    
+    PRINT 'EstadoSuscripcion data migrated from Estado.';
+END
+ELSE
+BEGIN
+    PRINT 'Column EstadoSuscripcion already exists in Cuentas.';
+END
+GO
+
+-- ============================================
+-- Índices para mejor rendimiento
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Estado')
+    CREATE INDEX IX_Ventas_Estado ON Ventas(Estado);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_FechaFin')
+    CREATE INDEX IX_Ventas_FechaFin ON Ventas(FechaFin);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Estado')
+    CREATE INDEX IX_Cuentas_Estado ON Cuentas(Estado);
+GO
+
+-- Create index for Disponibilidad using dynamic SQL to avoid validation errors
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_Disponibilidad')
+BEGIN
+    EXEC sp_executesql N'CREATE INDEX IX_Cuentas_Disponibilidad ON Cuentas(Disponibilidad)';
+    PRINT 'Index IX_Cuentas_Disponibilidad created.';
+END
+GO
+
+-- Create index for EstadoSuscripcion using dynamic SQL to avoid validation errors
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Cuentas_EstadoSuscripcion')
+BEGIN
+    EXEC sp_executesql N'CREATE INDEX IX_Cuentas_EstadoSuscripcion ON Cuentas(EstadoSuscripcion)';
+    PRINT 'Index IX_Cuentas_EstadoSuscripcion created.';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_VentaID')
+    CREATE INDEX IX_VentasDetalles_VentaID ON VentasDetalles(VentaID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_VentasDetalles_PerfilID')
+    CREATE INDEX IX_VentasDetalles_PerfilID ON VentasDetalles(PerfilID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComboServicios_ComboID')
+    CREATE INDEX IX_ComboServicios_ComboID ON ComboServicios(ComboID);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComboServicios_ServicioID')
+    CREATE INDEX IX_ComboServicios_ServicioID ON ComboServicios(ServicioID);
+GO
+
+
+
+-- ============================================
+-- MIGRACIONES CONSOLIDADAS
+-- ============================================
+-- Las siguientes migraciones han sido integradas en este archivo:
+-- - migracion_mediopago_pagos.sql (2026-02-24): Tabla Pagos y MedioPagoID en Ventas
+--   * Verificación de integridad de tabla Pagos con reparación de foreign keys
+--   * Adición idempotente de columna MedioPagoID en tabla Ventas
+--   * Foreign Key FK_Ventas_MediosPago con verificación
+-- ============================================
+
+-- ============================================
+-- Migración: Módulo de Roles
+-- ============================================
+
+-- Add Roles table if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Roles')
+BEGIN
+    CREATE TABLE Roles (
+        RolID INT PRIMARY KEY IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL UNIQUE,
+        Descripcion NVARCHAR(255) NULL,
+        Activo BIT DEFAULT 1,
+        FechaCreacion DATETIME DEFAULT GETDATE()
+    );
+    PRINT 'Table Roles created.';
+END
+GO
+
+-- Add RolPermisos table if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'RolPermisos')
+BEGIN
+    CREATE TABLE RolPermisos (
+        RolPermisoID INT PRIMARY KEY IDENTITY(1,1),
+        RolID INT NOT NULL,
+        Modulo NVARCHAR(50) NOT NULL,
+        PuedeVer BIT DEFAULT 0,
+        PuedeCrear BIT DEFAULT 0,
+        PuedeEditar BIT DEFAULT 0,
+        PuedeEliminar BIT DEFAULT 0,
+        FOREIGN KEY (RolID) REFERENCES Roles(RolID)
+    );
+    PRINT 'Table RolPermisos created.';
+END
+GO
+
+-- Add RolID column to Usuarios if not exists (for existing databases)
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Usuarios') AND name = 'RolID')
+BEGIN
+    ALTER TABLE Usuarios ADD RolID INT NULL;
+    PRINT 'Column RolID added to Usuarios.';
+END
+GO
+
+-- Add foreign key from Usuarios.RolID to Roles.RolID if not exists
+IF NOT EXISTS (
+    SELECT * FROM sys.foreign_keys 
+    WHERE name = 'FK_Usuarios_Roles' AND parent_object_id = OBJECT_ID('Usuarios')
+)
+BEGIN
+    ALTER TABLE Usuarios ADD CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (RolID) REFERENCES Roles(RolID);
+    PRINT 'Foreign Key FK_Usuarios_Roles added.';
+END
+GO
+
+-- Insert Administrador role if not exists and assign all permissions
+IF NOT EXISTS (SELECT * FROM Roles WHERE Nombre = 'Administrador')
+BEGIN
+    INSERT INTO Roles (Nombre, Descripcion, Activo)
+    VALUES ('Administrador', 'Rol con acceso completo a todos los módulos del sistema', 1);
+    
+    DECLARE @AdminRolID INT = SCOPE_IDENTITY();
+    
+    INSERT INTO RolPermisos (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar) VALUES
+    (@AdminRolID, 'dashboard',   1, 1, 1, 1),
+    (@AdminRolID, 'clientes',    1, 1, 1, 1),
+    (@AdminRolID, 'servicios',   1, 1, 1, 1),
+    (@AdminRolID, 'combos',      1, 1, 1, 1),
+    (@AdminRolID, 'correos',     1, 1, 1, 1),
+    (@AdminRolID, 'cuentas',     1, 1, 1, 1),
+    (@AdminRolID, 'ventas',      1, 1, 1, 1),
+    (@AdminRolID, 'ingresos',    1, 1, 1, 1),
+    (@AdminRolID, 'egresos',     1, 1, 1, 1),
+    (@AdminRolID, 'medios-pago', 1, 1, 1, 1),
+    (@AdminRolID, 'usuarios',    1, 1, 1, 1),
+    (@AdminRolID, 'roles',       1, 1, 1, 1);
+    
+    -- Assign Administrador role to all existing users
+    UPDATE Usuarios SET RolID = @AdminRolID WHERE RolID IS NULL;
+    
+    PRINT 'Rol Administrador creado y asignado a usuarios existentes.';
+END
+GO
+
+PRINT 'Base de datos DBStreamDoor creada exitosamente';
+GO
