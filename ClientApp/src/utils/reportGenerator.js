@@ -153,11 +153,20 @@ export function generatePDF(data, userName, periodoLabel) {
   };
 
   /**
-   * @param {string[]} head   - Column headers
-   * @param {any[][]}  body   - Row data (will be pdfSafe'd)
-   * @param {object}   colStyles - jspdf-autotable columnStyles object
+   * @param {string[]} head    - Column headers
+   * @param {any[][]}  body    - Row data (will be pdfSafe'd)
+   * @param {object}   haligns - Map of column index → halign string, e.g. { 1: 'right', 2: 'center' }
+   *
+   * Width strategy: set tableWidth = MW so autoTable auto-distributes the total
+   * width using the SAME algorithm for both header and body cells.  This is the
+   * only way to guarantee column headers are always perfectly aligned with their
+   * body cells.  Per-column cellWidth in columnStyles was removed because it
+   * causes autoTable to apply different widths to header vs body rows.
    */
-  const table = (head, body, colStyles) => {
+  const table = (head, body, haligns = {}) => {
+    const colStyles = {};
+    Object.entries(haligns).forEach(([k, v]) => { colStyles[k] = { halign: v }; });
+
     autoTable(doc, {
       startY: y,
       head:   [head.map(h => pdfSafe(h))],
@@ -165,11 +174,9 @@ export function generatePDF(data, userName, periodoLabel) {
       styles: { fontSize: 8, cellPadding: 2.5, textColor: DARK, overflow: 'linebreak' },
       headStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
-      margin: { left: 14, right: 14 },
-      // Do NOT set tableWidth here — it conflicts with per-column cellWidth in
-      // columnStyles and causes headers to misalign with body cells.
-      // The column widths already sum to MW so the total table width is correct.
-      columnStyles: colStyles || {},
+      margin:      { left: 14, right: 14 },
+      tableWidth:  MW,
+      columnStyles: colStyles,
       tableLineColor: [229, 231, 235],
       tableLineWidth: 0.3,
     });
@@ -186,7 +193,7 @@ export function generatePDF(data, userName, periodoLabel) {
       ['Ganancia Neta',     fmt(data.gananciaNeta)],
       [`Ventas (${data.totalVentasPeriodo} operaciones)`, fmt(data.montoVentasPeriodo)],
     ],
-    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
+    { 1: 'right' }
   );
 
   // ── 2. Global KPIs ──────────────────────────────────────────────────────────
@@ -201,7 +208,7 @@ export function generatePDF(data, userName, periodoLabel) {
       ['Medios de Pago',           data.totalMediosPago],
       ['Renovaciones Pendientes',  data.renovacionesPendientes],
     ],
-    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
+    { 1: 'right' }
   );
 
   // ── 3. Account status ───────────────────────────────────────────────────────
@@ -209,7 +216,7 @@ export function generatePDF(data, userName, periodoLabel) {
   table(
     ['Estado', 'Cantidad'],
     (data.cuentasPorEstado || []).map(c => [c.estado, c.cantidad]),
-    { 0: { cellWidth: MW * 0.68 }, 1: { cellWidth: MW * 0.32, halign: 'right' } }
+    { 1: 'right' }
   );
 
   // ── 4. Ingresos vs Egresos ──────────────────────────────────────────────────
@@ -220,12 +227,7 @@ export function generatePDF(data, userName, periodoLabel) {
       data.ingresosEgresosChart.map(r => [
         r.periodo, fmt(r.ingresos), fmt(r.egresos), fmt(r.ganancia)
       ]),
-      {
-        0: { cellWidth: MW * 0.22 },
-        1: { cellWidth: MW * 0.26, halign: 'right' },
-        2: { cellWidth: MW * 0.26, halign: 'right' },
-        3: { cellWidth: MW * 0.26, halign: 'right' },
-      }
+      { 1: 'right', 2: 'right', 3: 'right' }
     );
   }
 
@@ -235,11 +237,7 @@ export function generatePDF(data, userName, periodoLabel) {
     table(
       ['Servicio', 'Ventas', 'Monto Total'],
       data.ventasPorServicio.map(s => [s.servicio, s.ventas, fmt(s.monto)]),
-      {
-        0: { cellWidth: MW * 0.50 },
-        1: { cellWidth: MW * 0.18, halign: 'right' },
-        2: { cellWidth: MW * 0.32, halign: 'right' },
-      }
+      { 1: 'right', 2: 'right' }
     );
   }
 
@@ -249,11 +247,7 @@ export function generatePDF(data, userName, periodoLabel) {
     table(
       ['Cliente', 'No. Ventas', 'Monto Total'],
       data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto)]),
-      {
-        0: { cellWidth: MW * 0.50 },
-        1: { cellWidth: MW * 0.18, halign: 'right' },
-        2: { cellWidth: MW * 0.32, halign: 'right' },
-      }
+      { 1: 'right', 2: 'right' }
     );
   }
 
@@ -265,12 +259,7 @@ export function generatePDF(data, userName, periodoLabel) {
       data.cuentasProximasVencerList.map(c => [
         c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), c.diasRestantes ?? '-'
       ]),
-      {
-        0: { cellWidth: MW * 0.20 },
-        1: { cellWidth: MW * 0.35 },
-        2: { cellWidth: MW * 0.25, halign: 'center' },
-        3: { cellWidth: MW * 0.20, halign: 'right' },
-      }
+      { 2: 'center', 3: 'right' }
     );
   }
 
@@ -282,12 +271,7 @@ export function generatePDF(data, userName, periodoLabel) {
       data.cuentasVencidasList.map(c => [
         c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), fmt(c.costo)
       ]),
-      {
-        0: { cellWidth: MW * 0.20 },
-        1: { cellWidth: MW * 0.35 },
-        2: { cellWidth: MW * 0.18, halign: 'center' },
-        3: { cellWidth: MW * 0.27, halign: 'right' },
-      }
+      { 2: 'center', 3: 'right' }
     );
   }
 
@@ -299,12 +283,7 @@ export function generatePDF(data, userName, periodoLabel) {
       data.ventasProximasVencer.map(v => [
         v.cliente, v.servicio, safeDate(v.fechaFin), v.diasRestantes
       ]),
-      {
-        0: { cellWidth: MW * 0.28 },
-        1: { cellWidth: MW * 0.35 },
-        2: { cellWidth: MW * 0.22, halign: 'center' },
-        3: { cellWidth: MW * 0.15, halign: 'right' },
-      }
+      { 2: 'center', 3: 'right' }
     );
   }
 
