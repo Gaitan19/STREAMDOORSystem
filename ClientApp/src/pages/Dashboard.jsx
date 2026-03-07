@@ -88,8 +88,13 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const { inicio, fin } = derivedRange();
-      const res = await dashboardService.getCompleto(inicio, fin);
+      let res;
+      if (preset === 'todo') {
+        res = await dashboardService.getCompleto(null, null, true);
+      } else {
+        const { inicio, fin } = derivedRange();
+        res = await dashboardService.getCompleto(inicio, fin);
+      }
       setData(res);
     } catch (err) {
       console.error(err);
@@ -137,7 +142,7 @@ const Dashboard = () => {
     if (preset === 'custom') {
       return `${customInicio || '—'} al ${customFin || '—'}`;
     }
-    const labels = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', mes: 'Este mes' };
+    const labels = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', mes: 'Este mes', todo: 'Todo' };
     return labels[preset] || preset;
   };
 
@@ -164,6 +169,7 @@ const Dashboard = () => {
     ayer: 'Ayer',
     semana: 'Esta semana',
     mes: 'Este mes',
+    todo: 'Todo',
     custom: 'Rango personalizado',
   };
 
@@ -190,6 +196,7 @@ const Dashboard = () => {
             <option value="ayer">Ayer</option>
             <option value="semana">Esta semana</option>
             <option value="mes">Este mes</option>
+            <option value="todo">Todo</option>
             <option value="custom">Rango personalizado</option>
           </select>
 

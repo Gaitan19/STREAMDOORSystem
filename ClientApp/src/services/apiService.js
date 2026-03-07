@@ -122,10 +122,14 @@ export const usuariosService = {
 };
 
 export const dashboardService = {
-  getCompleto: (fechaInicio, fechaFin) => {
+  getCompleto: (fechaInicio, fechaFin, sinFiltro = false) => {
     const params = new URLSearchParams();
-    if (fechaInicio) params.append('fechaInicio', fechaInicio);
-    if (fechaFin) params.append('fechaFin', fechaFin);
+    if (sinFiltro) {
+      params.append('sinFiltro', 'true');
+    } else {
+      if (fechaInicio) params.append('fechaInicio', fechaInicio);
+      if (fechaFin) params.append('fechaFin', fechaFin);
+    }
     return apiClient.get(`/dashboard/completo?${params.toString()}`);
   },
   getStats: () => apiClient.get('/dashboard/resumen'),

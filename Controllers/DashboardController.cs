@@ -22,15 +22,17 @@ namespace STREAMDOORSystem.Controllers
         [HttpGet("completo")]
         public async Task<ActionResult<DashboardCompletoDTO>> GetCompleto(
             [FromQuery] DateTime? fechaInicio,
-            [FromQuery] DateTime? fechaFin)
+            [FromQuery] DateTime? fechaFin,
+            [FromQuery] bool sinFiltro = false)
         {
             // Threshold for daily vs. monthly chart grouping
             const int MAX_DAYS_FOR_DAILY_GROUPING = 31;
             try
             {
                 var hoy = DateTime.Now.Date;
-                var inicio = fechaInicio?.Date ?? hoy;
-                var fin = (fechaFin?.Date ?? hoy).AddDays(1).AddSeconds(-1); // inclusive end
+                // When sinFiltro=true show all records regardless of date
+                var inicio = sinFiltro ? DateTime.MinValue : (fechaInicio?.Date ?? hoy);
+                var fin    = sinFiltro ? DateTime.MaxValue : ((fechaFin?.Date ?? hoy).AddDays(1).AddSeconds(-1));
 
                 // ── KPIs financieros del periodo ─────────────────────────────
                 var totalIngresos = await _context.Ingresos
