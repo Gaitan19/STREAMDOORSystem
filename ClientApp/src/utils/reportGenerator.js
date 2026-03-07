@@ -156,16 +156,29 @@ export function generatePDF(data, userName, periodoLabel) {
    * @param {string[]} head    - Column headers
    * @param {any[][]}  body    - Row data (will be pdfSafe'd)
    * @param {object}   haligns - Map of column index → halign string, e.g. { 1: 'right', 2: 'center' }
+   * @param {number[]} ratios  - Relative widths per column (e.g. [3, 1] means 75%/25%).
+   *                            Defaults to equal distribution.
    *
-   * Width strategy: set tableWidth = MW so autoTable auto-distributes the total
-   * width using the SAME algorithm for both header and body cells.  This is the
-   * only way to guarantee column headers are always perfectly aligned with their
-   * body cells.  Per-column cellWidth in columnStyles was removed because it
-   * causes autoTable to apply different widths to header vs body rows.
+   * Width strategy: compute an explicit cellWidth for EVERY column so they sum
+   * exactly to MW.  jspdf-autotable applies cellWidth identically to both the
+   * header row and all body rows, which is the only way to guarantee perfect
+   * column alignment regardless of content length.  tableWidth is intentionally
+   * NOT set here — it conflicts with per-column cellWidth in v5.
    */
-  const table = (head, body, haligns = {}) => {
+  const table = (head, body, haligns = {}, ratios = null) => {
+    const n  = head.length;
+    const r  = ratios || new Array(n).fill(1);
+    const tR = r.reduce((a, b) => a + b, 0);
+
+    // Compute integer pixel widths; assign any rounding remainder to the last col
+    const widths = r.map(v => Math.floor(MW * v / tR));
+    widths[n - 1] = MW - widths.slice(0, n - 1).reduce((a, b) => a + b, 0);
+
     const colStyles = {};
-    Object.entries(haligns).forEach(([k, v]) => { colStyles[k] = { halign: v }; });
+    head.forEach((_, i) => {
+      colStyles[i] = { cellWidth: widths[i] };
+      if (haligns[i]) colStyles[i].halign = haligns[i];
+    });
 
     autoTable(doc, {
       startY: y,
@@ -175,7 +188,6 @@ export function generatePDF(data, userName, periodoLabel) {
       headStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       margin:      { left: 14, right: 14 },
-      tableWidth:  MW,
       columnStyles: colStyles,
       tableLineColor: [229, 231, 235],
       tableLineWidth: 0.3,
@@ -193,7 +205,8 @@ export function generatePDF(data, userName, periodoLabel) {
       ['Ganancia Neta',     fmt(data.gananciaNeta)],
       [`Ventas (${data.totalVentasPeriodo} operaciones)`, fmt(data.montoVentasPeriodo)],
     ],
-    { 1: 'right' }
+    { 1: 'right' },
+    [3, 1]
   );
 
   // ── 2. Global KPIs ──────────────────────────────────────────────────────────
@@ -208,7 +221,8 @@ export function generatePDF(data, userName, periodoLabel) {
       ['Medios de Pago',           data.totalMediosPago],
       ['Renovaciones Pendientes',  data.renovacionesPendientes],
     ],
-    { 1: 'right' }
+    { 1: 'right' },
+    [3, 1]
   );
 
   // ── 3. Account status ───────────────────────────────────────────────────────
@@ -216,7 +230,8 @@ export function generatePDF(data, userName, periodoLabel) {
   table(
     ['Estado', 'Cantidad'],
     (data.cuentasPorEstado || []).map(c => [c.estado, c.cantidad]),
-    { 1: 'right' }
+    { 1: 'right' },
+    [3, 1]
   );
 
   // ── 4. Ingresos vs Egresos ──────────────────────────────────────────────────
@@ -227,7 +242,8 @@ export function generatePDF(data, userName, periodoLabel) {
       data.ingresosEgresosChart.map(r => [
         r.periodo, fmt(r.ingresos), fmt(r.egresos), fmt(r.ganancia)
       ]),
-      { 1: 'right', 2: 'right', 3: 'right' }
+      { 1: 'right', 2: 'right', 3: 'right' },
+      [1, 1, 1, 1]
     );
   }
 
@@ -237,7 +253,8 @@ export function generatePDF(data, userName, periodoLabel) {
     table(
       ['Servicio', 'Ventas', 'Monto Total'],
       data.ventasPorServicio.map(s => [s.servicio, s.ventas, fmt(s.monto)]),
-      { 1: 'right', 2: 'right' }
+      { 1: 'right', 2: 'right' },
+      [2, 1, 1]
     );
   }
 
@@ -247,7 +264,8 @@ export function generatePDF(data, userName, periodoLabel) {
     table(
       ['Cliente', 'No. Ventas', 'Monto Total'],
       data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto)]),
-      { 1: 'right', 2: 'right' }
+      { 1: 'right', 2: 'right' },
+      [2, 1, 1]
     );
   }
 
@@ -259,7 +277,8 @@ export function generatePDF(data, userName, periodoLabel) {
       data.cuentasProximasVencerList.map(c => [
         c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), c.diasRestantes ?? '-'
       ]),
-      { 2: 'center', 3: 'right' }
+      { 2: 'center', 3: 'right' },
+      [1, 2, 1, 0.5]
     );
   }
 
@@ -271,7 +290,8 @@ export function generatePDF(data, userName, periodoLabel) {
       data.cuentasVencidasList.map(c => [
         c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), fmt(c.costo)
       ]),
-      { 2: 'center', 3: 'right' }
+      { 2: 'center', 3: 'right' },
+      [1, 2, 1, 0.5]
     );
   }
 
@@ -283,7 +303,8 @@ export function generatePDF(data, userName, periodoLabel) {
       data.ventasProximasVencer.map(v => [
         v.cliente, v.servicio, safeDate(v.fechaFin), v.diasRestantes
       ]),
-      { 2: 'center', 3: 'right' }
+      { 2: 'center', 3: 'right' },
+      [1.5, 1.5, 1, 0.5]
     );
   }
 
