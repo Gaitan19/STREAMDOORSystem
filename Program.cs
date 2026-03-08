@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -126,14 +127,18 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:44447", "https://localhost:44447", "http://localhost:44448", "https://localhost:44448")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        });
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Forwarded headers (por si Somee usa proxy)
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 });
 
 var app = builder.Build();
@@ -159,7 +164,11 @@ else
 
 app.UseHttpsRedirection();
 
-// Compresión antes de servir estáticos
+app.UseStaticFiles();
+
+app.UseForwardedHeaders();
+
+// Compresión de respuestas (se aplica después de los estáticos sin caché)
 app.UseResponseCompression();
 
 // Archivos estáticos con control de caché
