@@ -58,10 +58,11 @@ namespace STREAMDOORSystem.Controllers
             };
 
             // Configurar cookie HttpOnly – el token no se expone en el cuerpo de la respuesta
+            // Secure solo si la petición llega por HTTPS (compatibilidad con Somee HTTP)
             Response.Cookies.Append("authToken", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
                 Expires = DateTimeOffset.UtcNow.AddHours(24)
             });
