@@ -63,7 +63,7 @@ namespace STREAMDOORSystem.Controllers
                 // ── Estado de cuentas ────────────────────────────────────────
                 var cuentasActivas = await _context.Cuentas.Where(c => c.Activo).ToListAsync();
                 var cuentasDisponibles      = cuentasActivas.Count(c => c.Disponibilidad == "Disponible");
-                var cuentasOcupadas         = cuentasActivas.Count(c => c.Disponibilidad == "Ocupada");
+                var cuentasOcupadas         = cuentasActivas.Count(c => c.Disponibilidad == "No Disponible");
                 var cuentasVencidasCount    = cuentasActivas.Count(c => c.EstadoSuscripcion == "Vencida");
                 var cuentasProximasCount    = cuentasActivas.Count(c => c.EstadoSuscripcion == "Próxima a Vencer");
                 var renovacionesPendientes  = cuentasVencidasCount;
