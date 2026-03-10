@@ -218,6 +218,7 @@ const Cierre = () => {
 
     const container = document.createElement('div');
     container.id = 'ticket-print-root';
+    container.style.cssText = 'margin:0;padding:0;width:72mm;';
     container.appendChild(clone);
     document.body.appendChild(container);
 
@@ -587,8 +588,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           {(ing.ventasPorMedioPago ?? []).map((g, idx) => (
             <div key={idx}>
               <div className="ticket-row ticket-sm">
-                <span>  {g.medioPago} ({g.cantidad})</span>
-                <span>{fmtC(g.total)}</span>
+                <span className="ticket-item-label">  {g.medioPago} ({g.cantidad})</span>
+                <span className="ticket-item-amount">{fmtC(g.total)}</span>
               </div>
             </div>
           ))}
@@ -605,8 +606,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           <div className="ticket-bold ticket-sm">Manuales ({ing.manuales.length}):</div>
           {ing.manuales.slice(0, 10).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
-              <span className="ticket-truncate">  {item.descripcion || '-'}</span>
-              <span>{fmtC(item.monto)}</span>
+              <span className="ticket-item-label">  {item.descripcion || '-'}</span>
+              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
             </div>
           ))}
           {ing.manuales.length > 10 && (
@@ -637,8 +638,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           <div className="ticket-bold ticket-sm">Creación de Cuentas ({egr.creacionCuentas.length}):</div>
           {egr.creacionCuentas.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
-              <span className="ticket-truncate">  {item.descripcion?.substring(0, 22) || '-'}</span>
-              <span>{fmtC(item.monto)}</span>
+              <span className="ticket-item-label">  {item.descripcion || '-'}</span>
+              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
             </div>
           ))}
           {egr.creacionCuentas.length > 8 && (
@@ -657,8 +658,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           <div className="ticket-bold ticket-sm">Renovaciones ({egr.renovacionCuentas.length}):</div>
           {egr.renovacionCuentas.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
-              <span className="ticket-truncate">  {item.descripcion?.substring(0, 22) || '-'}</span>
-              <span>{fmtC(item.monto)}</span>
+              <span className="ticket-item-label">  {item.descripcion || '-'}</span>
+              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
             </div>
           ))}
           {egr.renovacionCuentas.length > 8 && (
@@ -677,8 +678,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           <div className="ticket-bold ticket-sm">Manuales ({egr.manuales.length}):</div>
           {egr.manuales.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
-              <span className="ticket-truncate">  {item.descripcion || '-'}</span>
-              <span>{fmtC(item.monto)}</span>
+              <span className="ticket-item-label">  {item.descripcion || '-'}</span>
+              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
             </div>
           ))}
           {egr.manuales.length > 8 && (
@@ -707,8 +708,8 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
 
       <div className="ticket-divider">{dividerBold}</div>
       <div className="ticket-center ticket-sm">Gracias por usar {appName}</div>
-      <div className="ticket-center ticket-sm ticket-gray">
-        {new Date().toLocaleDateString('es-NI')}
+      <div className="ticket-center ticket-sm">
+        {generatedAt.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })}
       </div>
       <div className="ticket-spacer" />
     </div>

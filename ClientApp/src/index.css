@@ -12,11 +12,30 @@ body {
 
 /* ── Thermal Ticket Print Styles (80mm ~302px) ───────────────────────────── */
 @media print {
+  /* Reset body */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
   /* Hide everything in the React tree; only the injected #ticket-print-root is shown */
   body > :not(#ticket-print-root) { display: none !important; }
 
   #ticket-print-root {
     display: block !important;
+    margin: 0;
+    padding: 0;
+    width: 72mm;
+  }
+
+  /* Thermal printers are monochrome — force all text and borders to black */
+  #ticket-print-root,
+  #ticket-print-root * {
+    color: #000 !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .no-print { display: none !important; }
@@ -27,12 +46,15 @@ body {
   }
 
   .ticket {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Courier New', Courier, monospace !important;
     font-size: 11px;
-    line-height: 1.4;
+    line-height: 1.5;
     width: 72mm;
+    max-width: 72mm;
     color: #000;
     background: #fff;
+    margin: 0;
+    padding: 0;
   }
 
   .ticket-center { text-align: center; }
@@ -40,38 +62,44 @@ body {
   .ticket-bold   { font-weight: 700; }
   .ticket-lg     { font-size: 13px; }
   .ticket-sm     { font-size: 10px; }
-  .ticket-gray   { color: #555; }
-  .ticket-positive { color: #000; }
-  .ticket-negative { color: #000; }
 
   .ticket-divider {
     display: block;
     white-space: pre;
     font-size: 10px;
     margin: 1mm 0;
+    letter-spacing: 0;
   }
 
   .ticket-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 2px;
+    gap: 4px;
     margin: 0.5mm 0;
   }
 
-  .ticket-truncate {
-    overflow: hidden;
+  /* Item label: wraps text so nothing is cut off on the receipt */
+  .ticket-item-label {
+    flex: 1;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    padding-right: 2mm;
+  }
+
+  /* Amount column: never wraps */
+  .ticket-item-amount {
     white-space: nowrap;
-    text-overflow: ellipsis;
-    max-width: 40mm;
-    display: inline-block;
+    flex-shrink: 0;
+    text-align: right;
   }
 
   .ticket-section-title {
     text-align: center;
     font-weight: 700;
     font-size: 11px;
-    margin: 1mm 0;
+    margin: 1.5mm 0;
+    letter-spacing: 1px;
   }
 
   .ticket-spacer {
