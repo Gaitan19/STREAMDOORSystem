@@ -12,19 +12,14 @@ body {
 
 /* ── Thermal Ticket Print Styles (80mm ~302px) ───────────────────────────── */
 @media print {
-  /* Hide everything except the ticket */
-  body > * { display: none !important; }
-  #root > * { display: none !important; }
-  .no-print { display: none !important; }
+  /* Hide everything in the React tree; only the injected #ticket-print-root is shown */
+  body > :not(#ticket-print-root) { display: none !important; }
 
-  /* Show only the ticket */
-  .ticket-print {
+  #ticket-print-root {
     display: block !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
   }
+
+  .no-print { display: none !important; }
 
   @page {
     size: 80mm auto;

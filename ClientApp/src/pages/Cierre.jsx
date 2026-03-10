@@ -206,6 +206,28 @@ const Cierre = () => {
   };
 
   const handlePrint = () => {
+    const ticketEl = printRef.current;
+    if (!ticketEl) return;
+
+    // Clone the ticket and inject it as a direct child of <body> so that
+    // the @media print rule "body > :not(#ticket-print-root)" correctly hides
+    // the React tree while showing only the ticket.
+    const clone = ticketEl.cloneNode(true);
+    clone.classList.remove('hidden');
+    clone.style.display = 'block';
+
+    const container = document.createElement('div');
+    container.id = 'ticket-print-root';
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    const cleanup = () => {
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
     window.print();
   };
 
