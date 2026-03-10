@@ -9,3 +9,78 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Thermal Ticket Print Styles (80mm ~302px) ───────────────────────────── */
+@media print {
+  /* Hide everything except the ticket */
+  body > * { display: none !important; }
+  #root > * { display: none !important; }
+  .no-print { display: none !important; }
+
+  /* Show only the ticket */
+  .ticket-print {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 4mm 3mm;
+  }
+
+  .ticket {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    width: 72mm;
+    color: #000;
+    background: #fff;
+  }
+
+  .ticket-center { text-align: center; }
+  .ticket-right  { text-align: right; }
+  .ticket-bold   { font-weight: 700; }
+  .ticket-lg     { font-size: 13px; }
+  .ticket-sm     { font-size: 10px; }
+  .ticket-gray   { color: #555; }
+  .ticket-positive { color: #000; }
+  .ticket-negative { color: #000; }
+
+  .ticket-divider {
+    display: block;
+    white-space: pre;
+    font-size: 10px;
+    margin: 1mm 0;
+  }
+
+  .ticket-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2px;
+    margin: 0.5mm 0;
+  }
+
+  .ticket-truncate {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 40mm;
+    display: inline-block;
+  }
+
+  .ticket-section-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 11px;
+    margin: 1mm 0;
+  }
+
+  .ticket-spacer {
+    display: block;
+    height: 8mm;
+  }
+}

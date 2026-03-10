@@ -16,7 +16,8 @@ import {
   TrendingUp,
   TrendingDown,
   User,
-  Shield
+  Shield,
+  ClipboardList
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -36,6 +37,7 @@ const Layout = ({ children }) => {
     { path: '/ventas', icon: ShoppingCart, label: 'Ventas', modulo: 'ventas' },
     { path: '/ingresos', icon: TrendingUp, label: 'Ingresos', modulo: 'ingresos' },
     { path: '/egresos', icon: TrendingDown, label: 'Egresos', modulo: 'egresos' },
+    { path: '/cierre', icon: ClipboardList, label: 'Cierre de Caja', modulo: 'cierre' },
     { path: '/medios-pago', icon: Wallet, label: 'Medios de Pago', modulo: 'medios-pago' },
     { path: '/usuarios', icon: UserCog, label: 'Usuarios', modulo: 'usuarios' },
     { path: '/roles', icon: Shield, label: 'Roles', modulo: 'roles' },

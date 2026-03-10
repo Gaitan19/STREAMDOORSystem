@@ -19,6 +19,7 @@ const MODULOS = [
   { id: 'ventas', nombre: 'Ventas' },
   { id: 'ingresos', nombre: 'Ingresos' },
   { id: 'egresos', nombre: 'Egresos' },
+  { id: 'cierre', nombre: 'Cierre de Caja' },
   { id: 'medios-pago', nombre: 'Medios de Pago' },
   { id: 'usuarios', nombre: 'Usuarios' },
   { id: 'roles', nombre: 'Roles' },
