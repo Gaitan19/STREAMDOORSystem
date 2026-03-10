@@ -537,7 +537,6 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
   const ing = data.ingresos;
   const egr = data.egresos;
   const ganancia = data.gananciaNeta ?? 0;
-  const isPositive = ganancia >= 0;
 
   const fmtC = (n) =>
     `C$ ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -545,17 +544,14 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
   const userName =
     user?.Nombre || user?.nombre || user?.NombreCompleto || user?.nombreCompleto || 'Usuario';
 
-  const divider = '--------------------------------';
-  const dividerBold = '================================';
-
   return (
     <div className="ticket">
       {/* Header */}
       <div className="ticket-center ticket-bold ticket-lg">{appName}</div>
       <div className="ticket-center ticket-sm">Sistema de Gestión</div>
-      <div className="ticket-divider">{dividerBold}</div>
+      <hr className="ticket-rule" />
       <div className="ticket-center ticket-bold">CIERRE DE CAJA</div>
-      <div className="ticket-divider">{dividerBold}</div>
+      <hr className="ticket-rule" />
 
       {/* Meta */}
       <div className="ticket-row">
@@ -575,22 +571,33 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
         <span>{periodLabel}</span>
       </div>
 
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
 
       {/* INGRESOS */}
       <div className="ticket-section-title">INGRESOS</div>
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
 
-      {/* Ventas por medio de pago */}
+      {/* Ventas por medio de pago — grouped with individual items */}
       {(ing.ventasPorMedioPago ?? []).length > 0 && (
         <>
           <div className="ticket-bold ticket-sm">De Ventas:</div>
           {(ing.ventasPorMedioPago ?? []).map((g, idx) => (
             <div key={idx}>
-              <div className="ticket-row ticket-sm">
+              {/* Payment method header row */}
+              <div className="ticket-row ticket-sm ticket-bold">
                 <span className="ticket-item-label">  {g.medioPago} ({g.cantidad})</span>
                 <span className="ticket-item-amount">{fmtC(g.total)}</span>
               </div>
+              {/* Individual items within this payment method */}
+              {(g.items ?? []).slice(0, 12).map((item, itemIdx) => (
+                <div key={itemIdx} className="ticket-row ticket-sm">
+                  <span className="ticket-item-label">    {item.descripcion || `Venta #${item.ventaID || (itemIdx + 1)}`}</span>
+                  <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+                </div>
+              ))}
+              {(g.items ?? []).length > 12 && (
+                <div className="ticket-sm ticket-right">    ... y {g.items.length - 12} más</div>
+              )}
             </div>
           ))}
           <div className="ticket-row ticket-sm">
@@ -620,17 +627,17 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
         </>
       )}
 
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
       <div className="ticket-row ticket-bold">
         <span>TOTAL INGRESOS</span>
         <span>{fmtC(ing.total)}</span>
       </div>
 
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
 
       {/* EGRESOS */}
       <div className="ticket-section-title">EGRESOS</div>
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
 
       {/* Creación de cuentas */}
       {egr.creacionCuentas.length > 0 && (
@@ -692,21 +699,21 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
         </>
       )}
 
-      <div className="ticket-divider">{divider}</div>
+      <hr className="ticket-rule-dashed" />
       <div className="ticket-row ticket-bold">
         <span>TOTAL EGRESOS</span>
         <span>{fmtC(egr.total)}</span>
       </div>
 
-      <div className="ticket-divider">{dividerBold}</div>
+      <hr className="ticket-rule" />
 
       {/* Ganancia */}
-      <div className={`ticket-row ticket-bold ticket-lg ${isPositive ? 'ticket-positive' : 'ticket-negative'}`}>
+      <div className="ticket-row ticket-bold ticket-lg">
         <span>GANANCIA NETA</span>
         <span>{fmtC(ganancia)}</span>
       </div>
 
-      <div className="ticket-divider">{dividerBold}</div>
+      <hr className="ticket-rule" />
       <div className="ticket-center ticket-sm">Gracias por usar {appName}</div>
       <div className="ticket-center ticket-sm">
         {generatedAt.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })}

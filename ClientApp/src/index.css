@@ -63,13 +63,17 @@ body {
   .ticket-lg     { font-size: 13px; }
   .ticket-sm     { font-size: 10px; }
 
-  .ticket-divider {
+  /* CSS-based dividers — always span the full ticket width */
+  hr.ticket-rule,
+  hr.ticket-rule-dashed {
+    border: none;
+    margin: 1.5mm 0;
+    width: 100%;
+    box-sizing: border-box;
     display: block;
-    white-space: pre;
-    font-size: 10px;
-    margin: 1mm 0;
-    letter-spacing: 0;
   }
+  hr.ticket-rule        { border-top: 2px solid #000; }
+  hr.ticket-rule-dashed { border-top: 1px dashed #000; }
 
   .ticket-row {
     display: flex;
