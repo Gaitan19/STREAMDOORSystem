@@ -566,11 +566,6 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
         <span>Hora:</span>
         <span>{fmtTime12(generatedAt)}</span>
       </div>
-      <div className="ticket-row">
-        <span>Periodo:</span>
-        <span>{periodLabel}</span>
-      </div>
-
       <hr className="ticket-rule-dashed" />
 
       {/* INGRESOS */}
@@ -591,7 +586,10 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
               {/* Individual items within this payment method */}
               {(g.items ?? []).slice(0, 12).map((item, itemIdx) => (
                 <div key={itemIdx} className="ticket-row ticket-sm">
-                  <span className="ticket-item-label">    {item.descripcion || `Venta #${item.ventaID || (itemIdx + 1)}`}</span>
+                  <span className="ticket-item-label">
+                    {'    '}{item.descripcion || `Venta #${item.ventaID || (itemIdx + 1)}`}
+                    {item.fechaCreacion ? ` (${new Date(item.fechaCreacion).toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })})` : ''}
+                  </span>
                   <span className="ticket-item-amount">{fmtC(item.monto)}</span>
                 </div>
               ))}
@@ -613,7 +611,10 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           <div className="ticket-bold ticket-sm">Manuales ({ing.manuales.length}):</div>
           {ing.manuales.slice(0, 10).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
-              <span className="ticket-item-label">  {item.descripcion || '-'}</span>
+              <span className="ticket-item-label">
+                {'  '}{item.descripcion || '-'}
+                {item.fechaCreacion ? ` (${new Date(item.fechaCreacion).toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })})` : ''}
+              </span>
               <span className="ticket-item-amount">{fmtC(item.monto)}</span>
             </div>
           ))}
@@ -715,9 +716,6 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
 
       <hr className="ticket-rule" />
       <div className="ticket-center ticket-sm">Gracias por usar {appName}</div>
-      <div className="ticket-center ticket-sm">
-        {generatedAt.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-      </div>
       <div className="ticket-spacer" />
     </div>
   );
