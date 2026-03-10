@@ -566,4 +566,65 @@ namespace STREAMDOORSystem.Models.DTOs
         public int TotalVentas { get; set; }
         public decimal TotalMonto { get; set; }
     }
+
+    // ── DTOs de Cierre ─────────────────────────────────────────────────────────
+
+    public class CierreIngresoItemDTO
+    {
+        public int IngresoID { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public decimal Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public string? Usuario { get; set; }
+        public int? VentaID { get; set; }
+        public string? MedioPago { get; set; }
+    }
+
+    public class CierreIngresosPorMedioPagoDTO
+    {
+        public string MedioPago { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal Total { get; set; }
+        public List<CierreIngresoItemDTO> Items { get; set; } = new();
+    }
+
+    public class CierreIngresosDTO
+    {
+        public List<CierreIngresoItemDTO> Manuales { get; set; } = new();
+        public decimal TotalManuales { get; set; }
+        public List<CierreIngresosPorMedioPagoDTO> VentasPorMedioPago { get; set; } = new();
+        public decimal TotalVentas { get; set; }
+        public decimal Total { get; set; }
+    }
+
+    public class CierreEgresoItemDTO
+    {
+        public int EgresoID { get; set; }
+        public DateTime FechaCreacion { get; set; }
+        public decimal Monto { get; set; }
+        public string? Descripcion { get; set; }
+        public string? Usuario { get; set; }
+        public int? CuentaID { get; set; }
+        public string? CodigoCuenta { get; set; }
+    }
+
+    public class CierreEgresosDTO
+    {
+        public List<CierreEgresoItemDTO> Manuales { get; set; } = new();
+        public decimal TotalManuales { get; set; }
+        public List<CierreEgresoItemDTO> CreacionCuentas { get; set; } = new();
+        public decimal TotalCreacion { get; set; }
+        public List<CierreEgresoItemDTO> RenovacionCuentas { get; set; } = new();
+        public decimal TotalRenovacion { get; set; }
+        public decimal Total { get; set; }
+    }
+
+    public class CierreDTO
+    {
+        public DateTime FechaInicio { get; set; }
+        public DateTime FechaFin { get; set; }
+        public CierreIngresosDTO Ingresos { get; set; } = new();
+        public CierreEgresosDTO Egresos { get; set; } = new();
+        public decimal GananciaNeta { get; set; }
+    }
 }

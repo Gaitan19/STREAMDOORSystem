@@ -17,6 +17,7 @@ import Combos from './pages/Combos';
 import Ingresos from './pages/Ingresos';
 import Egresos from './pages/Egresos';
 import Roles from './pages/Roles';
+import Cierre from './pages/Cierre';
 
 function App() {
   return (
@@ -162,6 +163,17 @@ function App() {
               <ProtectedRoute modulo="roles">
                 <Layout>
                   <Roles />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/cierre"
+            element={
+              <ProtectedRoute modulo="cierre">
+                <Layout>
+                  <Cierre />
                 </Layout>
               </ProtectedRoute>
             }

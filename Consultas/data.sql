@@ -31,9 +31,21 @@ BEGIN
     (@AdminRolID, 'ventas',      1, 1, 1, 1),
     (@AdminRolID, 'ingresos',    1, 1, 1, 1),
     (@AdminRolID, 'egresos',     1, 1, 1, 1),
+    (@AdminRolID, 'cierre',      1, 1, 1, 1),
     (@AdminRolID, 'medios-pago', 1, 1, 1, 1),
     (@AdminRolID, 'usuarios',    1, 1, 1, 1),
     (@AdminRolID, 'roles',       1, 1, 1, 1);
+END
+GO
+
+-- Agregar permiso de Cierre de Caja al Administrador si ya existe el rol con permisos (idempotente)
+DECLARE @AdminRolID2 INT = (SELECT RolID FROM Roles WHERE Nombre = 'Administrador');
+
+IF @AdminRolID2 IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM RolPermisos WHERE RolID = @AdminRolID2 AND Modulo = 'cierre')
+BEGIN
+    INSERT INTO RolPermisos (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar)
+    VALUES (@AdminRolID2, 'cierre', 1, 1, 1, 1);
 END
 GO
 

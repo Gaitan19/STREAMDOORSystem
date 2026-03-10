@@ -9,3 +9,105 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Thermal Ticket Print Styles (80mm ~302px) ───────────────────────────── */
+@media print {
+  /* Reset body */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  /* Hide everything in the React tree; only the injected #ticket-print-root is shown */
+  body > :not(#ticket-print-root) { display: none !important; }
+
+  #ticket-print-root {
+    display: block !important;
+    margin: 0 auto;
+    padding: 0;
+    width: 72mm;
+  }
+
+  /* Thermal printers are monochrome — force all text and borders to black */
+  #ticket-print-root,
+  #ticket-print-root * {
+    color: #000 !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print { display: none !important; }
+
+  @page {
+    size: 80mm auto;
+    margin: 4mm 4mm;
+  }
+
+  .ticket {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11px;
+    line-height: 1.5;
+    width: 72mm;
+    max-width: 72mm;
+    color: #000;
+    background: #fff;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .ticket-center { text-align: center; }
+  .ticket-right  { text-align: right; }
+  .ticket-bold   { font-weight: 700; }
+  .ticket-lg     { font-size: 13px; }
+  .ticket-sm     { font-size: 10px; }
+
+  /* CSS-based dividers — always span the full ticket width */
+  hr.ticket-rule,
+  hr.ticket-rule-dashed {
+    border: none;
+    margin: 1.5mm 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+  }
+  hr.ticket-rule        { border-top: 2px solid #000; }
+  hr.ticket-rule-dashed { border-top: 1px dashed #000; }
+
+  .ticket-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4px;
+    margin: 0.5mm 0;
+  }
+
+  /* Item label: wraps text so nothing is cut off on the receipt */
+  .ticket-item-label {
+    flex: 1;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    padding-right: 2mm;
+  }
+
+  /* Amount column: never wraps */
+  .ticket-item-amount {
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .ticket-section-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 11px;
+    margin: 1.5mm 0;
+    letter-spacing: 1px;
+  }
+
+  .ticket-spacer {
+    display: block;
+    height: 8mm;
+  }
+}
