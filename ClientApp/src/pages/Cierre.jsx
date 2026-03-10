@@ -218,7 +218,7 @@ const Cierre = () => {
 
     const container = document.createElement('div');
     container.id = 'ticket-print-root';
-    container.style.cssText = 'margin:0;padding:0;width:72mm;';
+    container.style.cssText = 'margin:0 auto;padding:0;width:72mm;';
     container.appendChild(clone);
     document.body.appendChild(container);
 
