@@ -11,20 +11,10 @@ Guía paso a paso para poner en marcha el sistema **STREAMDOOR** en un entorno l
 | [.NET SDK](https://dotnet.microsoft.com/download) | 8.0 |
 | [Node.js](https://nodejs.org/) | 18 LTS o superior |
 | [SQL Server](https://www.microsoft.com/es-es/sql-server/sql-server-downloads) | 2019 o superior (también funciona con SQL Server Express) |
-| [Git](https://git-scm.com/) | cualquier versión reciente |
 
 ---
 
-## 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/Gaitan19/STREAMDOORSystem.git
-cd STREAMDOORSystem
-```
-
----
-
-## 2. Crear la base de datos
+## 1. Crear la base de datos
 
 Los scripts SQL se encuentran dentro de la carpeta **`Consultas/`**. Deben ejecutarse **en el siguiente orden** desde SQL Server Management Studio (SSMS) u otro cliente SQL:
 
@@ -38,11 +28,11 @@ Los scripts SQL se encuentran dentro de la carpeta **`Consultas/`**. Deben ejecu
 
 ---
 
-## 3. Configurar el backend (`appsettings.json`)
+## 2. Configurar el backend (`appsettings.json`)
 
 Abre el archivo **`appsettings.json`** ubicado en la raíz del proyecto y ajusta las siguientes secciones:
 
-### 3.1 Cadena de conexión
+### 2.1 Cadena de conexión
 
 ```json
 "ConnectionStrings": {
@@ -59,7 +49,7 @@ Reemplaza `localhost`, `tu_usuario` y `tu_contraseña` por los datos de tu insta
 
 ---
 
-### 3.2 Configuración JWT
+### 2.2 Configuración JWT
 
 ```json
 "Jwt": {
@@ -79,7 +69,7 @@ Reemplaza `localhost`, `tu_usuario` y `tu_contraseña` por los datos de tu insta
 
 ---
 
-### 3.3 Configuración de correo electrónico (EmailSettings)
+### 2.3 Configuración de correo electrónico (EmailSettings)
 
 ```json
 "EmailSettings": {
@@ -112,7 +102,7 @@ Reemplaza `localhost`, `tu_usuario` y `tu_contraseña` por los datos de tu insta
 
 ---
 
-### 3.4 Configuración de la aplicación (AppSettings)
+### 2.4 Configuración de la aplicación (AppSettings)
 
 ```json
 "AppSettings": {
@@ -160,7 +150,7 @@ Reemplaza `localhost`, `tu_usuario` y `tu_contraseña` por los datos de tu insta
 
 ---
 
-## 4. Ejecutar el backend
+## 3. Ejecutar el backend
 
 Desde la raíz del proyecto:
 
@@ -175,21 +165,21 @@ La documentación Swagger se puede acceder en: `https://localhost:7040/swagger`
 
 ---
 
-## 5. Configurar e iniciar el frontend (ClientApp)
+## 4. Configurar e iniciar el frontend (ClientApp)
 
-### 5.1 Abrir la terminal en la carpeta del frontend
+### 4.1 Abrir la terminal en la carpeta del frontend
 
 ```bash
 cd ClientApp
 ```
 
-### 5.2 Instalar dependencias
+### 4.2 Instalar dependencias
 
 ```bash
 npm install
 ```
 
-### 5.3 Configurar las variables de entorno
+### 4.3 Configurar las variables de entorno
 
 Crea un archivo **`.env`** dentro de la carpeta `ClientApp/` con el siguiente contenido:
 
@@ -205,7 +195,7 @@ VITE_PASSWORD_PREFIX=StreamDoorNic
 
 > El archivo `.env` ya existe en el repositorio con los valores por defecto. Solo necesitas verificar que esté presente.
 
-### 5.4 Iniciar el servidor de desarrollo
+### 4.4 Iniciar el servidor de desarrollo
 
 ```bash
 npm run dev
@@ -215,16 +205,15 @@ La aplicación frontend estará disponible en `http://localhost:5173` (o el puer
 
 ---
 
-## 6. Resumen de pasos
+## 5. Resumen de pasos
 
 ```
-1. Clonar el repositorio
-2. Ejecutar Consultas/database.sql en SQL Server
-3. Ejecutar Consultas/procedimientos.sql en SQL Server
-4. Ejecutar Consultas/data.sql en SQL Server
-5. Configurar appsettings.json (cadena de conexión, JWT, Email, AppSettings)
-6. Ejecutar: dotnet run  (en la raíz del proyecto)
-7. cd ClientApp → npm install
-8. Crear/verificar ClientApp/.env
-9. Ejecutar: npm run dev  (dentro de ClientApp/)
+1. Ejecutar Consultas/database.sql en SQL Server
+2. Ejecutar Consultas/procedimientos.sql en SQL Server
+3. Ejecutar Consultas/data.sql en SQL Server
+4. Configurar appsettings.json (cadena de conexión, JWT, Email, AppSettings)
+5. Ejecutar: dotnet run  (en la raíz del proyecto)
+6. cd ClientApp → npm install
+7. Crear/verificar ClientApp/.env
+8. Ejecutar: npm run dev  (dentro de ClientApp/)
 ```
