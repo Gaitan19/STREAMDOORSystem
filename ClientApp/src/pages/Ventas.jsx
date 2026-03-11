@@ -126,7 +126,7 @@ const Ventas = () => {
 
   const handleSearch = (searchTerm) => {
     const filtered = ventas.filter(venta =>
-      venta.ventaID?.toString().includes(searchTerm) ||
+      `V-${venta.ventaID}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venta.nombreCliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venta.telefonoCliente?.includes(searchTerm) ||
       venta.detalles?.some(d => d.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()))

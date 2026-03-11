@@ -33,6 +33,7 @@ const Cuentas = () => {
   const [correosDisponibles, setCorreosDisponibles] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('todas');
   const [filtroServicio, setFiltroServicio] = useState('todos'); // NEW: Filter by service
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     servicioID: '',
     correoID: '',
@@ -52,6 +53,25 @@ const Cuentas = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const applyCuentasFilters = (data, servicioID, term) => {
+    let result = data;
+    if (servicioID !== 'todos') {
+      result = result.filter(cuenta => cuenta.servicioID?.toString() === servicioID);
+    }
+    if (term) {
+      const lower = term.toLowerCase();
+      result = result.filter(cuenta =>
+        cuenta.email?.toLowerCase().includes(lower) ||
+        cuenta.codigoCuenta?.toLowerCase().includes(lower) ||
+        cuenta.nombreServicio?.toLowerCase().includes(lower) ||
+        cuenta.estado?.toLowerCase().includes(lower) ||
+        cuenta.disponibilidad?.toLowerCase().includes(lower) ||
+        cuenta.estadoSuscripcion?.toLowerCase().includes(lower)
+      );
+    }
+    return result;
+  };
 
   const loadData = async (filtro = 'todas') => {
     try {
@@ -73,7 +93,9 @@ const Cuentas = () => {
       }
       
       setCuentas(cuentasData);
-      setFilteredCuentas(cuentasData);
+
+      // Re-apply active service filter and search term after reload
+      setFilteredCuentas(applyCuentasFilters(cuentasData, filtroServicio, searchTerm));
       setServicios(serviciosData);
       setCorreos(correosData);
       setCorreosDisponibles(correosDispData);
@@ -89,36 +111,14 @@ const Cuentas = () => {
     setTimeout(() => setAlert(null), 5000);
   };
 
-  const handleSearch = (searchTerm) => {
-    let filtered = cuentas.filter(cuenta =>
-      cuenta.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.codigoCuenta?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.nombreServicio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.estado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.disponibilidad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cuenta.estadoSuscripcion?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    // Apply service filter if not "todos"
-    if (filtroServicio !== 'todos') {
-      filtered = filtered.filter(cuenta => cuenta.servicioID?.toString() === filtroServicio);
-    }
-    
-    setFilteredCuentas(filtered);
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setFilteredCuentas(applyCuentasFilters(cuentas, filtroServicio, term));
   };
   
   const handleFiltroServicioChange = (servicioID) => {
     setFiltroServicio(servicioID);
-    
-    // Re-apply current search with new service filter
-    let filtered = cuentas;
-    
-    // Apply service filter
-    if (servicioID !== 'todos') {
-      filtered = filtered.filter(cuenta => cuenta.servicioID?.toString() === servicioID);
-    }
-    
-    setFilteredCuentas(filtered);
+    setFilteredCuentas(applyCuentasFilters(cuentas, servicioID, searchTerm));
   };
 
   const handleCopyToClipboard = async (text, field) => {
