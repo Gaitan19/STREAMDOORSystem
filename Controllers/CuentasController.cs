@@ -658,10 +658,10 @@ namespace STREAMDOORSystem.Controllers
                 {
                     var perfiles = cuenta.Perfiles.ToList();
                     // "Disponible" when there is at least one available profile
-                    // "Ocupada" when all profiles are occupied or none exist
+                    // "No Disponible" when all profiles are occupied or none exist
                     var nuevaDisponibilidad = perfiles.Any(p => p.Estado == "Disponible")
                         ? "Disponible"
-                        : "Ocupada";
+                        : "No Disponible";
 
                     if (nuevaDisponibilidad != cuenta.Disponibilidad)
                     {
