@@ -152,12 +152,23 @@ Reemplaza `localhost`, `tu_usuario` y `tu_contraseña` por los datos de tu insta
 
 ## 3. Ejecutar el backend
 
+### Opción A — Línea de comandos
+
 Desde la raíz del proyecto:
 
 ```bash
 dotnet restore
 dotnet run
 ```
+
+### Opción B — Visual Studio
+
+1. Abre el archivo de solución **`STREAMDOORSystem.sln`** con Visual Studio 2022 (o superior).
+2. Espera a que Visual Studio restaure los paquetes NuGet automáticamente.
+3. Asegúrate de que el proyecto de inicio sea el proyecto principal de la API (sin subrayado de errores en la barra superior).
+4. Presiona **F5** (o el botón ▶ *Iniciar*) para compilar y ejecutar en modo depuración.  
+   Usa **Ctrl + F5** si quieres ejecutar sin adjuntar el depurador.
+5. Visual Studio abrirá automáticamente el navegador con la documentación Swagger.
 
 Por defecto la API estará disponible en `https://localhost:7040` (o el puerto configurado en `Properties/launchSettings.json`).
 
@@ -205,15 +216,67 @@ La aplicación frontend estará disponible en `http://localhost:5173` (o el puer
 
 ---
 
-## 5. Resumen de pasos
+## 5. Cambiar la zona horaria del frontend
+
+El sistema usa por defecto la zona horaria **`America/Managua` (UTC-6)**. Para adaptarlo a otra región, sigue estos pasos en **Visual Studio Code**:
+
+### 5.1 Buscar y reemplazar en todo el proyecto
+
+1. Abre la carpeta `ClientApp/` en Visual Studio Code.
+2. Usa el buscador global: presiona **Ctrl + Shift + H** (Windows/Linux) o **Cmd + Shift + H** (Mac).
+3. En el campo **Buscar**, escribe:
+   ```
+   America/Managua
+   ```
+4. En el campo **Reemplazar**, escribe el identificador de la zona horaria deseada, por ejemplo:
+   ```
+   America/Bogota
+   ```
+5. Haz clic en **Reemplazar todo** (ícono de doble flecha) para aplicar el cambio en todos los archivos.
+
+### 5.2 Zonas horarias comunes
+
+| Región | Identificador |
+|---|---|
+| Nicaragua / Centro América (UTC-6) | `America/Managua` |
+| Colombia / Perú (UTC-5) | `America/Bogota` |
+| México Ciudad (UTC-6) | `America/Mexico_City` |
+| Argentina / Chile (UTC-3) | `America/Argentina/Buenos_Aires` |
+| España (UTC+1 / UTC+2 DST) | `Europe/Madrid` |
+
+> Para ver la lista completa de zonas válidas visita [IANA Time Zone Database](https://www.iana.org/time-zones).
+
+### 5.3 Dónde se usa la zona horaria
+
+Los archivos que contienen referencias a la zona horaria son:
+
+- `ClientApp/src/pages/Cierre.jsx`
+- `ClientApp/src/utils/reportGenerator.js`
+
+El patrón utilizado en el código es:
+
+```js
+new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' }));
+```
+
+Después del reemplazo, el patrón quedará con la nueva zona, por ejemplo:
+
+```js
+new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+```
+
+---
+
+## 6. Resumen de pasos
 
 ```
 1. Ejecutar Consultas/database.sql en SQL Server
 2. Ejecutar Consultas/procedimientos.sql en SQL Server
 3. Ejecutar Consultas/data.sql en SQL Server
 4. Configurar appsettings.json (cadena de conexión, JWT, Email, AppSettings)
-5. Ejecutar: dotnet run  (en la raíz del proyecto)
+5. Ejecutar: dotnet run  (línea de comandos) o F5 en Visual Studio
 6. cd ClientApp → npm install
 7. Crear/verificar ClientApp/.env
 8. Ejecutar: npm run dev  (dentro de ClientApp/)
+9. (Opcional) Cambiar zona horaria: Ctrl+Shift+H en VS Code → reemplazar 'America/Managua'
 ```
