@@ -33,6 +33,10 @@ const Clientes = () => {
   });
   const [errors, setErrors] = useState({});
 
+  // Sorting for the Clientes table
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState('asc');
+
   const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
@@ -158,6 +162,17 @@ const Clientes = () => {
       cliente.telefono.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredClientes(filtered);
+  };
+
+  const getSortedClientes = () => {
+    if (!sortBy) return filteredClientes;
+    return [...filteredClientes].sort((a, b) => {
+      const valA = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
+      const valB = `${b.nombre || ''} ${b.apellido || ''}`.toLowerCase();
+      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
   };
 
   const validate = () => {
@@ -377,10 +392,32 @@ const Clientes = () => {
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <Card>
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre, apellido o teléfono..." />
+          {/* Sort controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Ordenar por:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setSortDir('asc'); }}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sin ordenar</option>
+              <option value="nombre">Nombre del cliente</option>
+            </select>
+            {sortBy && (
+              <button
+                type="button"
+                onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="Cambiar dirección de orden"
+              >
+                {sortDir === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
+              </button>
+            )}
+          </div>
         </div>
-        <Table columns={columns} data={filteredClientes} loading={loading} />
+        <Table columns={columns} data={getSortedClientes()} loading={loading} />
       </Card>
 
       {/* Create/Edit Modal */}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -71,6 +71,13 @@ const Ventas = () => {
   
   const [errors, setErrors] = useState({});
 
+  // Sorting for the Ventas table
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState('asc');
+
+  // Counter to generate unique IDs for desired services (allows duplicate service types)
+  const uidRef = useRef(0);
+
   const { canCreate, canEdit, canDelete } = useAuth();
 
   useEffect(() => {
@@ -139,6 +146,44 @@ const Ventas = () => {
     loadData(filtro);
   };
 
+  const getSortedVentas = () => {
+    if (!sortBy) return filteredVentas;
+    return [...filteredVentas].sort((a, b) => {
+      let valA, valB;
+      if (sortBy === 'ventaID') {
+        valA = a.ventaID;
+        valB = b.ventaID;
+      } else if (sortBy === 'nombre') {
+        valA = (a.nombreCliente || '').toLowerCase();
+        valB = (b.nombreCliente || '').toLowerCase();
+      } else if (sortBy === 'periodo') {
+        valA = new Date(a.fechaFin).getTime();
+        valB = new Date(b.fechaFin).getTime();
+      } else {
+        return 0;
+      }
+      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Returns how many profiles from a given account are already committed
+  // in the current in-session cart (services + combos).
+  const profilesUsedFromAccount = (cuentaID) =>
+    [...serviciosCart, ...combosCart].filter(item => item.cuentaID === cuentaID).length;
+
+  // Memoized list of profiles not yet assigned in the current cart.
+  const availableProfiles = useMemo(
+    () =>
+      perfilesDisponibles.filter(
+        p =>
+          !serviciosCart.some(sc => sc.perfilID === p.perfilID) &&
+          !combosCart.some(cc => cc.perfilID === p.perfilID)
+      ),
+    [perfilesDisponibles, serviciosCart, combosCart]
+  );
+
   const handleVerificarEstados = async () => {
     try {
       setLoading(true);
@@ -185,21 +230,17 @@ const Ventas = () => {
       return;
     }
     
-    // Check if service already in desired list
-    const yaAgregado = serviciosDeseados.some(s => s.servicioID === servicioParaAgregar.servicioID);
-    if (yaAgregado) {
-      showAlert('error', 'Este servicio ya fue agregado');
-      return;
-    }
-    
-    setServiciosDeseados([...serviciosDeseados, servicioParaAgregar]);
+    // Assign a unique ID so the same service type can appear multiple times
+    uidRef.current += 1;
+    const uid = uidRef.current;
+    setServiciosDeseados([...serviciosDeseados, { ...servicioParaAgregar, _uid: uid }]);
     setServicioParaAgregar(null);
   };
 
-  const handleRemoverServicioDeseado = (servicioID) => {
-    setServiciosDeseados(serviciosDeseados.filter(s => s.servicioID !== servicioID));
+  const handleRemoverServicioDeseado = (uid) => {
+    setServiciosDeseados(serviciosDeseados.filter(s => s._uid !== uid));
     // Also remove from cart if it was already assigned
-    setServiciosCart(serviciosCart.filter(sc => sc.servicioID !== servicioID));
+    setServiciosCart(serviciosCart.filter(sc => sc._uid !== uid));
   };
 
   // Step 2: Select service from desired list to assign account/profile
@@ -248,14 +289,8 @@ const Ventas = () => {
       return;
     }
     
-    // Check if this service already has an account assigned
-    const servicioYaAsignado = serviciosCart.some(s => s.servicioID === servicioSeleccionado.servicioID);
-    if (servicioYaAsignado) {
-      showAlert('error', 'Este servicio ya tiene una cuenta asignada');
-      return;
-    }
-    
     const nuevoServicio = {
+      _uid: servicioSeleccionado._uid,
       cuentaID: cuentaSeleccionada.cuentaID,
       perfilID: perfilSeleccionado.perfilID,
       servicioID: servicioSeleccionado.servicioID,
@@ -963,11 +998,38 @@ const Ventas = () => {
               Verificar Estados
             </Button>
           </div>
+
+          {/* Sort controls */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Ordenar por:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value); setSortDir('asc'); }}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sin ordenar</option>
+                <option value="ventaID">N° de venta</option>
+                <option value="nombre">Nombre del cliente</option>
+                <option value="periodo">Período</option>
+              </select>
+              {sortBy && (
+                <button
+                  type="button"
+                  onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                  className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Cambiar dirección de orden"
+                >
+                  {sortDir === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <Table
           columns={columns}
-          data={filteredVentas}
+          data={getSortedVentas()}
           loading={loading}
           emptyMessage="No hay ventas registradas"
         />
@@ -1065,9 +1127,9 @@ const Ventas = () => {
                 </h4>
                 <div className="space-y-2">
                   {serviciosDeseados.map((servicio) => {
-                    const yaAsignado = serviciosCart.some(sc => sc.servicioID === servicio.servicioID);
+                    const yaAsignado = serviciosCart.some(sc => sc._uid === servicio._uid);
                     return (
-                      <div key={servicio.servicioID} className="flex items-center justify-between bg-white p-3 rounded-lg border-2 border-blue-200">
+                      <div key={servicio._uid} className="flex items-center justify-between bg-white p-3 rounded-lg border-2 border-blue-200">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{servicio.nombre}</span>
@@ -1081,7 +1143,7 @@ const Ventas = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleRemoverServicioDeseado(servicio.servicioID)}
+                          onClick={() => handleRemoverServicioDeseado(servicio._uid)}
                           className="text-red-600 hover:text-red-700"
                           disabled={yaAsignado}
                         >
@@ -1230,9 +1292,10 @@ const Ventas = () => {
                       Servicio a Asignar *
                     </label>
                     <select
-                      value={servicioSeleccionado?.servicioID || ''}
+                      value={servicioSeleccionado?._uid || ''}
                       onChange={(e) => {
-                        const servicio = serviciosDeseados.find(s => s.servicioID === parseInt(e.target.value));
+                        const uid = parseInt(e.target.value);
+                        const servicio = serviciosDeseados.find(s => s._uid === uid);
                         if (servicio) handleServicioSelect(servicio);
                         else handleServicioSelect(null);
                       }}
@@ -1240,9 +1303,9 @@ const Ventas = () => {
                     >
                       <option value="">Seleccionar servicio...</option>
                       {serviciosDeseados
-                        .filter(s => !serviciosCart.some(sc => sc.servicioID === s.servicioID))
+                        .filter(s => !serviciosCart.some(sc => sc._uid === s._uid))
                         .map((servicio) => (
-                          <option key={servicio.servicioID} value={servicio.servicioID}>
+                          <option key={servicio._uid} value={servicio._uid}>
                             {servicio.nombre}
                           </option>
                         ))
@@ -1271,9 +1334,11 @@ const Ventas = () => {
                       <option value="">Seleccionar cuenta...</option>
                       {cuentasDisponibles
                         .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                        .map(c => ({ ...c, restantes: c.perfilesDisponibles - profilesUsedFromAccount(c.cuentaID) }))
+                        .filter(c => c.restantes > 0)
                         .map((cuenta) => (
                           <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                            {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                            {cuenta.codigoCuenta} ({cuenta.restantes} disponibles)
                           </option>
                         ))
                       }
@@ -1297,7 +1362,7 @@ const Ventas = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Seleccionar perfil...</option>
-                      {perfilesDisponibles.map((perfil) => (
+                      {availableProfiles.map((perfil) => (
                         <option key={perfil.perfilID} value={perfil.perfilID}>
                           Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
                         </option>
@@ -1450,9 +1515,11 @@ const Ventas = () => {
                       <option value="">Seleccionar...</option>
                       {cuentasDisponibles
                         .filter(c => c.servicioID === servicioComboSeleccionado?.servicioID)
+                        .map(c => ({ ...c, restantes: c.perfilesDisponibles - profilesUsedFromAccount(c.cuentaID) }))
+                        .filter(c => c.restantes > 0)
                         .map((cuenta) => (
                           <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                            {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                            {cuenta.codigoCuenta} ({cuenta.restantes} disponibles)
                           </option>
                         ))
                       }
@@ -1473,7 +1540,7 @@ const Ventas = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
                       <option value="">Seleccionar...</option>
-                      {perfilesDisponibles.map((perfil) => (
+                      {availableProfiles.map((perfil) => (
                         <option key={perfil.perfilID} value={perfil.perfilID}>
                           Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
                         </option>

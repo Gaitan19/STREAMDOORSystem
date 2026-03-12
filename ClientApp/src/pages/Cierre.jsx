@@ -209,27 +209,70 @@ const Cierre = () => {
     const ticketEl = printRef.current;
     if (!ticketEl) return;
 
-    // Clone the ticket and inject it as a direct child of <body> so that
-    // the @media print rule "body > :not(#ticket-print-root)" correctly hides
-    // the React tree while showing only the ticket.
+    // Extract the inner .ticket element so we only get the ticket markup
     const clone = ticketEl.cloneNode(true);
-    clone.classList.remove('hidden');
-    clone.style.display = 'block';
+    const innerTicket = clone.querySelector('.ticket');
+    const ticketHtml = innerTicket ? innerTicket.outerHTML : clone.innerHTML;
 
-    const container = document.createElement('div');
-    container.id = 'ticket-print-root';
-    container.style.cssText = 'margin:0 auto;padding:0;width:72mm;';
-    container.appendChild(clone);
-    document.body.appendChild(container);
-
-    const cleanup = () => {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
+    // Embed all ticket styles directly so the document is self-contained.
+    // This approach works reliably on both desktop and mobile browsers because
+    // the styles are not hidden inside @media print and are not subject to
+    // the React app's Tailwind/CSS scope.
+    const ticketStyles = `
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 4mm; background: #fff; color: #000; }
+      .ticket {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11px; line-height: 1.5;
+        width: 72mm; max-width: 72mm;
+        color: #000; background: #fff;
+        margin: 0 auto; padding: 0;
       }
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    window.print();
+      .ticket-center { text-align: center; }
+      .ticket-right  { text-align: right; }
+      .ticket-bold   { font-weight: 700; }
+      .ticket-lg     { font-size: 13px; }
+      .ticket-sm     { font-size: 10px; }
+      hr.ticket-rule,
+      hr.ticket-rule-dashed {
+        border: none; margin: 1.5mm 0;
+        width: 100%; box-sizing: border-box; display: block;
+      }
+      hr.ticket-rule        { border-top: 2px solid #000; }
+      hr.ticket-rule-dashed { border-top: 1px dashed #000; }
+      .ticket-row {
+        display: flex; justify-content: space-between;
+        align-items: flex-start; gap: 4px; margin: 0.5mm 0;
+      }
+      .ticket-item-label {
+        flex: 1; word-break: break-word;
+        overflow-wrap: break-word; padding-right: 2mm;
+      }
+      .ticket-item-amount { white-space: nowrap; flex-shrink: 0; text-align: right; }
+      .ticket-section-title {
+        text-align: center; font-weight: 700;
+        font-size: 11px; margin: 1.5mm 0; letter-spacing: 1px;
+      }
+      .ticket-spacer { display: block; height: 8mm; }
+      @page { size: 80mm auto; margin: 4mm; }
+    `;
+
+    const printWin = window.open('', '_blank', 'width=420,height=600,scrollbars=yes');
+    if (!printWin) return;
+
+    printWin.document.write(
+      '<!DOCTYPE html><html><head>' +
+      '<meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Cierre de Caja</title>' +
+      '<style>' + ticketStyles + '</style>' +
+      '</head><body>' + ticketHtml + '</body></html>'
+    );
+    printWin.document.close();
+    printWin.focus();
+    // Allow the browser time to fully render the document before opening the print dialog.
+    // Without this delay, some browsers (especially on mobile) may show a blank print preview.
+    setTimeout(() => printWin.print(), 300);
   };
 
   if (!data && !loading) return null;
