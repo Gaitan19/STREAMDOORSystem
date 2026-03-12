@@ -795,6 +795,51 @@ const Ventas = () => {
     return message;
   };
 
+  // Format "próximo a vencer" notification message for the client
+  const formatExpiryDateLocal = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const getVentaServiceNames = (venta) =>
+    venta.detalles && venta.detalles.length > 0
+      ? [...new Set(venta.detalles.map(d => d.nombreServicio))].join(', ')
+      : 'tu servicio';
+
+  const formatProximoVencerMessage = (venta) => {
+    if (!venta) return '';
+
+    let message = `⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*\n\n`;
+    message += `Hola ${venta.nombreCliente} 👋\n\n`;
+    message += `Te informamos que tu suscripción de *${getVentaServiceNames(venta)}* está próxima a vencer.\n\n`;
+    message += `📋 *Detalles de tu venta:*\n`;
+    message += `🆔 # Venta: V-${venta.ventaID}\n`;
+    message += `✂ Fecha de vencimiento: *${formatExpiryDateLocal(venta.fechaFin)}*\n\n`;
+    message += `Para renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.\n\n`;
+    message += `*¡Gracias por preferirnos! 🙌*`;
+
+    return message;
+  };
+
+  // Format "vencido" notification message for the client
+  const formatVencidoMessage = (venta) => {
+    if (!venta) return '';
+
+    let message = `❌ *AVISO DE SUSCRIPCIÓN VENCIDA*\n\n`;
+    message += `Hola ${venta.nombreCliente} 👋\n\n`;
+    message += `Te informamos que tu suscripción de *${getVentaServiceNames(venta)}* ha vencido.\n\n`;
+    message += `📋 *Detalles de tu venta:*\n`;
+    message += `🆔 # Venta: V-${venta.ventaID}\n`;
+    message += `✂ Fecha de vencimiento: *${formatExpiryDateLocal(venta.fechaFin)}*\n\n`;
+    message += `Para reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!\n\n`;
+    message += `*¡Gracias por preferirnos! 🙌*`;
+
+    return message;
+  };
+
   // Format account-change details as WhatsApp message
   const formatWhatsAppChangeMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
@@ -2033,18 +2078,46 @@ const Ventas = () => {
               })()}
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-              <Button
-                onClick={() => {
-                  const message = formatWhatsAppMessage(ventaCompleta);
-                  copyToClipboard(message, 'Detalles');
-                }}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Copy size={16} />
-                Copiar Detalles
-              </Button>
+            <div className="flex flex-wrap justify-between items-center pt-4 border-t gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    const message = formatWhatsAppMessage(ventaCompleta);
+                    copyToClipboard(message, 'Detalles');
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Copy size={16} />
+                  Copiar Detalles
+                </Button>
+                {ventaCompleta.estado === 'ProximoVencer' && (
+                  <Button
+                    onClick={() => {
+                      const message = formatProximoVencerMessage(ventaCompleta);
+                      copyToClipboard(message, 'Aviso de vencimiento próximo');
+                    }}
+                    variant="warning"
+                    className="flex items-center gap-2"
+                  >
+                    <Copy size={16} />
+                    Copiar Aviso de Vencimiento Próximo
+                  </Button>
+                )}
+                {ventaCompleta.estado === 'Vencido' && (
+                  <Button
+                    onClick={() => {
+                      const message = formatVencidoMessage(ventaCompleta);
+                      copyToClipboard(message, 'Aviso de venta vencida');
+                    }}
+                    variant="danger"
+                    className="flex items-center gap-2"
+                  >
+                    <Copy size={16} />
+                    Copiar Aviso de Venta Vencida
+                  </Button>
+                )}
+              </div>
               <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>
                 Cerrar
               </Button>
