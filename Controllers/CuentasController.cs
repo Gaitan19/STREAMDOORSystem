@@ -315,6 +315,10 @@ namespace STREAMDOORSystem.Controllers
                 cuenta.TipoCuenta = crearCuentaDto.TipoCuenta;
                 cuenta.NumeroPerfiles = crearCuentaDto.NumeroPerfiles;
                 cuenta.FechaFinalizacion = crearCuentaDto.FechaFinalizacion;
+                cuenta.Password = crearCuentaDto.Password;
+                cuenta.CorreoTerceros = crearCuentaDto.CorreoTerceros;
+                cuenta.CodigoCuenta = crearCuentaDto.CodigoCuenta;
+                cuenta.Costo = crearCuentaDto.Costo;
 
                 _context.Cuentas.Update(cuenta);
                 await _context.SaveChangesAsync();
