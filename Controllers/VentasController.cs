@@ -26,6 +26,7 @@ namespace STREAMDOORSystem.Controllers
         {
             try
             {
+                var ahora = GetManaguaTime();
                 var ventas = await _context.Ventas
                     .Include(v => v.Cliente)
                     .Include(v => v.MedioPago)
@@ -46,7 +47,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -110,7 +111,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = venta.Monto,
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
-                    DiasRestantes = (int)(venta.FechaFin - DateTime.Now).TotalDays,
+                    DiasRestantes = (int)(venta.FechaFin - GetManaguaTime()).TotalDays,
                     Detalles = venta.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -152,6 +153,7 @@ namespace STREAMDOORSystem.Controllers
                     return BadRequest(new { message = "El cliente especificado no existe" });
                 }
 
+                var ahora = GetManaguaTime();
                 var ventas = await _context.Ventas
                     .Where(v => v.ClienteID == clienteId)
                     .Include(v => v.Cliente)
@@ -173,7 +175,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -229,11 +231,11 @@ namespace STREAMDOORSystem.Controllers
                 }
 
                 // Validar que FechaFin sea mayor que FechaInicio
-                var fechaInicio = DateTime.Now;
+                // Use Managua, Nicaragua time (CST, UTC-6, no Daylight Saving Time) so dates are
+                // consistent regardless of the timezone configured on the host server
+                var fechaInicio = GetManaguaTime();
                 
-                // Set FechaFin to 8:00 PM (20:00) on the selected date
-                // Note: Assumes server timezone is Managua, Nicaragua (UTC-6)
-                // DateTime values are stored in server's local time
+                // Set FechaFin to 8:00 PM (20:00) Managua time on the selected date
                 var fechaFinDate = crearVentaDto.FechaFin.Date;
                 var fechaFin = new DateTime(fechaFinDate.Year, fechaFinDate.Month, fechaFinDate.Day, 20, 0, 0);
                 
@@ -289,7 +291,7 @@ namespace STREAMDOORSystem.Controllers
                         ServicioID = detalleDto.ServicioID,
                         ComboID = detalleDto.ComboID,
                         PrecioUnitario = precioUnitario,
-                        FechaAsignacion = DateTime.Now
+                        FechaAsignacion = fechaInicio
                     });
                 }
 
@@ -313,7 +315,7 @@ namespace STREAMDOORSystem.Controllers
                     MedioPagoID = crearVentaDto.MedioPagoID,
                     UsuarioID = usuarioId,
                     Estado = "Activo",
-                    FechaCreacion = DateTime.Now,
+                    FechaCreacion = fechaInicio,
                     Detalles = detallesLista
                 };
 
@@ -358,7 +360,7 @@ namespace STREAMDOORSystem.Controllers
                     VentaID = venta.VentaID,
                     UsuarioID = usuarioId,
                     Usuario = usuarioNombreClaim ?? "Sistema",
-                    FechaCreacion = DateTime.Now
+                    FechaCreacion = fechaInicio
                 };
                 _context.Ingresos.Add(ingreso);
                 await _context.SaveChangesAsync();
@@ -386,7 +388,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = ventaCreada.Monto,
                     Moneda = ventaCreada.Moneda,
                     Estado = ventaCreada.Estado,
-                    DiasRestantes = (int)(ventaCreada.FechaFin - DateTime.Now).TotalDays,
+                    DiasRestantes = (int)(ventaCreada.FechaFin - fechaInicio).TotalDays,
                     Detalles = ventaCreada.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -668,7 +670,9 @@ namespace STREAMDOORSystem.Controllers
 
                 int ventasActualizadas = 0;
                 int perfilesLiberados = 0;
-                var ahora = DateTime.Now;
+                // Use Managua, Nicaragua time (CST, UTC-6, no Daylight Saving Time) so sales
+                // expire at 8:00 PM local time regardless of the timezone on the host server
+                var ahora = GetManaguaTime();
 
                 foreach (var venta in ventas)
                 {
@@ -765,7 +769,7 @@ namespace STREAMDOORSystem.Controllers
                     .Include(v => v.Detalles)
                         .ThenInclude(d => d.Perfil);
 
-                var hoy = DateTime.Now.Date;
+                var ahora = GetManaguaTime();
 
                 switch (estado.ToLower())
                 {
@@ -800,7 +804,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - DateTime.Now).TotalDays,
+                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -827,6 +831,28 @@ namespace STREAMDOORSystem.Controllers
                     error = ex.Message
                 });
             }
+        }
+
+        /// <summary>
+        /// Returns the current date and time in the Managua, Nicaragua timezone (UTC-6).
+        /// Nicaragua does not observe Daylight Saving Time.
+        /// This is used instead of DateTime.Now so that sales expire correctly at 8:00 PM
+        /// Managua time regardless of the timezone configured on the host server.
+        /// </summary>
+        private static DateTime GetManaguaTime()
+        {
+            // Try IANA timezone ID (Linux/macOS and Windows 11+)
+            // Fall back to Windows timezone ID for older Windows servers
+            TimeZoneInfo managuaTz;
+            try
+            {
+                managuaTz = TimeZoneInfo.FindSystemTimeZoneById("America/Managua");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                managuaTz = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time");
+            }
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, managuaTz);
         }
     }
 }
