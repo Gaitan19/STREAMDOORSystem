@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -167,6 +167,22 @@ const Ventas = () => {
       return 0;
     });
   };
+
+  // Returns how many profiles from a given account are already committed
+  // in the current in-session cart (services + combos).
+  const profilesUsedFromAccount = (cuentaID) =>
+    [...serviciosCart, ...combosCart].filter(item => item.cuentaID === cuentaID).length;
+
+  // Memoized list of profiles not yet assigned in the current cart.
+  const availableProfiles = useMemo(
+    () =>
+      perfilesDisponibles.filter(
+        p =>
+          !serviciosCart.some(sc => sc.perfilID === p.perfilID) &&
+          !combosCart.some(cc => cc.perfilID === p.perfilID)
+      ),
+    [perfilesDisponibles, serviciosCart, combosCart]
+  );
 
   const handleVerificarEstados = async () => {
     try {
@@ -1318,9 +1334,11 @@ const Ventas = () => {
                       <option value="">Seleccionar cuenta...</option>
                       {cuentasDisponibles
                         .filter(c => c.servicioID === servicioSeleccionado?.servicioID)
+                        .map(c => ({ ...c, restantes: c.perfilesDisponibles - profilesUsedFromAccount(c.cuentaID) }))
+                        .filter(c => c.restantes > 0)
                         .map((cuenta) => (
                           <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                            {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                            {cuenta.codigoCuenta} ({cuenta.restantes} disponibles)
                           </option>
                         ))
                       }
@@ -1344,7 +1362,7 @@ const Ventas = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Seleccionar perfil...</option>
-                      {perfilesDisponibles.map((perfil) => (
+                      {availableProfiles.map((perfil) => (
                         <option key={perfil.perfilID} value={perfil.perfilID}>
                           Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
                         </option>
@@ -1497,9 +1515,11 @@ const Ventas = () => {
                       <option value="">Seleccionar...</option>
                       {cuentasDisponibles
                         .filter(c => c.servicioID === servicioComboSeleccionado?.servicioID)
+                        .map(c => ({ ...c, restantes: c.perfilesDisponibles - profilesUsedFromAccount(c.cuentaID) }))
+                        .filter(c => c.restantes > 0)
                         .map((cuenta) => (
                           <option key={cuenta.cuentaID} value={cuenta.cuentaID}>
-                            {cuenta.codigoCuenta} ({cuenta.perfilesDisponibles} disponibles)
+                            {cuenta.codigoCuenta} ({cuenta.restantes} disponibles)
                           </option>
                         ))
                       }
@@ -1520,7 +1540,7 @@ const Ventas = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
                       <option value="">Seleccionar...</option>
-                      {perfilesDisponibles.map((perfil) => (
+                      {availableProfiles.map((perfil) => (
                         <option key={perfil.perfilID} value={perfil.perfilID}>
                           Perfil #{perfil.numeroPerfil} {perfil.pin ? `(PIN: ${perfil.pin})` : ''}
                         </option>
