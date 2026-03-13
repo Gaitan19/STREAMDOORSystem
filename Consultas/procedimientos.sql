@@ -213,11 +213,13 @@ CREATE OR ALTER PROCEDURE sp_CrearCuenta
     @ServicioID INT,
     @CorreoID INT = NULL,
     @TipoCuenta NVARCHAR(20),
-    @NumeroPerfiles INT = 1
+    @NumeroPerfiles INT = 1,
+    @Costo DECIMAL(10,2) = NULL,
+    @Moneda NVARCHAR(10) = 'C$'
 AS
 BEGIN
-    INSERT INTO Cuentas (ServicioID, CorreoID, TipoCuenta, NumeroPerfiles, PerfilesDisponibles)
-    VALUES (@ServicioID, @CorreoID, @TipoCuenta, @NumeroPerfiles, @NumeroPerfiles);
+    INSERT INTO Cuentas (ServicioID, CorreoID, TipoCuenta, NumeroPerfiles, PerfilesDisponibles, Costo, Moneda)
+    VALUES (@ServicioID, @CorreoID, @TipoCuenta, @NumeroPerfiles, @NumeroPerfiles, @Costo, @Moneda);
     
     SELECT SCOPE_IDENTITY() AS CuentaID;
 END
@@ -228,7 +230,7 @@ CREATE OR ALTER PROCEDURE sp_ListarCuentas
 AS
 BEGIN
     SELECT C.CuentaID, S.Nombre AS Servicio, CO.Email, C.TipoCuenta, 
-           C.NumeroPerfiles, C.PerfilesDisponibles, C.Estado, C.FechaCreacion
+           C.NumeroPerfiles, C.PerfilesDisponibles, C.Costo, C.Moneda, C.Estado, C.FechaCreacion
     FROM Cuentas C
     INNER JOIN Servicios S ON C.ServicioID = S.ServicioID
     LEFT JOIN Correos CO ON C.CorreoID = CO.CorreoID
