@@ -272,6 +272,9 @@ namespace STREAMDOORSystem.Controllers
                 decimal montoTotal = 0;
                 var detallesLista = new List<VentaDetalle>();
 
+                // Determine if currency conversion is needed
+                bool needsConversion = crearVentaDto.Moneda != "C$" && crearVentaDto.TasaCambio != 1m;
+
                 foreach (var detalleDto in crearVentaDto.Detalles)
                 {
                     var servicio = await _context.Servicios.FindAsync(detalleDto.ServicioID);
@@ -280,8 +283,12 @@ namespace STREAMDOORSystem.Controllers
                         return BadRequest(new { message = $"El servicio {detalleDto.ServicioID} no existe o no está activo" });
                     }
 
-                    // Use provided price (for combos) or service price
-                    var precioUnitario = detalleDto.PrecioUnitario ?? servicio.Precio ?? 0;
+                    // Use provided price (for combos) or service price (in C$)
+                    var precioBase = detalleDto.PrecioUnitario ?? servicio.Precio ?? 0;
+                    // Convert to selected currency if needed
+                    var precioUnitario = needsConversion
+                        ? Math.Round(precioBase / crearVentaDto.TasaCambio, 2)
+                        : precioBase;
                     montoTotal += precioUnitario;
 
                     detallesLista.Add(new VentaDetalle
@@ -356,6 +363,7 @@ namespace STREAMDOORSystem.Controllers
                 var ingreso = new Ingreso
                 {
                     Monto = montoTotal,
+                    Moneda = crearVentaDto.Moneda,
                     Descripcion = $"Ingreso por venta #{venta.VentaID}",
                     VentaID = venta.VentaID,
                     UsuarioID = usuarioId,

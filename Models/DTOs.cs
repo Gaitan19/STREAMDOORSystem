@@ -171,6 +171,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? CorreoTerceros { get; set; }
         public string? CodigoCuenta { get; set; }
         public decimal? Costo { get; set; }
+        public string Moneda { get; set; } = "C$";
         public List<PerfilDTO>? Perfiles { get; set; }
         public bool Activo { get; set; }
     }
@@ -187,6 +188,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? CorreoTerceros { get; set; }  // Email for Terceros accounts
         public string? CodigoCuenta { get; set; }  // Auto-generated account code
         public decimal? Costo { get; set; }
+        public string Moneda { get; set; } = "C$";
         public List<PerfilDTO>? Perfiles { get; set; }
     }
 
@@ -318,6 +320,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public DateTime FechaFin { get; set; }  // Changed from Duracion to FechaFin
         public int? MedioPagoID { get; set; }  // Medio de pago usado
         public string Moneda { get; set; } = "C$";
+        public decimal TasaCambio { get; set; } = 1m;  // Exchange rate (e.g. 36.50 for C$ -> USD)
         public string? Notas { get; set; }
         public List<CrearVentaDetalleDTO> Detalles { get; set; } = new();  // Multiple services
     }
@@ -433,6 +436,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int IngresoID { get; set; }
         public DateTime FechaCreacion { get; set; }
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public int? UsuarioID { get; set; }
         public string? Usuario { get; set; }
         public string? Descripcion { get; set; }
@@ -442,6 +446,7 @@ namespace STREAMDOORSystem.Models.DTOs
     public class CrearIngresoDTO
     {
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public string? Descripcion { get; set; }
         public int? VentaID { get; set; }
     }
@@ -449,6 +454,7 @@ namespace STREAMDOORSystem.Models.DTOs
     public class ActualizarIngresoDTO
     {
         public decimal? Monto { get; set; }
+        public string? Moneda { get; set; }
         public string? Descripcion { get; set; }
         public int? VentaID { get; set; }
     }
@@ -459,6 +465,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int EgresoID { get; set; }
         public DateTime FechaCreacion { get; set; }
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public int? UsuarioID { get; set; }
         public string? Usuario { get; set; }
         public string? Descripcion { get; set; }
@@ -469,6 +476,7 @@ namespace STREAMDOORSystem.Models.DTOs
     public class CrearEgresoDTO
     {
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public string? Descripcion { get; set; }
         public int? CuentaID { get; set; }
     }
@@ -476,6 +484,7 @@ namespace STREAMDOORSystem.Models.DTOs
     public class ActualizarEgresoDTO
     {
         public decimal? Monto { get; set; }
+        public string? Moneda { get; set; }
         public string? Descripcion { get; set; }
         public int? CuentaID { get; set; }
     }
@@ -574,6 +583,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int IngresoID { get; set; }
         public DateTime FechaCreacion { get; set; }
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public string? Descripcion { get; set; }
         public string? Usuario { get; set; }
         public int? VentaID { get; set; }
@@ -588,6 +598,12 @@ namespace STREAMDOORSystem.Models.DTOs
         public List<CierreIngresoItemDTO> Items { get; set; } = new();
     }
 
+    public class CierrePorMonedaDTO
+    {
+        public string Moneda { get; set; } = string.Empty;
+        public decimal Total { get; set; }
+    }
+
     public class CierreIngresosDTO
     {
         public List<CierreIngresoItemDTO> Manuales { get; set; } = new();
@@ -595,6 +611,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public List<CierreIngresosPorMedioPagoDTO> VentasPorMedioPago { get; set; } = new();
         public decimal TotalVentas { get; set; }
         public decimal Total { get; set; }
+        public List<CierrePorMonedaDTO> TotalesPorMoneda { get; set; } = new();
     }
 
     public class CierreEgresoItemDTO
@@ -602,6 +619,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public int EgresoID { get; set; }
         public DateTime FechaCreacion { get; set; }
         public decimal Monto { get; set; }
+        public string Moneda { get; set; } = "C$";
         public string? Descripcion { get; set; }
         public string? Usuario { get; set; }
         public int? CuentaID { get; set; }
@@ -617,6 +635,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public List<CierreEgresoItemDTO> RenovacionCuentas { get; set; } = new();
         public decimal TotalRenovacion { get; set; }
         public decimal Total { get; set; }
+        public List<CierrePorMonedaDTO> TotalesPorMoneda { get; set; } = new();
     }
 
     public class CierreDTO

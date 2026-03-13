@@ -42,6 +42,7 @@ namespace STREAMDOORSystem.Controllers
                     IngresoID = i.IngresoID,
                     FechaCreacion = i.FechaCreacion,
                     Monto = i.Monto,
+                    Moneda = i.Moneda,
                     Descripcion = i.Descripcion,
                     Usuario = i.Usuario,
                     VentaID = i.VentaID,
@@ -63,6 +64,7 @@ namespace STREAMDOORSystem.Controllers
                         IngresoID = i.IngresoID,
                         FechaCreacion = i.FechaCreacion,
                         Monto = i.Monto,
+                        Moneda = i.Moneda,
                         Descripcion = i.Descripcion,
                         Usuario = i.Usuario,
                         VentaID = i.VentaID,
@@ -75,13 +77,28 @@ namespace STREAMDOORSystem.Controllers
             var totalManualesIngresos = ingresosManuales.Sum(i => i.Monto);
             var totalVentasIngresos = ingresosVentas.Sum(i => i.Monto);
 
+            // Group all ingresos by Moneda
+            var ingresosAll = ingresosManuales
+                .Concat(ingresosVentas.Select(i => new CierreIngresoItemDTO
+                {
+                    IngresoID = i.IngresoID,
+                    FechaCreacion = i.FechaCreacion,
+                    Monto = i.Monto,
+                    Moneda = i.Moneda
+                }))
+                .GroupBy(i => i.Moneda)
+                .Select(g => new CierrePorMonedaDTO { Moneda = g.Key, Total = g.Sum(i => i.Monto) })
+                .OrderBy(g => g.Moneda)
+                .ToList();
+
             var cierreIngresos = new CierreIngresosDTO
             {
                 Manuales = ingresosManuales,
                 TotalManuales = totalManualesIngresos,
                 VentasPorMedioPago = ventasPorMedioPago,
                 TotalVentas = totalVentasIngresos,
-                Total = totalManualesIngresos + totalVentasIngresos
+                Total = totalManualesIngresos + totalVentasIngresos,
+                TotalesPorMoneda = ingresosAll
             };
 
             // ── Egresos ─────────────────────────────────────────────────────
@@ -97,6 +114,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     Descripcion = e.Descripcion,
                     Usuario = e.Usuario,
                     CuentaID = e.CuentaID
@@ -110,6 +128,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     Descripcion = e.Descripcion,
                     Usuario = e.Usuario,
                     CuentaID = e.CuentaID
@@ -123,6 +142,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     Descripcion = e.Descripcion,
                     Usuario = e.Usuario,
                     CuentaID = e.CuentaID
@@ -139,6 +159,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     Descripcion = e.Descripcion,
                     Usuario = e.Usuario,
                     CuentaID = e.CuentaID
@@ -152,6 +173,15 @@ namespace STREAMDOORSystem.Controllers
             var totalCreacionEgresos = egresosCreacion.Sum(e => e.Monto);
             var totalRenovacionEgresos = egresosRenovacion.Sum(e => e.Monto);
 
+            // Group all egresos by Moneda
+            var egresosAll = egresosManuales
+                .Concat(egresosCreacion)
+                .Concat(egresosRenovacion)
+                .GroupBy(e => e.Moneda)
+                .Select(g => new CierrePorMonedaDTO { Moneda = g.Key, Total = g.Sum(e => e.Monto) })
+                .OrderBy(g => g.Moneda)
+                .ToList();
+
             var cierreEgresos = new CierreEgresosDTO
             {
                 Manuales = egresosManuales,
@@ -160,7 +190,8 @@ namespace STREAMDOORSystem.Controllers
                 TotalCreacion = totalCreacionEgresos,
                 RenovacionCuentas = egresosRenovacion,
                 TotalRenovacion = totalRenovacionEgresos,
-                Total = totalManualesEgresos + totalCreacionEgresos + totalRenovacionEgresos
+                Total = totalManualesEgresos + totalCreacionEgresos + totalRenovacionEgresos,
+                TotalesPorMoneda = egresosAll
             };
 
             var cierre = new CierreDTO

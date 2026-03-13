@@ -190,6 +190,9 @@ namespace STREAMDOORSystem.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal? Costo { get; set; }
 
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
+
         public bool Activo { get; set; } = true;
 
         [ForeignKey("ServicioID")]
@@ -453,6 +456,9 @@ namespace STREAMDOORSystem.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal Monto { get; set; }
 
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
+
         public int? UsuarioID { get; set; }
 
         [MaxLength(100)]
@@ -481,6 +487,9 @@ namespace STREAMDOORSystem.Models
         [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal Monto { get; set; }
+
+        [MaxLength(10)]
+        public string Moneda { get; set; } = "C$";
 
         public int? UsuarioID { get; set; }
 

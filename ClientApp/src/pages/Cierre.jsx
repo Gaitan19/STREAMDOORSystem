@@ -129,9 +129,14 @@ const SubGroup = ({ title, icon: Icon, iconColor, items, total, totalColor, empt
               <p className="text-sm text-gray-700 truncate">{item.descripcion || item.label || '-'}</p>
               <p className="text-xs text-gray-400">{fmtDate(item.fechaCreacion)} · {item.usuario || ''}</p>
             </div>
-            <span className="ml-3 text-sm font-medium text-gray-800 whitespace-nowrap">
-              {formatCurrency(item.monto)}
-            </span>
+            <div className="ml-3 flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                {item.moneda || 'C$'}
+              </span>
+              <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+                {formatCurrency(item.monto, item.moneda || 'C$')}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -486,6 +491,26 @@ const Cierre = () => {
                 totalColor="text-gray-700"
                 emptyMsg="Sin ingresos manuales en el periodo"
               />
+              {/* Per-currency breakdown */}
+              {(ing?.totalesPorMoneda ?? []).length > 1 && (
+                <div className="bg-blue-50 rounded-lg border border-blue-100 p-3 mt-2">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">
+                    Desglose por Moneda
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {(ing?.totalesPorMoneda ?? []).map((pm, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-white rounded-lg border border-blue-200 px-3 py-1.5">
+                        <span className="text-xs font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                          {pm.moneda}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800">
+                          {formatCurrency(pm.total, pm.moneda)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Section>
 
             {/* Egresos */}
@@ -524,6 +549,26 @@ const Cierre = () => {
                 totalColor="text-gray-700"
                 emptyMsg="Sin egresos manuales en el periodo"
               />
+              {/* Per-currency breakdown */}
+              {(egr?.totalesPorMoneda ?? []).length > 1 && (
+                <div className="bg-red-50 rounded-lg border border-red-100 p-3 mt-2">
+                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-2">
+                    Desglose por Moneda
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {(egr?.totalesPorMoneda ?? []).map((pm, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-white rounded-lg border border-red-200 px-3 py-1.5">
+                        <span className="text-xs font-medium text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                          {pm.moneda}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800">
+                          {formatCurrency(pm.total, pm.moneda)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Section>
 
             {/* Summary row */}
