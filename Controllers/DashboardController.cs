@@ -283,7 +283,7 @@ namespace STREAMDOORSystem.Controllers
                     Cliente       = v.Cliente != null ? $"{v.Cliente.Nombre} {v.Cliente.Apellido}" : "N/A",
                     Servicio      = string.Join(", ", v.Detalles.Select(d => d.Servicio?.Nombre ?? "N/A")),
                     FechaFin      = v.FechaFin,
-                    DiasRestantes = (int)(v.FechaFin - hoy).TotalDays
+                    DiasRestantes = (int)Math.Ceiling((v.FechaFin - hoy).TotalDays)
                 }).ToList();
 
                 // ── Top clientes (por monto total de ventas, global) ─────────

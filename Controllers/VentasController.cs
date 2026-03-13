@@ -47,7 +47,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
+                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -111,7 +111,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = venta.Monto,
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
-                    DiasRestantes = (int)(venta.FechaFin - GetManaguaTime()).TotalDays,
+                    DiasRestantes = (int)Math.Ceiling((venta.FechaFin - GetManaguaTime()).TotalDays),
                     Detalles = venta.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -175,7 +175,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
+                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -396,7 +396,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = ventaCreada.Monto,
                     Moneda = ventaCreada.Moneda,
                     Estado = ventaCreada.Estado,
-                    DiasRestantes = (int)(ventaCreada.FechaFin - fechaInicio).TotalDays,
+                    DiasRestantes = (int)Math.Ceiling((ventaCreada.FechaFin - fechaInicio).TotalDays),
                     Detalles = ventaCreada.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -812,7 +812,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)(v.FechaFin - ahora).TotalDays,
+                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
