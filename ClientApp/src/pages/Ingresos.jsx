@@ -11,8 +11,9 @@ import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
 const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
 const CURRENCY_OPTIONS = [
-  { value: 'C$', label: `C$ — ${CURRENCY_NAME}` },
+  { value: CURRENCY_SYMBOL, label: `${CURRENCY_SYMBOL} — ${CURRENCY_NAME}` },
   { value: '$', label: '$ — Dólares' },
 ];
 
@@ -25,9 +26,10 @@ const Ingresos = () => {
   const [selectedIngreso, setSelectedIngreso] = useState(null);
   const [alert, setAlert] = useState(null);
   const [filterType, setFilterType] = useState('todos'); // 'todos', 'ventas', 'manuales'
+  const [filterMoneda, setFilterMoneda] = useState('todos'); // 'todos', CURRENCY_SYMBOL, '$'
   const [formData, setFormData] = useState({
     monto: '',
-    moneda: 'C$',
+    moneda: CURRENCY_SYMBOL,
     descripcion: '',
     ventaID: null
   });
@@ -58,7 +60,7 @@ const Ingresos = () => {
     setTimeout(() => setAlert(null), 5000);
   };
 
-  const applyFilters = (searchTerm = '', filterType = 'todos') => {
+  const applyFilters = (searchTerm = '', filterType = 'todos', filterMoneda = 'todos') => {
     let filtered = ingresos;
 
     // Apply type filter
@@ -68,13 +70,17 @@ const Ingresos = () => {
       filtered = filtered.filter(ing => ing.ventaID == null);
     }
 
-    // Apply search filter (description, user, or currency)
+    // Apply currency filter
+    if (filterMoneda !== 'todos') {
+      filtered = filtered.filter(ing => (ing.moneda || CURRENCY_SYMBOL) === filterMoneda);
+    }
+
+    // Apply search filter (description or user)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(ingreso =>
         ingreso.descripcion?.toLowerCase().includes(term) ||
-        ingreso.usuario?.toLowerCase().includes(term) ||
-        ingreso.moneda?.toLowerCase().includes(term)
+        ingreso.usuario?.toLowerCase().includes(term)
       );
     }
 
@@ -82,12 +88,17 @@ const Ingresos = () => {
   };
 
   const handleSearch = (searchTerm) => {
-    applyFilters(searchTerm, filterType);
+    applyFilters(searchTerm, filterType, filterMoneda);
   };
 
   const handleFilterChange = (newFilter) => {
     setFilterType(newFilter);
-    applyFilters('', newFilter);
+    applyFilters('', newFilter, filterMoneda);
+  };
+
+  const handleMonedaFilterChange = (newMoneda) => {
+    setFilterMoneda(newMoneda);
+    applyFilters('', filterType, newMoneda);
   };
 
   const validate = () => {
@@ -176,7 +187,7 @@ const Ingresos = () => {
     setSelectedIngreso(ingreso);
     setFormData({
       monto: ingreso.monto,
-      moneda: ingreso.moneda || 'C$',
+      moneda: ingreso.moneda || CURRENCY_SYMBOL,
       descripcion: ingreso.descripcion,
       ventaID: ingreso.ventaID || null
     });
@@ -191,7 +202,7 @@ const Ingresos = () => {
   const resetForm = () => {
     setFormData({
       monto: '',
-      moneda: 'C$',
+      moneda: CURRENCY_SYMBOL,
       descripcion: '',
       ventaID: null
     });
@@ -277,7 +288,7 @@ const Ingresos = () => {
         <div className="mb-4 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <SearchBar
-              placeholder="Buscar por descripción, usuario o moneda..."
+              placeholder="Buscar por descripción o usuario..."
               onSearch={handleSearch}
             />
           </div>
@@ -290,6 +301,17 @@ const Ingresos = () => {
               <option value="todos">Todos</option>
               <option value="ventas">De Ventas</option>
               <option value="manuales">Manuales</option>
+            </select>
+          </div>
+          <div className="sm:w-44">
+            <select
+              value={filterMoneda}
+              onChange={(e) => handleMonedaFilterChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las monedas</option>
+              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL}</option>
+              <option value="$">$</option>
             </select>
           </div>
         </div>
