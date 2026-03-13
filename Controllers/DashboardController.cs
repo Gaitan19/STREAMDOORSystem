@@ -53,6 +53,11 @@ namespace STREAMDOORSystem.Controllers
                 var totalVentasPeriodo = ventasPeriodo.Count;
                 var montoVentasPeriodo = ventasPeriodo.Sum(v => v.Monto);
 
+                var ventasPerMoneda = ventasPeriodo
+                    .GroupBy(v => v.Moneda ?? "C$")
+                    .Select(g => new VentasPorMonedaDTO { Moneda = g.Key, Cantidad = g.Count(), Monto = g.Sum(v => v.Monto) })
+                    .ToList();
+
                 // ── KPIs globales ────────────────────────────────────────────
                 var totalClientes    = await _context.Clientes.CountAsync(c => c.Activo);
                 var totalCuentas     = await _context.Cuentas.CountAsync(c => c.Activo);
@@ -317,6 +322,7 @@ namespace STREAMDOORSystem.Controllers
                     GananciaNeta             = gananciaNeta,
                     TotalVentasPeriodo       = totalVentasPeriodo,
                     MontoVentasPeriodo       = montoVentasPeriodo,
+                    VentasPerMoneda          = ventasPerMoneda,
                     TotalClientes            = totalClientes,
                     TotalCuentas             = totalCuentas,
                     TotalCorreos             = totalCorreos,

@@ -19,6 +19,7 @@ import { generatePDF, generateExcel } from '../utils/reportGenerator';
 
 const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
 const CURRENCY_NAME   = import.meta.env.VITE_CURRENCY_NAME   || 'Córdobas';
+const USD_NAME        = import.meta.env.VITE_USD_NAME        || 'Dólares';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const toISO = (d) => d.toISOString().split('T')[0];
@@ -77,7 +78,7 @@ const Dashboard = () => {
   const [customFin, setCustomFin]       = useState('');
   const [exporting, setExporting]       = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [currencyFilter, setCurrencyFilter] = useState('');
+  const [currencyFilter, setCurrencyFilter] = useState(CURRENCY_SYMBOL);
   const exportRef = useRef(null);
 
   const derivedRange = useCallback(() => {
@@ -130,9 +131,9 @@ const Dashboard = () => {
     const label = buildPeriodoLabel();
     try {
       if (format === 'pdf') {
-        generatePDF(data, userName, label);
+        generatePDF(data, userName, label, currencyFilter);
       } else {
-        await generateExcel(data, userName, label);
+        await generateExcel(data, userName, label, currencyFilter);
       }
     } catch (err) {
       console.error('Error al generar reporte:', err);
@@ -178,27 +179,18 @@ const Dashboard = () => {
   };
 
   // ── Derived values based on currency filter ─────────────────────────────────
-  const getFilteredIngresos = () => {
-    if (!currencyFilter) return data.totalIngresos;
-    return (data.ingresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
-  };
-  const getFilteredEgresos = () => {
-    if (!currencyFilter) return data.totalEgresos;
-    return (data.egresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
-  };
-  const filteredIngresos = getFilteredIngresos();
-  const filteredEgresos  = getFilteredEgresos();
+  const filteredIngresos = (data.ingresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
+  const filteredEgresos  = (data.egresosPerMoneda  ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
   const filteredGanancia = filteredIngresos - filteredEgresos;
 
-  const getChartData = () => {
-    if (!currencyFilter) return data.ingresosEgresosChart;
-    if (currencyFilter === CURRENCY_SYMBOL) return data.ingresosEgresosChartCs ?? [];
-    return data.ingresosEgresosChartUsd ?? [];
-  };
-  const chartData = getChartData();
+  const filteredVentasData  = (data.ventasPerMoneda ?? []).find(m => m.moneda === currencyFilter);
+  const filteredVentasCount = filteredVentasData?.cantidad ?? 0;
+  const filteredVentasMonto = filteredVentasData?.monto    ?? 0;
 
-  // Label used for currency in formatter
-  const chartMoneda = currencyFilter || CURRENCY_SYMBOL;
+  const chartData   = currencyFilter === CURRENCY_SYMBOL
+    ? (data.ingresosEgresosChartCs  ?? [])
+    : (data.ingresosEgresosChartUsd ?? []);
+  const chartMoneda = currencyFilter;
 
   return (
     <div className="space-y-6">
@@ -221,9 +213,8 @@ const Dashboard = () => {
               onChange={e => setCurrencyFilter(e.target.value)}
               className="focus:outline-none bg-transparent text-sm text-gray-700"
             >
-              <option value="">Todas las monedas</option>
               <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL} — {CURRENCY_NAME}</option>
-              <option value="$">$ — Dólares</option>
+              <option value="$">$ — {USD_NAME}</option>
             </select>
           </div>
 
@@ -317,34 +308,34 @@ const Dashboard = () => {
       {/* ── KPIs financieros del periodo ─────────────────────────────────── */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          📅 Período seleccionado{currencyFilter ? ` · ${currencyFilter}` : ''}
+          📅 Período seleccionado · {currencyFilter}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             icon={TrendingUp}
-            label={`Ingresos${currencyFilter ? ` (${currencyFilter})` : ''}`}
-            value={formatCurrency(filteredIngresos, currencyFilter || CURRENCY_SYMBOL)}
+            label={`Ingresos (${currencyFilter})`}
+            value={formatCurrency(filteredIngresos, currencyFilter)}
             iconBg="bg-green-500"
           />
           <KPICard
             icon={TrendingDown}
-            label={`Egresos${currencyFilter ? ` (${currencyFilter})` : ''}`}
-            value={formatCurrency(filteredEgresos, currencyFilter || CURRENCY_SYMBOL)}
+            label={`Egresos (${currencyFilter})`}
+            value={formatCurrency(filteredEgresos, currencyFilter)}
             iconBg="bg-red-500"
           />
           <KPICard
             icon={DollarSign}
-            label={`Ganancia Neta${currencyFilter ? ` (${currencyFilter})` : ''}`}
-            value={formatCurrency(filteredGanancia, currencyFilter || CURRENCY_SYMBOL)}
+            label={`Ganancia Neta (${currencyFilter})`}
+            value={formatCurrency(filteredGanancia, currencyFilter)}
             color={filteredGanancia >= 0 ? 'text-green-600' : 'text-red-600'}
             sub={filteredGanancia >= 0 ? '▲ Positivo' : '▼ Negativo'}
             iconBg={filteredGanancia >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}
           />
           <KPICard
             icon={ShoppingCart}
-            label="Ventas del periodo"
-            value={data.totalVentasPeriodo}
-            sub={formatCurrency(data.montoVentasPeriodo)}
+            label={`Ventas del periodo (${currencyFilter})`}
+            value={filteredVentasCount}
+            sub={formatCurrency(filteredVentasMonto, currencyFilter)}
             iconBg="bg-blue-500"
           />
         </div>

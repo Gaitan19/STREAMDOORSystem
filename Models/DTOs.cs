@@ -518,6 +518,7 @@ namespace STREAMDOORSystem.Models.DTOs
         // KPIs financieros por moneda
         public List<CierrePorMonedaDTO> IngresosPerMoneda { get; set; } = new();
         public List<CierrePorMonedaDTO> EgresosPerMoneda { get; set; } = new();
+        public List<VentasPorMonedaDTO> VentasPerMoneda { get; set; } = new();
 
         // Gráfico ingresos vs egresos (total combinado)
         public List<IngresoEgresoChartDTO> IngresosEgresosChart { get; set; } = new();
@@ -610,6 +611,13 @@ namespace STREAMDOORSystem.Models.DTOs
     {
         public string Moneda { get; set; } = string.Empty;
         public decimal Total { get; set; }
+    }
+
+    public class VentasPorMonedaDTO
+    {
+        public string Moneda { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal Monto { get; set; }
     }
 
     public class CierreIngresosDTO

@@ -43,9 +43,10 @@ function buildFileName(d) {
   return `reporte_${yyyy}${mm}${dd}_${hh}${min}${ss}`;
 }
 
-/** Format number as currency C$ */
-function fmt(n) {
-  return `C$ ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Format number as currency – symbol driven by the active filter */
+function fmt(n, symbol) {
+  const s = symbol || 'C$';
+  return `${s} ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
@@ -103,13 +104,27 @@ const ORANGE  = [234, 88, 12];
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
-export function generatePDF(data, userName, periodoLabel) {
-  const now  = manaTime();
-  const name = buildFileName(now);
-  const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const PW   = doc.internal.pageSize.getWidth();  // 210
-  const MW   = PW - 28;  // usable table width (margin 14 each side)
-  let   y    = 0;
+export function generatePDF(data, userName, periodoLabel, currencyFilter) {
+  const now    = manaTime();
+  const name   = buildFileName(now);
+  const doc    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const PW     = doc.internal.pageSize.getWidth();  // 210
+  const MW     = PW - 28;  // usable table width (margin 14 each side)
+  let   y      = 0;
+  const symbol = currencyFilter || 'C$';
+
+  // Resolve per-currency KPIs for the chosen filter
+  const filtIngresos = (data.ingresosPerMoneda ?? []).find(m => m.moneda === symbol)?.total ?? 0;
+  const filtEgresos  = (data.egresosPerMoneda  ?? []).find(m => m.moneda === symbol)?.total ?? 0;
+  const filtGanancia = filtIngresos - filtEgresos;
+  const filtVentas   = (data.ventasPerMoneda   ?? []).find(m => m.moneda === symbol);
+  const filtVentasCnt = filtVentas?.cantidad ?? 0;
+  const filtVentasMnt = filtVentas?.monto    ?? 0;
+
+  // Resolve currency-specific chart data
+  const filtChart = symbol === '$'
+    ? (data.ingresosEgresosChartUsd ?? [])
+    : (data.ingresosEgresosChartCs  ?? []);
 
   // Safe versions of meta strings for Helvetica encoding
   const safeUser   = pdfSafe(userName);
@@ -232,10 +247,10 @@ export function generatePDF(data, userName, periodoLabel) {
   table(
     ['Concepto', 'Monto'],
     [
-      ['Ingresos Totales',  fmt(data.totalIngresos)],
-      ['Egresos Totales',   fmt(data.totalEgresos)],
-      ['Ganancia Neta',     fmt(data.gananciaNeta)],
-      [`Ventas (${data.totalVentasPeriodo} operaciones)`, fmt(data.montoVentasPeriodo)],
+      [`Ingresos (${symbol})`,                          fmt(filtIngresos, symbol)],
+      [`Egresos (${symbol})`,                           fmt(filtEgresos,  symbol)],
+      [`Ganancia Neta (${symbol})`,                     fmt(filtGanancia, symbol)],
+      [`Ventas (${filtVentasCnt} operaciones) (${symbol})`, fmt(filtVentasMnt, symbol)],
     ],
     { 1: 'right' },
     [3, 1]
@@ -267,12 +282,12 @@ export function generatePDF(data, userName, periodoLabel) {
   );
 
   // ── 4. Ingresos vs Egresos ──────────────────────────────────────────────────
-  if (data.ingresosEgresosChart?.length) {
-    section('Ingresos vs Egresos vs Ganancia por Periodo');
+  if (filtChart?.length) {
+    section(`Ingresos vs Egresos vs Ganancia por Periodo (${symbol})`);
     table(
-      ['Periodo', 'Ingresos', 'Egresos', 'Ganancia'],
-      data.ingresosEgresosChart.map(r => [
-        r.periodo, fmt(r.ingresos), fmt(r.egresos), fmt(r.ganancia)
+      ['Periodo', `Ingresos (${symbol})`, `Egresos (${symbol})`, `Ganancia (${symbol})`],
+      filtChart.map(r => [
+        r.periodo, fmt(r.ingresos, symbol), fmt(r.egresos, symbol), fmt(r.ganancia, symbol)
       ]),
       { 1: 'right', 2: 'right', 3: 'right' },
       [1, 1, 1, 1]
@@ -284,7 +299,7 @@ export function generatePDF(data, userName, periodoLabel) {
     section('Top Servicios por Ventas (Periodo)');
     table(
       ['Servicio', 'Ventas', 'Monto Total'],
-      data.ventasPorServicio.map(s => [s.servicio, s.ventas, fmt(s.monto)]),
+      data.ventasPorServicio.map(s => [s.servicio, s.ventas, fmt(s.monto, symbol)]),
       { 1: 'right', 2: 'right' },
       [2, 1, 1]
     );
@@ -295,7 +310,7 @@ export function generatePDF(data, userName, periodoLabel) {
     section('Top 5 Clientes');
     table(
       ['Cliente', 'No. Ventas', 'Monto Total'],
-      data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto)]),
+      data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto, symbol)]),
       { 1: 'right', 2: 'right' },
       [2, 1, 1]
     );
@@ -320,7 +335,7 @@ export function generatePDF(data, userName, periodoLabel) {
     table(
       ['Codigo', 'Servicio', 'Vencio', 'Costo'],
       data.cuentasVencidasList.map(c => [
-        c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), fmt(c.costo)
+        c.codigoCuenta, c.servicio, safeDate(c.fechaFinalizacion), fmt(c.costo, symbol)
       ]),
       { 2: 'center', 3: 'right' },
       [1, 2, 1, 0.5]
@@ -401,23 +416,42 @@ function metaRows(userName, now, periodoLabel) {
   ];
 }
 
-export async function generateExcel(data, userName, periodoLabel) {
-  const now  = manaTime();
-  const name = buildFileName(now);
-  const meta = metaRows(userName, now, periodoLabel);
+export async function generateExcel(data, userName, periodoLabel, currencyFilter) {
+  const now    = manaTime();
+  const name   = buildFileName(now);
+  const meta   = metaRows(userName, now, periodoLabel);
+  const symbol = currencyFilter || 'C$';
+
+  // Resolve per-currency KPIs
+  const filtIngresos  = (data.ingresosPerMoneda ?? []).find(m => m.moneda === symbol)?.total ?? 0;
+  const filtEgresos   = (data.egresosPerMoneda  ?? []).find(m => m.moneda === symbol)?.total ?? 0;
+  const filtGanancia  = filtIngresos - filtEgresos;
+  const filtVentas    = (data.ventasPerMoneda   ?? []).find(m => m.moneda === symbol);
+  const filtVentasCnt = filtVentas?.cantidad ?? 0;
+  const filtVentasMnt = filtVentas?.monto    ?? 0;
+
+  // Resolve currency-specific chart
+  const filtChart = symbol === '$'
+    ? (data.ingresosEgresosChartUsd ?? [])
+    : (data.ingresosEgresosChartCs  ?? []);
+
+  // Sanitize symbol to safe characters only (prevent unexpected Excel format injection)
+  const safeSymbol = /^[A-Za-z$€£¥₡]+$/.test(symbol) ? symbol : 'C$';
+  // Build Excel number format string for the chosen currency symbol
+  const moneyFmt = `"${safeSymbol}"#,##0.00`;
 
   // ── Sheet 1: Resumen ────────────────────────────────────────────────────────
   const resumen = [
     ...meta,
-    [{ value: 'Indicadores Financieros del Período', ...LABEL_STYLE, span: 2 }],
+    [{ value: `Indicadores Financieros del Período (${symbol})`, ...LABEL_STYLE, span: 2 }],
     [
       { value: 'Concepto', ...HEADER_STYLE },
       { value: 'Monto', ...HEADER_STYLE },
     ],
-    [{ value: 'Ingresos Totales', ...LABEL_STYLE }, { value: data.totalIngresos ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE }],
-    [{ value: 'Egresos Totales',  ...LABEL_STYLE }, { value: data.totalEgresos  ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE }],
-    [{ value: 'Ganancia Neta',    ...LABEL_STYLE }, { value: data.gananciaNeta  ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE }],
-    [{ value: `Ventas (${data.totalVentasPeriodo} operaciones)`, ...LABEL_STYLE }, { value: data.montoVentasPeriodo ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE }],
+    [{ value: `Ingresos (${symbol})`, ...LABEL_STYLE }, { value: filtIngresos, format: moneyFmt, ...VALUE_STYLE }],
+    [{ value: `Egresos (${symbol})`,  ...LABEL_STYLE }, { value: filtEgresos,  format: moneyFmt, ...VALUE_STYLE }],
+    [{ value: `Ganancia Neta (${symbol})`, ...LABEL_STYLE }, { value: filtGanancia, format: moneyFmt, ...VALUE_STYLE }],
+    [{ value: `Ventas (${filtVentasCnt} operaciones) (${symbol})`, ...LABEL_STYLE }, { value: filtVentasMnt, format: moneyFmt, ...VALUE_STYLE }],
     [],
     [{ value: 'Indicadores Globales', ...LABEL_STYLE, span: 2 }],
     [{ value: 'Categoría', ...HEADER_STYLE }, { value: 'Total', ...HEADER_STYLE }],
@@ -440,16 +474,16 @@ export async function generateExcel(data, userName, periodoLabel) {
   const chart = [
     ...meta,
     [
-      { value: 'Período',   ...HEADER_STYLE },
-      { value: 'Ingresos',  ...HEADER_STYLE },
-      { value: 'Egresos',   ...HEADER_STYLE },
-      { value: 'Ganancia',  ...HEADER_STYLE },
+      { value: 'Período',                    ...HEADER_STYLE },
+      { value: `Ingresos (${symbol})`,       ...HEADER_STYLE },
+      { value: `Egresos (${symbol})`,        ...HEADER_STYLE },
+      { value: `Ganancia (${symbol})`,       ...HEADER_STYLE },
     ],
-    ...(data.ingresosEgresosChart || []).map(r => [
+    ...filtChart.map(r => [
       { value: r.periodo,       ...LABEL_STYLE },
-      { value: r.ingresos ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
-      { value: r.egresos  ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
-      { value: r.ganancia ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
+      { value: r.ingresos ?? 0, format: moneyFmt, ...VALUE_STYLE },
+      { value: r.egresos  ?? 0, format: moneyFmt, ...VALUE_STYLE },
+      { value: r.ganancia ?? 0, format: moneyFmt, ...VALUE_STYLE },
     ]),
   ];
 
@@ -464,7 +498,7 @@ export async function generateExcel(data, userName, periodoLabel) {
     ...(data.ventasPorServicio || []).map(s => [
       { value: s.servicio,     ...LABEL_STYLE },
       { value: s.ventas  ?? 0, ...VALUE_STYLE },
-      { value: s.monto   ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
+      { value: s.monto   ?? 0, format: moneyFmt, ...VALUE_STYLE },
     ]),
   ];
 
@@ -479,7 +513,7 @@ export async function generateExcel(data, userName, periodoLabel) {
     ...(data.topClientes || []).map(c => [
       { value: c.nombre,        ...LABEL_STYLE },
       { value: c.totalVentas ?? 0, ...VALUE_STYLE },
-      { value: c.totalMonto  ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
+      { value: c.totalMonto  ?? 0, format: moneyFmt, ...VALUE_STYLE },
     ]),
   ];
 
@@ -511,7 +545,7 @@ export async function generateExcel(data, userName, periodoLabel) {
       { value: c.codigoCuenta,                        ...LABEL_STYLE },
       { value: c.servicio,                            ...LABEL_STYLE },
       { value: safeDate(c.fechaFinalizacion),         ...LABEL_STYLE },
-      { value: c.costo ?? 0, format: '"C$"#,##0.00', ...VALUE_STYLE },
+      { value: c.costo ?? 0, format: moneyFmt, ...VALUE_STYLE },
     ]),
     [],
     [{ value: 'Ventas que Vencen Esta Semana', ...LABEL_STYLE, span: 4 }],
