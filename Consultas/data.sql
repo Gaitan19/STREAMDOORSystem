@@ -162,7 +162,7 @@ BEGIN
     ('Banco', 'BAC', '1234567890', 'StreamDoor S.A.', 'C$'),
     ('Banco', 'Banpro', '0987654321', 'StreamDoor S.A.', 'C$'),
     ('Billetera Móvil', 'Tigo Money', '88888888', 'StreamDoor', 'C$'),
-    ('Banco', 'BAC', '1111111111', 'StreamDoor S.A.', 'USD'),
+    ('Banco', 'BAC', '1111111111', 'StreamDoor S.A.', '$'),
     ('Billetera Móvil', 'Movistar Money', '77777777', 'StreamDoor', 'C$');
 END
 GO
