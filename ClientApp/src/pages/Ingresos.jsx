@@ -285,34 +285,36 @@ const Ingresos = () => {
       </div>
 
       <Card>
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <SearchBar
-              placeholder="Buscar por descripción o usuario..."
-              onSearch={handleSearch}
-            />
-          </div>
-          <div className="sm:w-48">
-            <select
-              value={filterType}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="todos">Todos</option>
-              <option value="ventas">De Ventas</option>
-              <option value="manuales">Manuales</option>
-            </select>
-          </div>
-          <div className="sm:w-44">
-            <select
-              value={filterMoneda}
-              onChange={(e) => handleMonedaFilterChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="todos">Todas las monedas</option>
-              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL}</option>
-              <option value="$">$</option>
-            </select>
+        <div className="mb-6 space-y-3">
+          <SearchBar
+            placeholder="Buscar por descripción o usuario..."
+            onSearch={handleSearch}
+          />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-1 sm:w-52">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tipo</label>
+              <select
+                value={filterType}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="todos">Todos</option>
+                <option value="ventas">De Ventas</option>
+                <option value="manuales">Manuales</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 sm:w-48">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Moneda</label>
+              <select
+                value={filterMoneda}
+                onChange={(e) => handleMonedaFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="todos">Todas las monedas</option>
+                <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL}</option>
+                <option value="$">$</option>
+              </select>
+            </div>
           </div>
         </div>
 
