@@ -3,7 +3,7 @@ import {
   Users, ShoppingCart, AlertTriangle, TrendingUp, TrendingDown,
   Package, Mail, CreditCard, DollarSign, RefreshCw, Calendar,
   Activity, BarChart2, CheckCircle, XCircle, Download, FileText,
-  FileSpreadsheet, ChevronDown
+  FileSpreadsheet, ChevronDown, Filter
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -16,6 +16,9 @@ import { Link } from 'react-router-dom';
 import { dashboardService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import { generatePDF, generateExcel } from '../utils/reportGenerator';
+
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_NAME   = import.meta.env.VITE_CURRENCY_NAME   || 'Córdobas';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const toISO = (d) => d.toISOString().split('T')[0];
@@ -74,6 +77,7 @@ const Dashboard = () => {
   const [customFin, setCustomFin]       = useState('');
   const [exporting, setExporting]       = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState('');
   const exportRef = useRef(null);
 
   const derivedRange = useCallback(() => {
@@ -173,6 +177,29 @@ const Dashboard = () => {
     custom: 'Rango personalizado',
   };
 
+  // ── Derived values based on currency filter ─────────────────────────────────
+  const getFilteredIngresos = () => {
+    if (!currencyFilter) return data.totalIngresos;
+    return (data.ingresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
+  };
+  const getFilteredEgresos = () => {
+    if (!currencyFilter) return data.totalEgresos;
+    return (data.egresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
+  };
+  const filteredIngresos = getFilteredIngresos();
+  const filteredEgresos  = getFilteredEgresos();
+  const filteredGanancia = filteredIngresos - filteredEgresos;
+
+  const getChartData = () => {
+    if (!currencyFilter) return data.ingresosEgresosChart;
+    if (currencyFilter === CURRENCY_SYMBOL) return data.ingresosEgresosChartCs ?? [];
+    return data.ingresosEgresosChartUsd ?? [];
+  };
+  const chartData = getChartData();
+
+  // Label used for currency in formatter
+  const chartMoneda = currencyFilter || CURRENCY_SYMBOL;
+
   return (
     <div className="space-y-6">
 
@@ -186,6 +213,20 @@ const Dashboard = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Currency filter */}
+          <div className="flex items-center gap-1.5 text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white">
+            <Filter size={14} className="text-gray-400" />
+            <select
+              value={currencyFilter}
+              onChange={e => setCurrencyFilter(e.target.value)}
+              className="focus:outline-none bg-transparent text-sm text-gray-700"
+            >
+              <option value="">Todas las monedas</option>
+              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL} — {CURRENCY_NAME}</option>
+              <option value="$">$ — Dólares</option>
+            </select>
+          </div>
+
           {/* Preset selector */}
           <select
             value={preset}
@@ -276,28 +317,28 @@ const Dashboard = () => {
       {/* ── KPIs financieros del periodo ─────────────────────────────────── */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          📅 Período seleccionado
+          📅 Período seleccionado{currencyFilter ? ` · ${currencyFilter}` : ''}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             icon={TrendingUp}
-            label="Ingresos"
-            value={formatCurrency(data.totalIngresos)}
+            label={`Ingresos${currencyFilter ? ` (${currencyFilter})` : ''}`}
+            value={formatCurrency(filteredIngresos, currencyFilter || CURRENCY_SYMBOL)}
             iconBg="bg-green-500"
           />
           <KPICard
             icon={TrendingDown}
-            label="Egresos"
-            value={formatCurrency(data.totalEgresos)}
+            label={`Egresos${currencyFilter ? ` (${currencyFilter})` : ''}`}
+            value={formatCurrency(filteredEgresos, currencyFilter || CURRENCY_SYMBOL)}
             iconBg="bg-red-500"
           />
           <KPICard
             icon={DollarSign}
-            label="Ganancia Neta"
-            value={formatCurrency(data.gananciaNeta)}
-            color={data.gananciaNeta >= 0 ? 'text-green-600' : 'text-red-600'}
-            sub={data.gananciaNeta >= 0 ? '▲ Positivo' : '▼ Negativo'}
-            iconBg={data.gananciaNeta >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}
+            label={`Ganancia Neta${currencyFilter ? ` (${currencyFilter})` : ''}`}
+            value={formatCurrency(filteredGanancia, currencyFilter || CURRENCY_SYMBOL)}
+            color={filteredGanancia >= 0 ? 'text-green-600' : 'text-red-600'}
+            sub={filteredGanancia >= 0 ? '▲ Positivo' : '▼ Negativo'}
+            iconBg={filteredGanancia >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}
           />
           <KPICard
             icon={ShoppingCart}
@@ -352,14 +393,14 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* Ingresos vs Egresos */}
-        <Card title="Ingresos vs Egresos">
-          {data.ingresosEgresosChart?.length > 0 ? (
+        <Card title={`Ingresos vs Egresos${currencyFilter ? ` (${currencyFilter})` : ''}`}>
+          {chartData?.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={data.ingresosEgresosChart} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatCurrency(v)} width={80} />
-                <Tooltip formatter={v => formatCurrency(v)} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatCurrency(v, chartMoneda)} width={80} />
+                <Tooltip formatter={v => formatCurrency(v, chartMoneda)} />
                 <Legend />
                 <Line type="monotone" dataKey="ingresos" name="Ingresos" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="egresos"  name="Egresos"  stroke="#ef4444" strokeWidth={2} dot={false} />

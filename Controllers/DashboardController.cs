@@ -72,22 +72,23 @@ namespace STREAMDOORSystem.Controllers
                 var rangeDays = (fin.Date - inicio).TotalDays + 1;
                 List<IngresoEgresoChartDTO> chartData;
 
+                // Fetch full lists once — reused for combined chart, per-currency chart, and KPI totals
+                var ingListAll = await _context.Ingresos
+                    .Where(i => i.FechaCreacion >= inicio && i.FechaCreacion <= fin)
+                    .ToListAsync();
+                var egrListAll = await _context.Egresos
+                    .Where(e => e.FechaCreacion >= inicio && e.FechaCreacion <= fin)
+                    .ToListAsync();
+
                 if (rangeDays <= MAX_DAYS_FOR_DAILY_GROUPING)
                 {
                     // Agrupar por día
-                    var ingList = await _context.Ingresos
-                        .Where(i => i.FechaCreacion >= inicio && i.FechaCreacion <= fin)
-                        .ToListAsync();
-                    var egrList = await _context.Egresos
-                        .Where(e => e.FechaCreacion >= inicio && e.FechaCreacion <= fin)
-                        .ToListAsync();
-
                     chartData = Enumerable.Range(0, (int)rangeDays)
                         .Select(d =>
                         {
                             var dia = inicio.AddDays(d).Date;
-                            var ing = ingList.Where(i => i.FechaCreacion.Date == dia).Sum(i => i.Monto);
-                            var egr = egrList.Where(e => e.FechaCreacion.Date == dia).Sum(e => e.Monto);
+                            var ing = ingListAll.Where(i => i.FechaCreacion.Date == dia).Sum(i => i.Monto);
+                            var egr = egrListAll.Where(e => e.FechaCreacion.Date == dia).Sum(e => e.Monto);
                             return new IngresoEgresoChartDTO
                             {
                                 Periodo  = dia.ToString("dd/MM"),
@@ -101,15 +102,8 @@ namespace STREAMDOORSystem.Controllers
                 else
                 {
                     // Agrupar por mes
-                    var ingList = await _context.Ingresos
-                        .Where(i => i.FechaCreacion >= inicio && i.FechaCreacion <= fin)
-                        .ToListAsync();
-                    var egrList = await _context.Egresos
-                        .Where(e => e.FechaCreacion >= inicio && e.FechaCreacion <= fin)
-                        .ToListAsync();
-
-                    var months = ingList.Select(i => new { i.FechaCreacion.Year, i.FechaCreacion.Month })
-                        .Union(egrList.Select(e => new { e.FechaCreacion.Year, e.FechaCreacion.Month }))
+                    var months = ingListAll.Select(i => new { i.FechaCreacion.Year, i.FechaCreacion.Month })
+                        .Union(egrListAll.Select(e => new { e.FechaCreacion.Year, e.FechaCreacion.Month }))
                         .Distinct()
                         .OrderBy(m => m.Year).ThenBy(m => m.Month)
                         .ToList();
@@ -137,8 +131,8 @@ namespace STREAMDOORSystem.Controllers
 
                     chartData = months.Select(m =>
                     {
-                        var ing = ingList.Where(i => i.FechaCreacion.Year == m.Year && i.FechaCreacion.Month == m.Month).Sum(i => i.Monto);
-                        var egr = egrList.Where(e => e.FechaCreacion.Year == m.Year && e.FechaCreacion.Month == m.Month).Sum(e => e.Monto);
+                        var ing = ingListAll.Where(i => i.FechaCreacion.Year == m.Year && i.FechaCreacion.Month == m.Month).Sum(i => i.Monto);
+                        var egr = egrListAll.Where(e => e.FechaCreacion.Year == m.Year && e.FechaCreacion.Month == m.Month).Sum(e => e.Monto);
                         return new IngresoEgresoChartDTO
                         {
                             Periodo  = new DateTime(m.Year, m.Month, 1).ToString("MMM yyyy"),
@@ -148,6 +142,64 @@ namespace STREAMDOORSystem.Controllers
                         };
                     }).ToList();
                 }
+
+                // ── Per-currency KPI totals ───────────────────────────────────
+                var ingresosPerMoneda = ingListAll
+                    .GroupBy(i => i.Moneda)
+                    .Select(g => new CierrePorMonedaDTO { Moneda = g.Key, Total = g.Sum(i => i.Monto) })
+                    .OrderBy(g => g.Moneda)
+                    .ToList();
+
+                var egresosPerMoneda = egrListAll
+                    .GroupBy(e => e.Moneda)
+                    .Select(g => new CierrePorMonedaDTO { Moneda = g.Key, Total = g.Sum(e => e.Monto) })
+                    .OrderBy(g => g.Moneda)
+                    .ToList();
+
+                // ── Per-currency chart data ───────────────────────────────────
+                List<IngresoEgresoChartDTO> BuildChartForMoneda(string moneda)
+                {
+                    if (rangeDays <= MAX_DAYS_FOR_DAILY_GROUPING)
+                    {
+                        return Enumerable.Range(0, (int)rangeDays)
+                            .Select(d =>
+                            {
+                                var dia = inicio.AddDays(d).Date;
+                                var ing = ingListAll.Where(i => i.FechaCreacion.Date == dia && i.Moneda == moneda).Sum(i => i.Monto);
+                                var egr = egrListAll.Where(e => e.FechaCreacion.Date == dia && e.Moneda == moneda).Sum(e => e.Monto);
+                                return new IngresoEgresoChartDTO { Periodo = dia.ToString("dd/MM"), Ingresos = ing, Egresos = egr, Ganancia = ing - egr };
+                            })
+                            .ToList();
+                    }
+                    else
+                    {
+                        var months2 = ingListAll.Where(i => i.Moneda == moneda).Select(i => new { i.FechaCreacion.Year, i.FechaCreacion.Month })
+                            .Union(egrListAll.Where(e => e.Moneda == moneda).Select(e => new { e.FechaCreacion.Year, e.FechaCreacion.Month }))
+                            .Distinct().OrderBy(m => m.Year).ThenBy(m => m.Month).ToList();
+                        var monthSet2 = new HashSet<(int Year, int Month)>(months2.Select(m => (m.Year, m.Month)));
+                        if (months2.Count > 0)
+                        {
+                            var first2 = months2.First(); var last2 = months2.Last();
+                            var cur2 = new DateTime(first2.Year, first2.Month, 1);
+                            var end2 = new DateTime(last2.Year, last2.Month, 1);
+                            while (cur2 <= end2)
+                            {
+                                if (monthSet2.Add((cur2.Year, cur2.Month))) months2.Add(new { cur2.Year, cur2.Month });
+                                cur2 = cur2.AddMonths(1);
+                            }
+                            months2 = months2.OrderBy(m => m.Year).ThenBy(m => m.Month).ToList();
+                        }
+                        return months2.Select(m =>
+                        {
+                            var ing = ingListAll.Where(i => i.Moneda == moneda && i.FechaCreacion.Year == m.Year && i.FechaCreacion.Month == m.Month).Sum(i => i.Monto);
+                            var egr = egrListAll.Where(e => e.Moneda == moneda && e.FechaCreacion.Year == m.Year && e.FechaCreacion.Month == m.Month).Sum(e => e.Monto);
+                            return new IngresoEgresoChartDTO { Periodo = new DateTime(m.Year, m.Month, 1).ToString("MMM yyyy"), Ingresos = ing, Egresos = egr, Ganancia = ing - egr };
+                        }).ToList();
+                    }
+                }
+
+                var chartDataCs  = BuildChartForMoneda("C$");
+                var chartDataUsd = BuildChartForMoneda("$");
 
                 // ── Ventas por servicio (top 10, periodo) ────────────────────
                 var ventasPorServicio = await _context.VentasDetalles
@@ -275,7 +327,11 @@ namespace STREAMDOORSystem.Controllers
                     CuentasVencidas          = cuentasVencidasCount,
                     CuentasProximasVencer    = cuentasProximasCount,
                     RenovacionesPendientes   = renovacionesPendientes,
+                    IngresosPerMoneda        = ingresosPerMoneda,
+                    EgresosPerMoneda         = egresosPerMoneda,
                     IngresosEgresosChart     = chartData,
+                    IngresosEgresosChartCs   = chartDataCs,
+                    IngresosEgresosChartUsd  = chartDataUsd,
                     VentasPorServicio        = ventasPorServicio,
                     CuentasPorEstado         = cuentasPorEstado,
                     CuentasProximasVencerList = cuentasProximasVencerList,

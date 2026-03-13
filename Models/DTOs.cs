@@ -515,8 +515,16 @@ namespace STREAMDOORSystem.Models.DTOs
         public int CuentasVencidas { get; set; }
         public int CuentasProximasVencer { get; set; }
 
-        // Gráfico ingresos vs egresos
+        // KPIs financieros por moneda
+        public List<CierrePorMonedaDTO> IngresosPerMoneda { get; set; } = new();
+        public List<CierrePorMonedaDTO> EgresosPerMoneda { get; set; } = new();
+
+        // Gráfico ingresos vs egresos (total combinado)
         public List<IngresoEgresoChartDTO> IngresosEgresosChart { get; set; } = new();
+
+        // Gráfico ingresos vs egresos por moneda
+        public List<IngresoEgresoChartDTO> IngresosEgresosChartCs { get; set; } = new();
+        public List<IngresoEgresoChartDTO> IngresosEgresosChartUsd { get; set; } = new();
 
         // Gráfico ventas por servicio (top 10)
         public List<ServicioVentasChartDTO> VentasPorServicio { get; set; } = new();
