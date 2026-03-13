@@ -200,6 +200,10 @@ const Cuentas = () => {
       newErrors.numeroPerfiles = 'Debe tener al menos 1 perfil';
     }
 
+    if (!formData.fechaFinalizacion) {
+      newErrors.fechaFinalizacion = 'La fecha de finalización es requerida';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -831,12 +835,13 @@ const Cuentas = () => {
           />
 
           <Input
-            label="Fecha de Finalización (opcional)"
+            label="Fecha de Finalización *"
             name="fechaFinalizacion"
             type="date"
             value={formData.fechaFinalizacion}
             onChange={handleChange}
             error={errors.fechaFinalizacion}
+            required
           />
 
           <div>
