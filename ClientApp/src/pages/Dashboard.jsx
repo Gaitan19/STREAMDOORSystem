@@ -3,7 +3,7 @@ import {
   Users, ShoppingCart, AlertTriangle, TrendingUp, TrendingDown,
   Package, Mail, CreditCard, DollarSign, RefreshCw, Calendar,
   Activity, BarChart2, CheckCircle, XCircle, Download, FileText,
-  FileSpreadsheet, ChevronDown
+  FileSpreadsheet, ChevronDown, Filter
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -16,6 +16,33 @@ import { Link } from 'react-router-dom';
 import { dashboardService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import { generatePDF, generateExcel } from '../utils/reportGenerator';
+
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_NAME   = import.meta.env.VITE_CURRENCY_NAME   || 'Córdobas';
+const USD_NAME        = import.meta.env.VITE_USD_NAME        || 'Dólares';
+const ENV_USD_RATE    = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+
+/** Returns the active C$→USD exchange rate (localStorage overrides .env) */
+const getUsdRate = () => {
+  const stored = localStorage.getItem('currency_usd_rate');
+  if (stored) {
+    const parsed = parseFloat(stored);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return ENV_USD_RATE;
+};
+
+/**
+ * Convert `amount` from `fromCurrency` to `toCurrency` using the stored rate.
+ * If currencies are the same, returns the amount unchanged.
+ */
+const convertAmount = (amount, fromCurrency, toCurrency) => {
+  if (fromCurrency === toCurrency) return amount;
+  const rate = getUsdRate();
+  if (fromCurrency === '$' && toCurrency !== '$') return amount * rate;  // USD → local
+  if (fromCurrency !== '$' && toCurrency === '$') return amount / rate;  // local → USD
+  return amount;
+};
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const toISO = (d) => d.toISOString().split('T')[0];
@@ -74,6 +101,7 @@ const Dashboard = () => {
   const [customFin, setCustomFin]       = useState('');
   const [exporting, setExporting]       = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState(CURRENCY_SYMBOL);
   const exportRef = useRef(null);
 
   const derivedRange = useCallback(() => {
@@ -126,9 +154,9 @@ const Dashboard = () => {
     const label = buildPeriodoLabel();
     try {
       if (format === 'pdf') {
-        generatePDF(data, userName, label);
+        generatePDF(data, userName, label, currencyFilter, getUsdRate());
       } else {
-        await generateExcel(data, userName, label);
+        await generateExcel(data, userName, label, currencyFilter, getUsdRate());
       }
     } catch (err) {
       console.error('Error al generar reporte:', err);
@@ -173,6 +201,20 @@ const Dashboard = () => {
     custom: 'Rango personalizado',
   };
 
+  // ── Derived values based on currency filter ─────────────────────────────────
+  const filteredIngresos = (data.ingresosPerMoneda ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
+  const filteredEgresos  = (data.egresosPerMoneda  ?? []).find(m => m.moneda === currencyFilter)?.total ?? 0;
+  const filteredGanancia = filteredIngresos - filteredEgresos;
+
+  const filteredVentasData  = (data.ventasPerMoneda ?? []).find(m => m.moneda === currencyFilter);
+  const filteredVentasCount = filteredVentasData?.cantidad ?? 0;
+  const filteredVentasMonto = filteredVentasData?.monto    ?? 0;
+
+  const chartData   = currencyFilter === CURRENCY_SYMBOL
+    ? (data.ingresosEgresosChartCs  ?? [])
+    : (data.ingresosEgresosChartUsd ?? []);
+  const chartMoneda = currencyFilter;
+
   return (
     <div className="space-y-6">
 
@@ -186,6 +228,19 @@ const Dashboard = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Currency filter */}
+          <div className="flex items-center gap-1.5 text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white">
+            <Filter size={14} className="text-gray-400" />
+            <select
+              value={currencyFilter}
+              onChange={e => setCurrencyFilter(e.target.value)}
+              className="focus:outline-none bg-transparent text-sm text-gray-700"
+            >
+              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL} — {CURRENCY_NAME}</option>
+              <option value="$">$ — {USD_NAME}</option>
+            </select>
+          </div>
+
           {/* Preset selector */}
           <select
             value={preset}
@@ -276,34 +331,34 @@ const Dashboard = () => {
       {/* ── KPIs financieros del periodo ─────────────────────────────────── */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          📅 Período seleccionado
+          📅 Período seleccionado · {currencyFilter}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             icon={TrendingUp}
-            label="Ingresos"
-            value={formatCurrency(data.totalIngresos)}
+            label={`Ingresos (${currencyFilter})`}
+            value={formatCurrency(filteredIngresos, currencyFilter)}
             iconBg="bg-green-500"
           />
           <KPICard
             icon={TrendingDown}
-            label="Egresos"
-            value={formatCurrency(data.totalEgresos)}
+            label={`Egresos (${currencyFilter})`}
+            value={formatCurrency(filteredEgresos, currencyFilter)}
             iconBg="bg-red-500"
           />
           <KPICard
             icon={DollarSign}
-            label="Ganancia Neta"
-            value={formatCurrency(data.gananciaNeta)}
-            color={data.gananciaNeta >= 0 ? 'text-green-600' : 'text-red-600'}
-            sub={data.gananciaNeta >= 0 ? '▲ Positivo' : '▼ Negativo'}
-            iconBg={data.gananciaNeta >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}
+            label={`Ganancia Neta (${currencyFilter})`}
+            value={formatCurrency(filteredGanancia, currencyFilter)}
+            color={filteredGanancia >= 0 ? 'text-green-600' : 'text-red-600'}
+            sub={filteredGanancia >= 0 ? '▲ Positivo' : '▼ Negativo'}
+            iconBg={filteredGanancia >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}
           />
           <KPICard
             icon={ShoppingCart}
-            label="Ventas del periodo"
-            value={data.totalVentasPeriodo}
-            sub={formatCurrency(data.montoVentasPeriodo)}
+            label={`Ventas del periodo (${currencyFilter})`}
+            value={filteredVentasCount}
+            sub={formatCurrency(filteredVentasMonto, currencyFilter)}
             iconBg="bg-blue-500"
           />
         </div>
@@ -352,14 +407,14 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* Ingresos vs Egresos */}
-        <Card title="Ingresos vs Egresos">
-          {data.ingresosEgresosChart?.length > 0 ? (
+        <Card title={`Ingresos vs Egresos${currencyFilter ? ` (${currencyFilter})` : ''}`}>
+          {chartData?.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={data.ingresosEgresosChart} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatCurrency(v)} width={80} />
-                <Tooltip formatter={v => formatCurrency(v)} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatCurrency(v, chartMoneda)} width={80} />
+                <Tooltip formatter={v => formatCurrency(v, chartMoneda)} />
                 <Legend />
                 <Line type="monotone" dataKey="ingresos" name="Ingresos" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="egresos"  name="Egresos"  stroke="#ef4444" strokeWidth={2} dot={false} />
@@ -434,20 +489,26 @@ const Dashboard = () => {
         >
           {data.topClientes?.length > 0 ? (
             <div className="space-y-2">
-              {data.topClientes.map((c, i) => (
-                <div key={c.clienteID} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 break-words">{c.nombre}</p>
-                    <p className="text-xs text-gray-500">{c.totalVentas} venta(s)</p>
+              {data.topClientes.map((c, i) => {
+                // Sum per-currency amounts converting each to the selected currency
+                const convertedTotal = (c.montosPorMoneda?.length > 0)
+                  ? c.montosPorMoneda.reduce((sum, m) => sum + convertAmount(m.total, m.moneda, currencyFilter), 0)
+                  : convertAmount(c.totalMonto, CURRENCY_SYMBOL, currencyFilter);
+                return (
+                  <div key={c.clienteID} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 break-words">{c.nombre}</p>
+                      <p className="text-xs text-gray-500">{c.totalVentas} venta(s)</p>
+                    </div>
+                    <span className="text-sm font-semibold text-emerald-600 flex-shrink-0">
+                      {formatCurrency(convertedTotal, currencyFilter)}
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold text-emerald-600 flex-shrink-0">
-                    {formatCurrency(c.totalMonto)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-center text-gray-400 py-10 text-sm">Sin ventas registradas</p>

@@ -20,6 +20,8 @@ import Alert from '../components/Alert';
 import { formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+
 // ── Date helpers (America/Managua, UTC-6) ────────────────────────────────────
 const manaTime = () =>
   new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' }));
@@ -82,7 +84,7 @@ const getDateRange = (periodo) => {
 };
 
 // ── Collapsible section component ────────────────────────────────────────────
-const Section = ({ title, icon: Icon, iconColor, total, totalColor, children, defaultOpen = false }) => {
+const Section = ({ title, icon: Icon, iconColor, totalesPorMoneda = [], children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -95,8 +97,14 @@ const Section = ({ title, icon: Icon, iconColor, total, totalColor, children, de
           <Icon size={20} className={iconColor} />
           <span className="font-semibold text-gray-800">{title}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className={`font-bold text-lg ${totalColor}`}>{formatCurrency(total)}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {totalesPorMoneda.map((t, i) => (
+              <span key={i} className="font-bold text-base text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                {formatCurrency(t.total, t.moneda)}
+              </span>
+            ))}
+          </div>
           <ChevronDown
             size={18}
             className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -129,9 +137,14 @@ const SubGroup = ({ title, icon: Icon, iconColor, items, total, totalColor, empt
               <p className="text-sm text-gray-700 truncate">{item.descripcion || item.label || '-'}</p>
               <p className="text-xs text-gray-400">{fmtDate(item.fechaCreacion)} · {item.usuario || ''}</p>
             </div>
-            <span className="ml-3 text-sm font-medium text-gray-800 whitespace-nowrap">
-              {formatCurrency(item.monto)}
-            </span>
+            <div className="ml-3 flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                {item.moneda || CURRENCY_SYMBOL}
+              </span>
+              <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+                {formatCurrency(item.monto, item.moneda || CURRENCY_SYMBOL)}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -279,8 +292,18 @@ const Cierre = () => {
 
   const ing = data?.ingresos;
   const egr = data?.egresos;
-  const ganancia = data?.gananciaNeta ?? 0;
-  const isPositive = ganancia >= 0;
+
+  // Compute per-currency ganancia from the already available per-currency totals
+  const allMonedas = [...new Set([
+    ...(ing?.totalesPorMoneda ?? []).map(t => t.moneda),
+    ...(egr?.totalesPorMoneda ?? []).map(t => t.moneda),
+  ])].sort();
+
+  const gananciasPorMoneda = allMonedas.map(moneda => {
+    const totalIng = (ing?.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0;
+    const totalEgr = (egr?.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0;
+    return { moneda, totalIngresos: totalIng, totalEgresos: totalEgr, ganancia: totalIng - totalEgr };
+  });
 
   const periodLabel = () => {
     const fi = data?.fechaInicio ? fmtDate(data.fechaInicio) : fechaInicio;
@@ -394,51 +417,59 @@ const Cierre = () => {
 
         {data && !loading && (
           <>
-            {/* KPI cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Ingresos</p>
-                    <p className="text-2xl font-bold text-green-600 mt-1">
-                      {formatCurrency(ing?.total ?? 0)}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <ArrowUpCircle size={24} className="text-green-600" />
-                  </div>
-                </div>
-              </Card>
+            {/* KPI cards — one row of 3 cards per currency */}
+            <div className="space-y-3">
+              {gananciasPorMoneda.map(gm => (
+                <div key={gm.moneda} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Ingresos <span className="font-semibold text-blue-600">{gm.moneda}</span>
+                        </p>
+                        <p className="text-2xl font-bold text-green-600 mt-1">
+                          {formatCurrency(gm.totalIngresos, gm.moneda)}
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <ArrowUpCircle size={24} className="text-green-600" />
+                      </div>
+                    </div>
+                  </Card>
 
-              <Card>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Egresos</p>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
-                      {formatCurrency(egr?.total ?? 0)}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <ArrowDownCircle size={24} className="text-red-600" />
-                  </div>
-                </div>
-              </Card>
+                  <Card>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Egresos <span className="font-semibold text-blue-600">{gm.moneda}</span>
+                        </p>
+                        <p className="text-2xl font-bold text-red-600 mt-1">
+                          {formatCurrency(gm.totalEgresos, gm.moneda)}
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <ArrowDownCircle size={24} className="text-red-600" />
+                      </div>
+                    </div>
+                  </Card>
 
-              <Card className={isPositive ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-                      Ganancia Neta
-                    </p>
-                    <p className={`text-2xl font-bold mt-1 ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-                      {formatCurrency(ganancia)}
-                    </p>
-                  </div>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isPositive ? 'bg-green-200' : 'bg-red-200'}`}>
-                    <DollarSign size={24} className={isPositive ? 'text-green-700' : 'text-red-700'} />
-                  </div>
+                  <Card className={gm.ganancia >= 0 ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${gm.ganancia >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          Ganancia <span className="font-semibold">{gm.moneda}</span>
+                        </p>
+                        <p className={`text-2xl font-bold mt-1 ${gm.ganancia >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {formatCurrency(gm.ganancia, gm.moneda)}
+                        </p>
+                      </div>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${gm.ganancia >= 0 ? 'bg-green-200' : 'bg-red-200'}`}>
+                        <DollarSign size={24} className={gm.ganancia >= 0 ? 'text-green-700' : 'text-red-700'} />
+                      </div>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
+              ))}
             </div>
 
             {/* Ingresos */}
@@ -446,8 +477,7 @@ const Cierre = () => {
               title="Ingresos"
               icon={TrendingUp}
               iconColor="text-green-600"
-              total={ing?.total ?? 0}
-              totalColor="text-green-600"
+              totalesPorMoneda={ing?.totalesPorMoneda ?? []}
               defaultOpen
             >
               {/* De Ventas grouped by medio de pago */}
@@ -493,8 +523,7 @@ const Cierre = () => {
               title="Egresos"
               icon={TrendingDown}
               iconColor="text-red-600"
-              total={egr?.total ?? 0}
-              totalColor="text-red-600"
+              totalesPorMoneda={egr?.totalesPorMoneda ?? []}
               defaultOpen
             >
               <SubGroup
@@ -526,33 +555,40 @@ const Cierre = () => {
               />
             </Section>
 
-            {/* Summary row */}
-            <Card className={`border-2 ${isPositive ? 'border-green-400' : 'border-red-400'}`}>
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-center sm:text-left">
+            {/* Summary row — per currency */}
+            <Card className="border-2 border-gray-300">
+              <div className="flex flex-col gap-4">
+                <div>
                   <p className="text-sm text-gray-500 uppercase tracking-wide font-medium">
                     Resultado del Periodo
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{periodLabel()}</p>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div className="text-center">
-                    <p className="text-xs uppercase text-gray-400">Ingresos</p>
-                    <p className="font-bold text-green-600">{formatCurrency(ing?.total ?? 0)}</p>
+                {gananciasPorMoneda.map(gm => (
+                  <div key={gm.moneda} className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 uppercase">
+                      {gm.moneda}
+                    </span>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="text-center">
+                        <p className="text-xs uppercase text-gray-400">Ingresos</p>
+                        <p className="font-bold text-green-600">{formatCurrency(gm.totalIngresos, gm.moneda)}</p>
+                      </div>
+                      <span className="text-gray-300 text-xl">−</span>
+                      <div className="text-center">
+                        <p className="text-xs uppercase text-gray-400">Egresos</p>
+                        <p className="font-bold text-red-600">{formatCurrency(gm.totalEgresos, gm.moneda)}</p>
+                      </div>
+                      <span className="text-gray-300 text-xl">=</span>
+                      <div className="text-center">
+                        <p className="text-xs uppercase text-gray-400">Ganancia</p>
+                        <p className={`font-bold text-xl ${gm.ganancia >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {formatCurrency(gm.ganancia, gm.moneda)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-gray-300 text-xl">−</span>
-                  <div className="text-center">
-                    <p className="text-xs uppercase text-gray-400">Egresos</p>
-                    <p className="font-bold text-red-600">{formatCurrency(egr?.total ?? 0)}</p>
-                  </div>
-                  <span className="text-gray-300 text-xl">=</span>
-                  <div className="text-center">
-                    <p className="text-xs uppercase text-gray-400">Ganancia</p>
-                    <p className={`font-bold text-xl ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-                      {formatCurrency(ganancia)}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
             </Card>
           </>
@@ -579,10 +615,24 @@ const Cierre = () => {
 const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
   const ing = data.ingresos;
   const egr = data.egresos;
-  const ganancia = data.gananciaNeta ?? 0;
 
-  const fmtC = (n) =>
-    `C$ ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtAmount = (n, moneda = CURRENCY_SYMBOL) => {
+    const num = Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return moneda === '$' ? `$ ${num}` : `${moneda} ${num}`;
+  };
+
+  // Per-currency ganancia for ticket
+  const allMonedas = [...new Set([
+    ...(ing.totalesPorMoneda ?? []).map(t => t.moneda),
+    ...(egr.totalesPorMoneda ?? []).map(t => t.moneda),
+  ])].sort();
+  const gananciasPorMoneda = allMonedas.map(moneda => ({
+    moneda,
+    totalIngresos: (ing.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0,
+    totalEgresos:  (egr.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0,
+    ganancia:      ((ing.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0) -
+                   ((egr.totalesPorMoneda ?? []).find(t => t.moneda === moneda)?.total ?? 0),
+  }));
 
   const userName =
     user?.Nombre || user?.nombre || user?.NombreCompleto || user?.nombreCompleto || 'Usuario';
@@ -624,7 +674,7 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
               {/* Payment method header row */}
               <div className="ticket-row ticket-sm ticket-bold">
                 <span className="ticket-item-label">  {g.medioPago} ({g.cantidad})</span>
-                <span className="ticket-item-amount">{fmtC(g.total)}</span>
+                <span className="ticket-item-amount">{fmtAmount(g.total, g.items?.[0]?.moneda)}</span>
               </div>
               {/* Individual items within this payment method */}
               {(g.items ?? []).slice(0, 12).map((item, itemIdx) => (
@@ -633,7 +683,7 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
                     {'    '}{item.descripcion || `Venta #${item.ventaID || (itemIdx + 1)}`}
                     {item.fechaCreacion ? ` (${new Date(item.fechaCreacion).toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })})` : ''}
                   </span>
-                  <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+                  <span className="ticket-item-amount">{fmtAmount(item.monto, item.moneda)}</span>
                 </div>
               ))}
               {(g.items ?? []).length > 12 && (
@@ -641,10 +691,6 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
               )}
             </div>
           ))}
-          <div className="ticket-row ticket-sm">
-            <span className="ticket-bold">  Subtotal Ventas</span>
-            <span className="ticket-bold">{fmtC(ing.totalVentas)}</span>
-          </div>
         </>
       )}
 
@@ -658,24 +704,23 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
                 {'  '}{item.descripcion || '-'}
                 {item.fechaCreacion ? ` (${new Date(item.fechaCreacion).toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' })})` : ''}
               </span>
-              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+              <span className="ticket-item-amount">{fmtAmount(item.monto, item.moneda)}</span>
             </div>
           ))}
           {ing.manuales.length > 10 && (
             <div className="ticket-sm ticket-right">  ... y {ing.manuales.length - 10} más</div>
           )}
-          <div className="ticket-row ticket-sm">
-            <span className="ticket-bold">  Subtotal Manuales</span>
-            <span className="ticket-bold">{fmtC(ing.totalManuales)}</span>
-          </div>
         </>
       )}
 
       <hr className="ticket-rule-dashed" />
-      <div className="ticket-row ticket-bold">
-        <span>TOTAL INGRESOS</span>
-        <span>{fmtC(ing.total)}</span>
-      </div>
+      {/* Per-currency ingresos totals */}
+      {gananciasPorMoneda.map((gm, i) => (
+        <div key={i} className="ticket-row ticket-bold">
+          <span>TOTAL INGRESOS ({gm.moneda})</span>
+          <span>{fmtAmount(gm.totalIngresos, gm.moneda)}</span>
+        </div>
+      ))}
 
       <hr className="ticket-rule-dashed" />
 
@@ -690,16 +735,12 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           {egr.creacionCuentas.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
               <span className="ticket-item-label">  {item.descripcion || '-'}</span>
-              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+              <span className="ticket-item-amount">{fmtAmount(item.monto, item.moneda)}</span>
             </div>
           ))}
           {egr.creacionCuentas.length > 8 && (
             <div className="ticket-sm ticket-right">  ... y {egr.creacionCuentas.length - 8} más</div>
           )}
-          <div className="ticket-row ticket-sm">
-            <span className="ticket-bold">  Subtotal Creación</span>
-            <span className="ticket-bold">{fmtC(egr.totalCreacion)}</span>
-          </div>
         </>
       )}
 
@@ -710,16 +751,12 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           {egr.renovacionCuentas.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
               <span className="ticket-item-label">  {item.descripcion || '-'}</span>
-              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+              <span className="ticket-item-amount">{fmtAmount(item.monto, item.moneda)}</span>
             </div>
           ))}
           {egr.renovacionCuentas.length > 8 && (
             <div className="ticket-sm ticket-right">  ... y {egr.renovacionCuentas.length - 8} más</div>
           )}
-          <div className="ticket-row ticket-sm">
-            <span className="ticket-bold">  Subtotal Renovaciones</span>
-            <span className="ticket-bold">{fmtC(egr.totalRenovacion)}</span>
-          </div>
         </>
       )}
 
@@ -730,32 +767,33 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
           {egr.manuales.slice(0, 8).map((item, idx) => (
             <div key={idx} className="ticket-row ticket-sm">
               <span className="ticket-item-label">  {item.descripcion || '-'}</span>
-              <span className="ticket-item-amount">{fmtC(item.monto)}</span>
+              <span className="ticket-item-amount">{fmtAmount(item.monto, item.moneda)}</span>
             </div>
           ))}
           {egr.manuales.length > 8 && (
             <div className="ticket-sm ticket-right">  ... y {egr.manuales.length - 8} más</div>
           )}
-          <div className="ticket-row ticket-sm">
-            <span className="ticket-bold">  Subtotal Manuales</span>
-            <span className="ticket-bold">{fmtC(egr.totalManuales)}</span>
-          </div>
         </>
       )}
 
       <hr className="ticket-rule-dashed" />
-      <div className="ticket-row ticket-bold">
-        <span>TOTAL EGRESOS</span>
-        <span>{fmtC(egr.total)}</span>
-      </div>
+      {/* Per-currency egresos totals */}
+      {gananciasPorMoneda.map((gm, i) => (
+        <div key={i} className="ticket-row ticket-bold">
+          <span>TOTAL EGRESOS ({gm.moneda})</span>
+          <span>{fmtAmount(gm.totalEgresos, gm.moneda)}</span>
+        </div>
+      ))}
 
       <hr className="ticket-rule" />
 
-      {/* Ganancia */}
-      <div className="ticket-row ticket-bold ticket-lg">
-        <span>GANANCIA NETA</span>
-        <span>{fmtC(ganancia)}</span>
-      </div>
+      {/* Ganancia per currency */}
+      {gananciasPorMoneda.map((gm, i) => (
+        <div key={i} className="ticket-row ticket-bold ticket-lg">
+          <span>GANANCIA ({gm.moneda})</span>
+          <span>{fmtAmount(gm.ganancia, gm.moneda)}</span>
+        </div>
+      ))}
 
       <hr className="ticket-rule" />
       <div className="ticket-center ticket-sm">Gracias por usar {appName}</div>

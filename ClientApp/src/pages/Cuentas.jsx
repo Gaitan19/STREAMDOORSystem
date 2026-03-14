@@ -13,6 +13,9 @@ import { cuentasService, serviciosService } from '../services/apiService';
 import { formatDate, getEstadoColor, copyToClipboard, getRowColorClass, generatePassword, generateCodigoCuenta } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+
 const Cuentas = () => {
   const [cuentas, setCuentas] = useState([]);
   const [filteredCuentas, setFilteredCuentas] = useState([]);
@@ -44,6 +47,7 @@ const Cuentas = () => {
     password: '',
     correoTerceros: '',
     codigoCuenta: '',
+    moneda: CURRENCY_SYMBOL,
     costo: ''
   });
   const [errors, setErrors] = useState({});
@@ -199,6 +203,10 @@ const Cuentas = () => {
       newErrors.numeroPerfiles = 'Debe tener al menos 1 perfil';
     }
 
+    if (!formData.fechaFinalizacion) {
+      newErrors.fechaFinalizacion = 'La fecha de finalización es requerida';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -216,7 +224,8 @@ const Cuentas = () => {
         FechaFinalizacion: formData.fechaFinalizacion || null,
         Password: formData.password,
         CodigoCuenta: formData.codigoCuenta,
-        Costo: formData.costo ? parseFloat(formData.costo) : null
+        Costo: formData.costo ? parseFloat(formData.costo) : null,
+        Moneda: formData.moneda || CURRENCY_SYMBOL
       };
 
       // For Propia accounts, use selected CorreoID
@@ -261,7 +270,8 @@ const Cuentas = () => {
       password: cuenta.password || '',
       correoTerceros: cuenta.correoTerceros || '',
       codigoCuenta: cuenta.codigoCuenta || '',
-      costo: cuenta.costo || ''
+      costo: cuenta.costo || '',
+      moneda: cuenta.moneda || CURRENCY_SYMBOL
     });
     setModalOpen(true);
   };
@@ -302,7 +312,8 @@ const Cuentas = () => {
       password: '',
       correoTerceros: '',
       codigoCuenta: '',
-      costo: ''
+      costo: '',
+      moneda: CURRENCY_SYMBOL
     });
     setErrors({});
     setSelectedCuenta(null);
@@ -827,16 +838,32 @@ const Cuentas = () => {
           />
 
           <Input
-            label="Fecha de Finalización (opcional)"
+            label="Fecha de Finalización *"
             name="fechaFinalizacion"
             type="date"
             value={formData.fechaFinalizacion}
             onChange={handleChange}
             error={errors.fechaFinalizacion}
+            required
           />
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda *
+            </label>
+            <select
+              name="moneda"
+              value={formData.moneda}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL} — {CURRENCY_NAME}</option>
+              <option value="$">$ — Dólares</option>
+            </select>
+          </div>
+
           <Input
-            label="Costo de la Cuenta (C$)"
+            label={`Costo de la Cuenta (${formData.moneda || CURRENCY_SYMBOL})`}
             name="costo"
             type="number"
             step="0.01"
@@ -1040,7 +1067,7 @@ const Cuentas = () => {
                 {selectedCuenta.costo != null && selectedCuenta.costo > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Costo de la Cuenta</label>
-                    <p className="text-base font-semibold text-green-700">C$ {Number(selectedCuenta.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-base font-semibold text-green-700">{selectedCuenta.moneda || CURRENCY_SYMBOL} {Number(selectedCuenta.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</p>
                   </div>
                 )}
               </div>
@@ -1116,7 +1143,7 @@ const Cuentas = () => {
           <p className="text-sm text-gray-600">
             Selecciona la nueva fecha de vencimiento para la cuenta <strong>{selectedCuenta?.codigoCuenta}</strong> ({selectedCuenta?.nombreServicio}).
             {selectedCuenta?.costo > 0 && (
-              <span> Se generará automáticamente un egreso por <strong>C$ {Number(selectedCuenta?.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</strong>.</span>
+              <span> Se generará automáticamente un egreso por <strong>{selectedCuenta?.moneda || CURRENCY_SYMBOL} {Number(selectedCuenta?.costo).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</strong>.</span>
             )}
           </p>
           <Input

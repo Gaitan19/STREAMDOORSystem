@@ -12,6 +12,33 @@ import { ventasService, clientesService, cuentasService, mediosPagoService, serv
 import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+const CURRENCY_OPTIONS = [
+  { value: CURRENCY_SYMBOL, label: `${CURRENCY_SYMBOL} — ${CURRENCY_NAME}` },
+  { value: '$', label: '$ — Dólares' },
+];
+
+/** Get the active C$→USD exchange rate (localStorage overrides the .env value) */
+const getUsdRate = () => {
+  const stored = localStorage.getItem('currency_usd_rate');
+  if (stored) {
+    const parsed = parseFloat(stored);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return ENV_USD_RATE;
+};
+
+/** Convert a C$ amount to the selected currency */
+const convertPrice = (amountCordObas, moneda) => {
+  const rate = getUsdRate();
+  if (moneda === '$' && rate !== 1) {
+    return Math.round((amountCordObas / rate) * 100) / 100;
+  }
+  return amountCordObas;
+};
+
 const Ventas = () => {
   const [ventas, setVentas] = useState([]);
   const [filteredVentas, setFilteredVentas] = useState([]);
@@ -65,7 +92,7 @@ const Ventas = () => {
   const [formData, setFormData] = useState({
     fechaFin: '',
     medioPagoID: '',
-    moneda: 'C$',
+    moneda: CURRENCY_SYMBOL,
     notas: ''
   });
   
@@ -414,7 +441,8 @@ const Ventas = () => {
   const calcularMontoTotal = () => {
     const totalServicios = serviciosCart.reduce((total, servicio) => total + servicio.precio, 0);
     const totalCombos = combosCart.reduce((total, combo) => total + combo.precio, 0);
-    return totalServicios + totalCombos;
+    const totalCordobas = totalServicios + totalCombos;
+    return convertPrice(totalCordobas, formData.moneda);
   };
 
   const handleCreate = () => {
@@ -436,7 +464,7 @@ const Ventas = () => {
     setFormData({
       fechaFin: '',
       medioPagoID: '',
-      moneda: 'C$',
+      moneda: CURRENCY_SYMBOL,
       notas: ''
     });
     setErrors({});
@@ -493,6 +521,7 @@ const Ventas = () => {
         fechaFin: formData.fechaFin,
         medioPagoID: formData.medioPagoID ? parseInt(formData.medioPagoID) : null,
         moneda: formData.moneda,
+        tasaCambio: formData.moneda === '$' ? getUsdRate() : 1,
         notas: formData.notas,
         detalles
       };
@@ -1145,7 +1174,7 @@ const Ventas = () => {
                   <option value="">Seleccionar servicio...</option>
                   {serviciosDisponibles.map((servicio) => (
                     <option key={servicio.servicioID} value={servicio.servicioID}>
-                      {servicio.nombre} - {formatCurrency(servicio.precio, 'C$')}
+                      {servicio.nombre} - {formatCurrency(servicio.precio, CURRENCY_SYMBOL)}
                     </option>
                   ))}
                 </select>
@@ -1183,7 +1212,10 @@ const Ventas = () => {
                             )}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {formatCurrency(servicio.precio, formData.moneda)}
+                            {formatCurrency(
+                              convertPrice(servicio.precio, formData.moneda),
+                              formData.moneda
+                            )}
                           </div>
                         </div>
                         <button
@@ -1229,7 +1261,7 @@ const Ventas = () => {
                   <option value="">Seleccionar combo...</option>
                   {combosDisponibles.map((combo) => (
                     <option key={combo.comboID} value={combo.comboID}>
-                      {combo.nombre} - {formatCurrency(combo.precio, 'C$')} ({combo.servicios.length} servicios)
+                      {combo.nombre} - {formatCurrency(combo.precio, CURRENCY_SYMBOL)} ({combo.servicios.length} servicios)
                     </option>
                   ))}
                 </select>
@@ -1294,7 +1326,10 @@ const Ventas = () => {
                               )}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {formatCurrency(combo.precio, formData.moneda)}
+                              {formatCurrency(
+                                convertPrice(combo.precio, formData.moneda),
+                                formData.moneda
+                              )}
                             </div>
                           </div>
                           <button
@@ -1450,7 +1485,10 @@ const Ventas = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="font-semibold text-green-600">
-                            {formatCurrency(servicio.precio, formData.moneda)}
+                            {formatCurrency(
+                              convertPrice(servicio.precio, formData.moneda),
+                              formData.moneda
+                            )}
                           </div>
                           <button
                             type="button"
@@ -1676,8 +1714,9 @@ const Ventas = () => {
                 onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="C$">C$ (Córdobas)</option>
-                <option value="USD">USD (Dólares)</option>
+                {CURRENCY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -1714,7 +1753,10 @@ const Ventas = () => {
                     {serviciosCart.map((sc, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span className="text-gray-600">• {sc.nombreServicio}</span>
-                        <span className="font-medium">{formatCurrency(sc.precio, formData.moneda)}</span>
+                        <span className="font-medium">{formatCurrency(
+                          convertPrice(sc.precio, formData.moneda),
+                          formData.moneda
+                        )}</span>
                       </div>
                     ))}
                   </div>
@@ -1745,7 +1787,10 @@ const Ventas = () => {
                         <div key={index} className="border-l-2 border-blue-300 pl-2">
                           <div className="flex justify-between text-sm">
                             <span className="font-medium text-gray-700">{combo.nombre}</span>
-                            <span className="font-medium">{formatCurrency(combo.precio, formData.moneda)}</span>
+                            <span className="font-medium">{formatCurrency(
+                              convertPrice(combo.precio, formData.moneda),
+                              formData.moneda
+                            )}</span>
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             Incluye: {combo.servicios.join(', ')}

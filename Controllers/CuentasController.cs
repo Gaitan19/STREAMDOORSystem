@@ -54,6 +54,7 @@ namespace STREAMDOORSystem.Controllers
                     CorreoTerceros = c.CorreoTerceros,
                     CodigoCuenta = c.CodigoCuenta,
                     Costo = c.Costo,
+                    Moneda = c.Moneda,
                     Activo = c.Activo,
                     Perfiles = c.Perfiles.Where(p => p.Activo).Select(p => new PerfilDTO
                     {
@@ -110,6 +111,8 @@ namespace STREAMDOORSystem.Controllers
                     CorreoTerceros = cuenta.CorreoTerceros,
                     CodigoCuenta = cuenta.CodigoCuenta,
                     Activo = cuenta.Activo,
+                    Costo = cuenta.Costo,
+                    Moneda = cuenta.Moneda,
                     Perfiles = cuenta.Perfiles.Where(p => p.Activo).Select(p => new PerfilDTO
                     {
                         PerfilID = p.PerfilID,
@@ -180,6 +183,7 @@ namespace STREAMDOORSystem.Controllers
                     CorreoTerceros = crearCuentaDto.CorreoTerceros,
                     CodigoCuenta = crearCuentaDto.CodigoCuenta,
                     Costo = crearCuentaDto.Costo,
+                    Moneda = string.IsNullOrEmpty(crearCuentaDto.Moneda) ? "C$" : crearCuentaDto.Moneda,
                     Activo = true
                 };
 
@@ -239,6 +243,7 @@ namespace STREAMDOORSystem.Controllers
                     var egreso = new Egreso
                     {
                         Monto = crearCuentaDto.Costo.Value,
+                        Moneda = string.IsNullOrEmpty(crearCuentaDto.Moneda) ? "C$" : crearCuentaDto.Moneda,
                         Descripcion = $"Egreso por adquisición de cuenta {cuenta.CodigoCuenta} ({servicio!.Nombre}) — registrada el {DateTime.Now:dd/MM/yyyy}.",
                         CuentaID = cuenta.CuentaID,
                         UsuarioID = usuarioId,
@@ -264,7 +269,8 @@ namespace STREAMDOORSystem.Controllers
                     Estado = cuenta.Estado,
                     FechaCreacion = cuenta.FechaCreacion,
                     FechaFinalizacion = cuenta.FechaFinalizacion,
-                    Costo = cuenta.Costo
+                    Costo = cuenta.Costo,
+                    Moneda = cuenta.Moneda
                 };
 
                 return CreatedAtAction(nameof(GetCuenta), new { id = cuenta.CuentaID }, cuentaDto);
@@ -319,6 +325,7 @@ namespace STREAMDOORSystem.Controllers
                 cuenta.CorreoTerceros = crearCuentaDto.CorreoTerceros;
                 cuenta.CodigoCuenta = crearCuentaDto.CodigoCuenta;
                 cuenta.Costo = crearCuentaDto.Costo;
+                cuenta.Moneda = string.IsNullOrEmpty(crearCuentaDto.Moneda) ? "C$" : crearCuentaDto.Moneda;
 
                 _context.Cuentas.Update(cuenta);
                 await _context.SaveChangesAsync();
@@ -371,6 +378,7 @@ namespace STREAMDOORSystem.Controllers
                     var egreso = new Egreso
                     {
                         Monto = cuenta.Costo.Value,
+                        Moneda = cuenta.Moneda,
                         Descripcion = $"Renovación de cuenta {cuenta.CodigoCuenta} ({cuenta.Servicio?.Nombre ?? "Sin servicio"}) — nueva vigencia hasta el {dto.NuevaFechaFinalizacion:dd/MM/yyyy}.",
                         CuentaID = cuenta.CuentaID,
                         UsuarioID = usuarioId,

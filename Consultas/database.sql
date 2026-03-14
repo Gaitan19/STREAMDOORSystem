@@ -172,6 +172,8 @@ BEGIN
         NumeroPerfiles INT DEFAULT 1,
         PerfilesDisponibles INT DEFAULT 1,
         Estado NVARCHAR(30) DEFAULT 'Disponible' CHECK (Estado IN ('Disponible', 'Ocupada', 'Vencida', 'Inactiva', 'Próxima a Vencer', 'No Disponible')),
+        Costo DECIMAL(10,2) NULL,
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         FechaCreacion DATETIME DEFAULT GETDATE(),
         Activo BIT DEFAULT 1,
         FOREIGN KEY (ServicioID) REFERENCES Servicios(ServicioID),
@@ -294,7 +296,7 @@ BEGIN
         Nombre NVARCHAR(100) NOT NULL,
         NumeroCuenta NVARCHAR(50) NULL,
         Beneficiario NVARCHAR(100) NULL,
-        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         Activo BIT DEFAULT 1,
         FechaCreacion DATETIME DEFAULT GETDATE()
     );
@@ -313,7 +315,7 @@ BEGIN
         FechaFin DATETIME NOT NULL,
         Duracion INT NULL, -- En días (opcional, para compatibilidad)
         Monto DECIMAL(10,2) NOT NULL,
-        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         MedioPagoID INT NULL, -- Medio de pago utilizado
         Estado NVARCHAR(20) DEFAULT 'Activo' CHECK (Estado IN ('Activo', 'ProximoVencer', 'Vencido', 'Cancelado')),
         FechaCreacion DATETIME DEFAULT GETDATE(),
@@ -422,7 +424,7 @@ BEGIN
         VentaID INT NOT NULL,
         MedioPagoID INT NOT NULL,
         Monto DECIMAL(10,2) NOT NULL,
-        Moneda NVARCHAR(10) NOT NULL CHECK (Moneda IN ('C$', 'USD')),
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         FechaPago DATETIME DEFAULT GETDATE(),
         Referencia NVARCHAR(100) NULL,
         Notas NVARCHAR(500) NULL,
@@ -546,6 +548,7 @@ BEGIN
         IngresoID INT PRIMARY KEY IDENTITY(1,1),
         FechaCreacion DATETIME DEFAULT GETDATE(),
         Monto DECIMAL(10,2) NOT NULL,
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         UsuarioID INT NULL,
         Usuario NVARCHAR(100) NULL,
         Descripcion NVARCHAR(500) NULL,
@@ -566,6 +569,7 @@ BEGIN
         EgresoID INT PRIMARY KEY IDENTITY(1,1),
         FechaCreacion DATETIME DEFAULT GETDATE(),
         Monto DECIMAL(10,2) NOT NULL,
+        Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$' CHECK (Moneda IN ('C$', '$')),
         UsuarioID INT NULL,
         Usuario NVARCHAR(100) NULL,
         Descripcion NVARCHAR(500) NULL,
@@ -776,6 +780,108 @@ BEGIN
     UPDATE Usuarios SET RolID = @AdminRolID WHERE RolID IS NULL;
     
     PRINT 'Rol Administrador creado y asignado a usuarios existentes.';
+END
+GO
+
+-- ============================================
+-- Migración: Agregar columna Moneda a tablas existentes
+-- ============================================
+
+-- Agregar Moneda a Ingresos si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ingresos')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Ingresos') AND name = 'Moneda')
+    BEGIN
+        ALTER TABLE Ingresos ADD Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$';
+        ALTER TABLE Ingresos ADD CONSTRAINT CK_Ingresos_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'Column Moneda added to Ingresos table.';
+    END
+END
+GO
+
+-- Agregar Moneda a Egresos si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Egresos')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Egresos') AND name = 'Moneda')
+    BEGIN
+        ALTER TABLE Egresos ADD Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$';
+        ALTER TABLE Egresos ADD CONSTRAINT CK_Egresos_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'Column Moneda added to Egresos table.';
+    END
+END
+GO
+
+-- Agregar Moneda a Cuentas si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cuentas')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Cuentas') AND name = 'Moneda')
+    BEGIN
+        ALTER TABLE Cuentas ADD Moneda NVARCHAR(10) NOT NULL DEFAULT 'C$';
+        ALTER TABLE Cuentas ADD CONSTRAINT CK_Cuentas_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'Column Moneda added to Cuentas table.';
+    END
+END
+GO
+
+-- Migración: Actualizar CHECK constraint Moneda de 'USD' a '$' en tablas existentes
+-- MediosPago
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'MediosPago')
+BEGIN
+    -- Actualizar valores 'USD' a '$' en datos existentes
+    UPDATE MediosPago SET Moneda = '$' WHERE Moneda = 'USD';
+    
+    -- Reemplazar constraint CHECK si referencia 'USD'
+    DECLARE @CkMediosPago NVARCHAR(200);
+    SELECT @CkMediosPago = name FROM sys.check_constraints
+    WHERE parent_object_id = OBJECT_ID('MediosPago')
+      AND OBJECT_DEFINITION(object_id) LIKE '%USD%';
+    IF @CkMediosPago IS NOT NULL
+    BEGIN
+        DECLARE @SqlMP NVARCHAR(MAX) = 'ALTER TABLE MediosPago DROP CONSTRAINT ' + QUOTENAME(@CkMediosPago);
+        EXEC sp_executesql @SqlMP;
+        ALTER TABLE MediosPago ADD CONSTRAINT CK_MediosPago_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'CHECK constraint on MediosPago.Moneda updated from USD to $.';
+    END
+END
+GO
+
+-- Ventas
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Ventas')
+BEGIN
+    UPDATE Ventas SET Moneda = '$' WHERE Moneda = 'USD';
+
+    DECLARE @CkVentas NVARCHAR(200);
+    SELECT @CkVentas = name FROM sys.check_constraints
+    WHERE parent_object_id = OBJECT_ID('Ventas')
+      AND COL_NAME(parent_object_id, parent_column_id) = 'Moneda'
+      AND OBJECT_DEFINITION(object_id) LIKE '%USD%';
+    IF @CkVentas IS NOT NULL
+    BEGIN
+        DECLARE @SqlV NVARCHAR(MAX) = 'ALTER TABLE Ventas DROP CONSTRAINT ' + QUOTENAME(@CkVentas);
+        EXEC sp_executesql @SqlV;
+        ALTER TABLE Ventas ADD CONSTRAINT CK_Ventas_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'CHECK constraint on Ventas.Moneda updated from USD to $.';
+    END
+END
+GO
+
+-- Pagos
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Pagos')
+BEGIN
+    UPDATE Pagos SET Moneda = '$' WHERE Moneda = 'USD';
+
+    DECLARE @CkPagos NVARCHAR(200);
+    SELECT @CkPagos = name FROM sys.check_constraints
+    WHERE parent_object_id = OBJECT_ID('Pagos')
+      AND COL_NAME(parent_object_id, parent_column_id) = 'Moneda'
+      AND OBJECT_DEFINITION(object_id) LIKE '%USD%';
+    IF @CkPagos IS NOT NULL
+    BEGIN
+        DECLARE @SqlP NVARCHAR(MAX) = 'ALTER TABLE Pagos DROP CONSTRAINT ' + QUOTENAME(@CkPagos);
+        EXEC sp_executesql @SqlP;
+        ALTER TABLE Pagos ADD CONSTRAINT CK_Pagos_Moneda CHECK (Moneda IN ('C$', '$'));
+        PRINT 'CHECK constraint on Pagos.Moneda updated from USD to $.';
+    END
 END
 GO
 

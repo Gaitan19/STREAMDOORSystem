@@ -31,7 +31,8 @@ namespace STREAMDOORSystem.Controllers
             {
                 query = query.Where(e =>
                     (e.Descripcion != null && e.Descripcion.Contains(busqueda)) ||
-                    (e.Usuario != null && e.Usuario.Contains(busqueda))
+                    (e.Usuario != null && e.Usuario.Contains(busqueda)) ||
+                    e.Moneda.Contains(busqueda)
                 );
             }
 
@@ -42,6 +43,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     UsuarioID = e.UsuarioID,
                     Usuario = e.Usuario,
                     Descripcion = e.Descripcion,
@@ -64,6 +66,7 @@ namespace STREAMDOORSystem.Controllers
                     EgresoID = e.EgresoID,
                     FechaCreacion = e.FechaCreacion,
                     Monto = e.Monto,
+                    Moneda = e.Moneda,
                     UsuarioID = e.UsuarioID,
                     Usuario = e.Usuario,
                     Descripcion = e.Descripcion,
@@ -97,6 +100,7 @@ namespace STREAMDOORSystem.Controllers
             var egreso = new Egreso
             {
                 Monto = dto.Monto,
+                Moneda = string.IsNullOrEmpty(dto.Moneda) ? "C$" : dto.Moneda,
                 Descripcion = dto.Descripcion,
                 CuentaID = dto.CuentaID,
                 UsuarioID = usuarioId,
@@ -112,6 +116,7 @@ namespace STREAMDOORSystem.Controllers
                 EgresoID = egreso.EgresoID,
                 FechaCreacion = egreso.FechaCreacion,
                 Monto = egreso.Monto,
+                Moneda = egreso.Moneda,
                 UsuarioID = egreso.UsuarioID,
                 Usuario = egreso.Usuario,
                 Descripcion = egreso.Descripcion,
@@ -135,6 +140,9 @@ namespace STREAMDOORSystem.Controllers
             // Update only provided fields
             if (dto.Monto.HasValue)
                 egreso.Monto = dto.Monto.Value;
+
+            if (dto.Moneda != null)
+                egreso.Moneda = dto.Moneda;
 
             if (dto.Descripcion != null)
                 egreso.Descripcion = dto.Descripcion;

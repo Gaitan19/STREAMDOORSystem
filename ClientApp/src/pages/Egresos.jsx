@@ -10,6 +10,13 @@ import Alert from '../components/Alert';
 import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_OPTIONS = [
+  { value: CURRENCY_SYMBOL, label: `${CURRENCY_SYMBOL} — ${CURRENCY_NAME}` },
+  { value: '$', label: '$ — Dólares' },
+];
+
 const Egresos = () => {
   const [egresos, setEgresos] = useState([]);
   const [filteredEgresos, setFilteredEgresos] = useState([]);
@@ -19,8 +26,10 @@ const Egresos = () => {
   const [selectedEgreso, setSelectedEgreso] = useState(null);
   const [alert, setAlert] = useState(null);
   const [filterType, setFilterType] = useState('todos'); // 'todos', 'cuentas', 'manuales'
+  const [filterMoneda, setFilterMoneda] = useState('todos'); // 'todos', CURRENCY_SYMBOL, '$'
   const [formData, setFormData] = useState({
     monto: '',
+    moneda: CURRENCY_SYMBOL,
     descripcion: '',
     cuentaID: null
   });
@@ -51,7 +60,7 @@ const Egresos = () => {
     setTimeout(() => setAlert(null), 5000);
   };
 
-  const applyFilters = (searchTerm = '', filterType = 'todos') => {
+  const applyFilters = (searchTerm = '', filterType = 'todos', filterMoneda = 'todos') => {
     let filtered = egresos;
 
     // Apply type filter
@@ -61,11 +70,17 @@ const Egresos = () => {
       filtered = filtered.filter(eg => eg.cuentaID == null);
     }
 
-    // Apply search filter
+    // Apply currency filter
+    if (filterMoneda !== 'todos') {
+      filtered = filtered.filter(eg => (eg.moneda || CURRENCY_SYMBOL) === filterMoneda);
+    }
+
+    // Apply search filter (description or user)
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(egreso =>
-        egreso.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        egreso.usuario?.toLowerCase().includes(searchTerm.toLowerCase())
+        egreso.descripcion?.toLowerCase().includes(term) ||
+        egreso.usuario?.toLowerCase().includes(term)
       );
     }
 
@@ -73,12 +88,17 @@ const Egresos = () => {
   };
 
   const handleSearch = (searchTerm) => {
-    applyFilters(searchTerm, filterType);
+    applyFilters(searchTerm, filterType, filterMoneda);
   };
 
   const handleFilterChange = (newFilter) => {
     setFilterType(newFilter);
-    applyFilters('', newFilter);
+    applyFilters('', newFilter, filterMoneda);
+  };
+
+  const handleMonedaFilterChange = (newMoneda) => {
+    setFilterMoneda(newMoneda);
+    applyFilters('', filterType, newMoneda);
   };
 
   const validate = () => {
@@ -106,6 +126,7 @@ const Egresos = () => {
 
       const body = {
         monto: parseFloat(formData.monto),
+        moneda: formData.moneda,
         descripcion: formData.descripcion,
         cuentaID: formData.cuentaID ? parseInt(formData.cuentaID) : null
       };
@@ -166,6 +187,7 @@ const Egresos = () => {
     setSelectedEgreso(egreso);
     setFormData({
       monto: egreso.monto,
+      moneda: egreso.moneda || CURRENCY_SYMBOL,
       descripcion: egreso.descripcion,
       cuentaID: egreso.cuentaID || null
     });
@@ -180,6 +202,7 @@ const Egresos = () => {
   const resetForm = () => {
     setFormData({
       monto: '',
+      moneda: CURRENCY_SYMBOL,
       descripcion: '',
       cuentaID: null
     });
@@ -196,7 +219,8 @@ const Egresos = () => {
 
   const columns = [
     { key: 'fechaCreacion', label: 'Fecha', render: (row) => formatDate(row.fechaCreacion) },
-    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto) },
+    { key: 'moneda', label: 'Moneda', render: (row) => row.moneda || CURRENCY_SYMBOL },
+    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto, row.moneda || CURRENCY_SYMBOL) },
     { key: 'descripcion', label: 'Descripción' },
     { key: 'usuario', label: 'Usuario' },
     { 
@@ -261,23 +285,36 @@ const Egresos = () => {
       </div>
 
       <Card>
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <SearchBar
-              placeholder="Buscar por descripción o usuario..."
-              onSearch={handleSearch}
-            />
-          </div>
-          <div className="sm:w-48">
-            <select
-              value={filterType}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="todos">Todos</option>
-              <option value="cuentas">De Cuentas</option>
-              <option value="manuales">Manuales</option>
-            </select>
+        <div className="mb-6 space-y-3">
+          <SearchBar
+            placeholder="Buscar por descripción o usuario..."
+            onSearch={handleSearch}
+          />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-1 sm:w-52">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tipo</label>
+              <select
+                value={filterType}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="todos">Todos</option>
+                <option value="cuentas">De Cuentas</option>
+                <option value="manuales">Manuales</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 sm:w-48">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Moneda</label>
+              <select
+                value={filterMoneda}
+                onChange={(e) => handleMonedaFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="todos">Todas las monedas</option>
+                <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL}</option>
+                <option value="$">$</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -301,8 +338,24 @@ const Egresos = () => {
         title={selectedEgreso ? 'Editar Egreso' : 'Nuevo Egreso'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda *
+            </label>
+            <select
+              name="moneda"
+              value={formData.moneda}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {CURRENCY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
           <Input
-            label="Monto (C$)"
+            label={`Monto (${formData.moneda})`}
             name="monto"
             type="number"
             step="0.01"

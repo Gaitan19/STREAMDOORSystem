@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Phone, Calendar, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Lock, Eye, EyeOff, AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
 import Layout from '../components/Layout';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Card from '../components/Card';
+
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+const LS_RATE_KEY = 'currency_usd_rate';
 
 const Perfil = () => {
   const { user } = useAuth();
@@ -33,8 +38,21 @@ const Perfil = () => {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Exchange rate state
+  const [editingRate, setEditingRate] = useState(false);
+  const [rateInput, setRateInput] = useState('');
+  const [currentRate, setCurrentRate] = useState(ENV_USD_RATE);
+  const [rateError, setRateError] = useState('');
+  const [rateMessage, setRateMessage] = useState({ type: '', text: '' });
+
   useEffect(() => {
     fetchProfile();
+    // Load exchange rate from localStorage
+    const stored = localStorage.getItem(LS_RATE_KEY);
+    if (stored) {
+      const parsed = parseFloat(stored);
+      if (!isNaN(parsed) && parsed > 0) setCurrentRate(parsed);
+    }
   }, []);
 
   const fetchProfile = async () => {
@@ -155,6 +173,28 @@ const Perfil = () => {
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al conectar con el servidor' });
     }
+  };
+
+  const handleRateSubmit = (e) => {
+    e.preventDefault();
+    setRateError('');
+    setRateMessage({ type: '', text: '' });
+    const parsed = parseFloat(rateInput);
+    if (isNaN(parsed) || parsed <= 0) {
+      setRateError('Ingresa un tipo de cambio válido mayor a 0');
+      return;
+    }
+    localStorage.setItem(LS_RATE_KEY, parsed.toFixed(2));
+    setCurrentRate(parsed);
+    setEditingRate(false);
+    setRateMessage({ type: 'success', text: 'Tipo de cambio actualizado correctamente' });
+  };
+
+  const handleResetRate = () => {
+    localStorage.removeItem(LS_RATE_KEY);
+    setCurrentRate(ENV_USD_RATE);
+    setEditingRate(false);
+    setRateMessage({ type: 'success', text: `Tipo de cambio restablecido al valor predeterminado (${ENV_USD_RATE})` });
   };
 
   if (loading) {
@@ -436,6 +476,96 @@ const Perfil = () => {
           ) : (
             <div className="text-gray-600">
               <p>Por motivos de seguridad, te recomendamos cambiar tu contraseña periódicamente.</p>
+            </div>
+          )}
+        </Card>
+
+        {/* Exchange Rate Card */}
+        <Card>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <DollarSign className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Tipo de Cambio</h2>
+                <p className="text-sm text-gray-600">
+                  Tasa de conversión de {CURRENCY_SYMBOL} ({CURRENCY_NAME}) a dólares ($)
+                </p>
+              </div>
+            </div>
+            {!editingRate && (
+              <Button onClick={() => { setRateInput(currentRate.toFixed(2)); setRateError(''); setEditingRate(true); }} variant="secondary">
+                Editar
+              </Button>
+            )}
+          </div>
+
+          {rateMessage.text && (
+            <div className={`mb-4 p-3 rounded-lg flex items-start gap-3 ${
+              rateMessage.type === 'success'
+                ? 'bg-green-50 border border-green-200'
+                : 'bg-red-50 border border-red-200'
+            }`}>
+              {rateMessage.type === 'success' ? (
+                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              )}
+              <p className={`text-sm ${rateMessage.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                {rateMessage.text}
+              </p>
+            </div>
+          )}
+
+          {editingRate ? (
+            <form onSubmit={handleRateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  1 $ = ¿Cuántos {CURRENCY_SYMBOL}? *
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={rateInput}
+                  onChange={(e) => setRateInput(e.target.value)}
+                  placeholder={`Ej: ${ENV_USD_RATE}`}
+                  error={rateError}
+                />
+                {rateError && (
+                  <p className="mt-1 text-sm text-red-600">{rateError}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Valor predeterminado (desde .env): {ENV_USD_RATE}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button type="button" variant="secondary" onClick={handleResetRate}>
+                  Restablecer predeterminado
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setEditingRate(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Guardar
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="text-sm text-gray-600">Tipo de cambio actual</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  1 $ = {currentRate.toFixed(2)} {CURRENCY_SYMBOL}
+                </p>
+                {(() => {
+                  const stored = localStorage.getItem(LS_RATE_KEY);
+                  return stored && parseFloat(stored) !== ENV_USD_RATE ? (
+                    <p className="text-xs text-blue-600 mt-1">Valor personalizado (predeterminado: {ENV_USD_RATE})</p>
+                  ) : null;
+                })()}
+              </div>
             </div>
           )}
         </Card>

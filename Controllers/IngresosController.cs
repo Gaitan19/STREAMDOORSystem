@@ -31,7 +31,8 @@ namespace STREAMDOORSystem.Controllers
             {
                 query = query.Where(i =>
                     (i.Descripcion != null && i.Descripcion.Contains(busqueda)) ||
-                    (i.Usuario != null && i.Usuario.Contains(busqueda))
+                    (i.Usuario != null && i.Usuario.Contains(busqueda)) ||
+                    i.Moneda.Contains(busqueda)
                 );
             }
 
@@ -42,6 +43,7 @@ namespace STREAMDOORSystem.Controllers
                     IngresoID = i.IngresoID,
                     FechaCreacion = i.FechaCreacion,
                     Monto = i.Monto,
+                    Moneda = i.Moneda,
                     UsuarioID = i.UsuarioID,
                     Usuario = i.Usuario,
                     Descripcion = i.Descripcion,
@@ -63,6 +65,7 @@ namespace STREAMDOORSystem.Controllers
                     IngresoID = i.IngresoID,
                     FechaCreacion = i.FechaCreacion,
                     Monto = i.Monto,
+                    Moneda = i.Moneda,
                     UsuarioID = i.UsuarioID,
                     Usuario = i.Usuario,
                     Descripcion = i.Descripcion,
@@ -95,6 +98,7 @@ namespace STREAMDOORSystem.Controllers
             var ingreso = new Ingreso
             {
                 Monto = dto.Monto,
+                Moneda = string.IsNullOrEmpty(dto.Moneda) ? "C$" : dto.Moneda,
                 Descripcion = dto.Descripcion,
                 VentaID = dto.VentaID,
                 UsuarioID = usuarioId,
@@ -110,6 +114,7 @@ namespace STREAMDOORSystem.Controllers
                 IngresoID = ingreso.IngresoID,
                 FechaCreacion = ingreso.FechaCreacion,
                 Monto = ingreso.Monto,
+                Moneda = ingreso.Moneda,
                 UsuarioID = ingreso.UsuarioID,
                 Usuario = ingreso.Usuario,
                 Descripcion = ingreso.Descripcion,
@@ -133,6 +138,9 @@ namespace STREAMDOORSystem.Controllers
             // Update only provided fields
             if (dto.Monto.HasValue)
                 ingreso.Monto = dto.Monto.Value;
+
+            if (dto.Moneda != null)
+                ingreso.Moneda = dto.Moneda;
 
             if (dto.Descripcion != null)
                 ingreso.Descripcion = dto.Descripcion;

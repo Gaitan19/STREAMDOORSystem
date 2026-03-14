@@ -65,14 +65,16 @@ export const formatDate = (dateString) => {
   });
 };
 
-export const formatCurrency = (amount, moneda = 'C$') => {
-  // Handle Nicaraguan Córdoba (C$) and USD
-  if (moneda === 'C$') {
-    return `C$ ${new Intl.NumberFormat('es-NI', {
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+
+export const formatCurrency = (amount, moneda = CURRENCY_SYMBOL) => {
+  // Handle local currency (e.g. C$)
+  if (moneda !== '$' && moneda !== 'USD') {
+    return `${moneda} ${new Intl.NumberFormat('es-NI', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount || 0)}`;
-  } else if (moneda === 'USD') {
+  } else if (moneda === '$' || moneda === 'USD') {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'

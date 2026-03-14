@@ -4,6 +4,8 @@ import Button from '../components/Button';
 import { FaPlus, FaEdit, FaTrash, FaBox } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+
 const Combos = () => {
   const [combos, setCombos] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -223,7 +225,7 @@ const Combos = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Precio del combo:</span>
                 <span className="text-2xl font-bold text-green-600">
-                  C$ {combo.precio.toFixed(2)}
+                  {CURRENCY_SYMBOL} {combo.precio.toFixed(2)}
                 </span>
               </div>
               <div className="text-xs text-gray-500 mt-2">
@@ -324,7 +326,7 @@ const Combos = () => {
                         className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm">
-                        {servicio.nombre} (C$ {servicio.precio?.toFixed(2) || '0.00'})
+                        {servicio.nombre} ({CURRENCY_SYMBOL} {servicio.precio?.toFixed(2) || '0.00'})
                       </span>
                     </label>
                   ))}
