@@ -13,9 +13,10 @@ import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
 const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
 const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
 const CURRENCY_OPTIONS = [
-  { value: 'C$', label: `C$ — ${CURRENCY_NAME}` },
+  { value: CURRENCY_SYMBOL, label: `${CURRENCY_SYMBOL} — ${CURRENCY_NAME}` },
   { value: '$', label: '$ — Dólares' },
 ];
 
@@ -91,7 +92,7 @@ const Ventas = () => {
   const [formData, setFormData] = useState({
     fechaFin: '',
     medioPagoID: '',
-    moneda: 'C$',
+    moneda: CURRENCY_SYMBOL,
     notas: ''
   });
   
@@ -463,7 +464,7 @@ const Ventas = () => {
     setFormData({
       fechaFin: '',
       medioPagoID: '',
-      moneda: 'C$',
+      moneda: CURRENCY_SYMBOL,
       notas: ''
     });
     setErrors({});
@@ -1173,7 +1174,7 @@ const Ventas = () => {
                   <option value="">Seleccionar servicio...</option>
                   {serviciosDisponibles.map((servicio) => (
                     <option key={servicio.servicioID} value={servicio.servicioID}>
-                      {servicio.nombre} - {formatCurrency(servicio.precio, 'C$')}
+                      {servicio.nombre} - {formatCurrency(servicio.precio, CURRENCY_SYMBOL)}
                     </option>
                   ))}
                 </select>
@@ -1260,7 +1261,7 @@ const Ventas = () => {
                   <option value="">Seleccionar combo...</option>
                   {combosDisponibles.map((combo) => (
                     <option key={combo.comboID} value={combo.comboID}>
-                      {combo.nombre} - {formatCurrency(combo.precio, 'C$')} ({combo.servicios.length} servicios)
+                      {combo.nombre} - {formatCurrency(combo.precio, CURRENCY_SYMBOL)} ({combo.servicios.length} servicios)
                     </option>
                   ))}
                 </select>

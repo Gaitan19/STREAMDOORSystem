@@ -219,8 +219,8 @@ const Ingresos = () => {
 
   const columns = [
     { key: 'fechaCreacion', label: 'Fecha', render: (row) => formatDate(row.fechaCreacion) },
-    { key: 'moneda', label: 'Moneda', render: (row) => row.moneda || 'C$' },
-    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto, row.moneda || 'C$') },
+    { key: 'moneda', label: 'Moneda', render: (row) => row.moneda || CURRENCY_SYMBOL },
+    { key: 'monto', label: 'Monto', render: (row) => formatCurrency(row.monto, row.moneda || CURRENCY_SYMBOL) },
     { key: 'descripcion', label: 'Descripción' },
     { key: 'usuario', label: 'Usuario' },
     { 

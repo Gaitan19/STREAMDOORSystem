@@ -10,6 +10,7 @@ import writeXlsxFile from 'write-excel-file/browser';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
 
 /** Returns the active C$→USD exchange rate (localStorage overrides .env) */
 function getUsdRateReport() {
@@ -42,7 +43,7 @@ function clientConvertedTotal(client, targetCurrency, rate) {
     return byMoneda.reduce((sum, m) => sum + convertAmt(m.total ?? 0, m.moneda, targetCurrency, rate), 0);
   }
   // fallback: assume totalMonto is in local currency (only reached for legacy/missing data)
-  return convertAmt(client.totalMonto ?? 0, 'C$', targetCurrency, rate);
+  return convertAmt(client.totalMonto ?? 0, CURRENCY_SYMBOL, targetCurrency, rate);
 }
 
 /** Returns a Date object adjusted to America/Managua local time */
@@ -81,7 +82,7 @@ function buildFileName(d) {
 
 /** Format number as currency – symbol driven by the active filter */
 function fmt(n, symbol) {
-  const s = symbol || 'C$';
+  const s = symbol || CURRENCY_SYMBOL;
   return `${s} ${Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -147,7 +148,7 @@ export function generatePDF(data, userName, periodoLabel, currencyFilter, exchan
   const PW     = doc.internal.pageSize.getWidth();  // 210
   const MW     = PW - 28;  // usable table width (margin 14 each side)
   let   y      = 0;
-  const symbol = currencyFilter || 'C$';
+  const symbol = currencyFilter || CURRENCY_SYMBOL;
   const rate   = exchangeRate ?? getUsdRateReport();
 
   // Resolve per-currency KPIs for the chosen filter
@@ -457,7 +458,7 @@ export async function generateExcel(data, userName, periodoLabel, currencyFilter
   const now    = manaTime();
   const name   = buildFileName(now);
   const meta   = metaRows(userName, now, periodoLabel);
-  const symbol = currencyFilter || 'C$';
+  const symbol = currencyFilter || CURRENCY_SYMBOL;
   const rate   = exchangeRate ?? getUsdRateReport();
 
   // Resolve per-currency KPIs
@@ -474,7 +475,7 @@ export async function generateExcel(data, userName, periodoLabel, currencyFilter
     : (data.ingresosEgresosChartCs  ?? []);
 
   // Sanitize symbol to safe characters only (prevent unexpected Excel format injection)
-  const safeSymbol = /^[A-Za-z$€£¥₡]+$/.test(symbol) ? symbol : 'C$';
+  const safeSymbol = /^[A-Za-z$€£¥₡]+$/.test(symbol) ? symbol : CURRENCY_SYMBOL;
   // Build Excel number format string for the chosen currency symbol
   const moneyFmt = `"${safeSymbol}"#,##0.00`;
 

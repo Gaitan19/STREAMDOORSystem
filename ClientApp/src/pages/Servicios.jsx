@@ -12,6 +12,8 @@ import { serviciosService } from '../services/apiService';
 import { formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+
 const Servicios = () => {
   const [servicios, setServicios] = useState([]);
   const [filteredServicios, setFilteredServicios] = useState([]);
@@ -244,7 +246,7 @@ const Servicios = () => {
             onChange={handleChange}
           />
           <Input
-            label="Precio (C$)"
+            label={`Precio (${CURRENCY_SYMBOL})`}
             type="number"
             step="0.01"
             name="precio"

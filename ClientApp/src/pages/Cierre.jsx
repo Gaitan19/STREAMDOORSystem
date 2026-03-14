@@ -20,6 +20,8 @@ import Alert from '../components/Alert';
 import { formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+
 // ── Date helpers (America/Managua, UTC-6) ────────────────────────────────────
 const manaTime = () =>
   new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' }));
@@ -137,10 +139,10 @@ const SubGroup = ({ title, icon: Icon, iconColor, items, total, totalColor, empt
             </div>
             <div className="ml-3 flex items-center gap-2">
               <span className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                {item.moneda || 'C$'}
+                {item.moneda || CURRENCY_SYMBOL}
               </span>
               <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
-                {formatCurrency(item.monto, item.moneda || 'C$')}
+                {formatCurrency(item.monto, item.moneda || CURRENCY_SYMBOL)}
               </span>
             </div>
           </div>
@@ -614,9 +616,9 @@ const TicketContent = ({ data, appName, user, generatedAt, periodLabel }) => {
   const ing = data.ingresos;
   const egr = data.egresos;
 
-  const fmtAmount = (n, moneda = 'C$') => {
+  const fmtAmount = (n, moneda = CURRENCY_SYMBOL) => {
     const num = Number(n ?? 0).toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return moneda === '$' ? `$ ${num}` : `C$ ${num}`;
+    return moneda === '$' ? `$ ${num}` : `${moneda} ${num}`;
   };
 
   // Per-currency ganancia for ticket

@@ -10,6 +10,9 @@ import Alert from '../components/Alert';
 import { mediosPagoService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 
+const CURRENCY_SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL || 'C$';
+const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
+
 const MediosPago = () => {
   const [mediosPago, setMediosPago] = useState([]);
   const [filteredMediosPago, setFilteredMediosPago] = useState([]);
@@ -23,7 +26,7 @@ const MediosPago = () => {
     nombre: '',
     numeroCuenta: '',
     beneficiario: '',
-    moneda: 'C$'
+    moneda: CURRENCY_SYMBOL
   });
   const [errors, setErrors] = useState({});
 
@@ -100,7 +103,7 @@ const MediosPago = () => {
       nombre: medioPago.nombre,
       numeroCuenta: medioPago.numeroCuenta || '',
       beneficiario: medioPago.beneficiario || '',
-      moneda: medioPago.moneda || 'C$'
+      moneda: medioPago.moneda || CURRENCY_SYMBOL
     });
     setModalOpen(true);
   };
@@ -123,7 +126,7 @@ const MediosPago = () => {
       nombre: '',
       numeroCuenta: '',
       beneficiario: '',
-      moneda: 'C$'
+      moneda: CURRENCY_SYMBOL
     });
     setErrors({});
     setSelectedMedioPago(null);
@@ -298,8 +301,8 @@ const MediosPago = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="C$">C$ (Córdobas)</option>
-              <option value="USD">USD (Dólares)</option>
+              <option value={CURRENCY_SYMBOL}>{CURRENCY_SYMBOL} ({CURRENCY_NAME})</option>
+              <option value="$">$ (Dólares)</option>
             </select>
           </div>
 
