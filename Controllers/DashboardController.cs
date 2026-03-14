@@ -292,7 +292,8 @@ namespace STREAMDOORSystem.Controllers
                 }).ToList();
 
                 // ── Top clientes (por monto total de ventas, global) ─────────
-                var topClientes = await _context.Ventas
+                // Step 1: get top-5 client IDs ordered by combined TotalMonto
+                var topClientesSummary = await _context.Ventas
                     .GroupBy(v => v.ClienteID)
                     .Select(g => new
                     {
@@ -302,17 +303,36 @@ namespace STREAMDOORSystem.Controllers
                     })
                     .OrderByDescending(t => t.TotalMonto)
                     .Take(5)
-                    .Join(_context.Clientes,
-                          t => t.ClienteID,
-                          c => c.ClienteID,
-                          (t, c) => new TopClienteDTO
-                          {
-                              ClienteID   = t.ClienteID,
-                              Nombre      = c.Nombre + " " + c.Apellido,
-                              TotalVentas = t.TotalVentas,
-                              TotalMonto  = t.TotalMonto
-                          })
                     .ToListAsync();
+
+                var topClienteIds = topClientesSummary.Select(t => t.ClienteID).ToList();
+
+                // Step 2: get client names
+                var clientesDict = await _context.Clientes
+                    .Where(c => topClienteIds.Contains(c.ClienteID))
+                    .ToDictionaryAsync(c => c.ClienteID, c => c.Nombre + " " + c.Apellido);
+
+                // Step 3: get per-currency breakdown for each top client
+                var ventasTopClientes = await _context.Ventas
+                    .Where(v => topClienteIds.Contains(v.ClienteID))
+                    .ToListAsync();
+
+                var topClientes = topClientesSummary.Select(t =>
+                {
+                    var montosPorMoneda = ventasTopClientes
+                        .Where(v => v.ClienteID == t.ClienteID)
+                        .GroupBy(v => v.Moneda ?? "C$")
+                        .Select(g => new CierrePorMonedaDTO { Moneda = g.Key, Total = g.Sum(v => v.Monto) })
+                        .ToList();
+                    return new TopClienteDTO
+                    {
+                        ClienteID      = t.ClienteID,
+                        Nombre         = clientesDict.GetValueOrDefault(t.ClienteID, "N/A"),
+                        TotalVentas    = t.TotalVentas,
+                        TotalMonto     = t.TotalMonto,
+                        MontosPorMoneda = montosPorMoneda
+                    };
+                }).ToList();
 
                 // ── Ensamble ─────────────────────────────────────────────────
                 var resultado = new DashboardCompletoDTO

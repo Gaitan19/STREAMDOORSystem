@@ -9,6 +9,42 @@ import writeXlsxFile from 'write-excel-file/browser';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+
+/** Returns the active C$→USD exchange rate (localStorage overrides .env) */
+function getUsdRateReport() {
+  const stored = localStorage.getItem('currency_usd_rate');
+  if (stored) {
+    const parsed = parseFloat(stored);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return ENV_USD_RATE;
+}
+
+/**
+ * Convert `amount` from `fromCurrency` to `toCurrency`.
+ * If currencies match, returns amount unchanged.
+ */
+function convertAmt(amount, fromCurrency, toCurrency, rate) {
+  if (fromCurrency === toCurrency) return amount;
+  if (fromCurrency === '$' && toCurrency !== '$') return amount * rate;  // USD → local
+  if (fromCurrency !== '$' && toCurrency === '$') return amount / rate;  // local → USD
+  return amount;
+}
+
+/**
+ * Given a client's montosPorMoneda array and a target currency, compute
+ * the converted total. API always returns camelCase.
+ */
+function clientConvertedTotal(client, targetCurrency, rate) {
+  const byMoneda = client.montosPorMoneda;
+  if (byMoneda?.length > 0) {
+    return byMoneda.reduce((sum, m) => sum + convertAmt(m.total ?? 0, m.moneda, targetCurrency, rate), 0);
+  }
+  // fallback: assume totalMonto is in local currency (only reached for legacy/missing data)
+  return convertAmt(client.totalMonto ?? 0, 'C$', targetCurrency, rate);
+}
+
 /** Returns a Date object adjusted to America/Managua local time */
 function manaTime() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Managua' }));
@@ -104,7 +140,7 @@ const ORANGE  = [234, 88, 12];
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
-export function generatePDF(data, userName, periodoLabel, currencyFilter) {
+export function generatePDF(data, userName, periodoLabel, currencyFilter, exchangeRate) {
   const now    = manaTime();
   const name   = buildFileName(now);
   const doc    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -112,6 +148,7 @@ export function generatePDF(data, userName, periodoLabel, currencyFilter) {
   const MW     = PW - 28;  // usable table width (margin 14 each side)
   let   y      = 0;
   const symbol = currencyFilter || 'C$';
+  const rate   = exchangeRate ?? getUsdRateReport();
 
   // Resolve per-currency KPIs for the chosen filter
   const filtIngresos = (data.ingresosPerMoneda ?? []).find(m => m.moneda === symbol)?.total ?? 0;
@@ -309,8 +346,8 @@ export function generatePDF(data, userName, periodoLabel, currencyFilter) {
   if (data.topClientes?.length) {
     section('Top 5 Clientes');
     table(
-      ['Cliente', 'No. Ventas', 'Monto Total'],
-      data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(c.totalMonto, symbol)]),
+      ['Cliente', 'No. Ventas', `Monto Total (${symbol})`],
+      data.topClientes.map(c => [c.nombre, c.totalVentas, fmt(clientConvertedTotal(c, symbol, rate), symbol)]),
       { 1: 'right', 2: 'right' },
       [2, 1, 1]
     );
@@ -416,11 +453,12 @@ function metaRows(userName, now, periodoLabel) {
   ];
 }
 
-export async function generateExcel(data, userName, periodoLabel, currencyFilter) {
+export async function generateExcel(data, userName, periodoLabel, currencyFilter, exchangeRate) {
   const now    = manaTime();
   const name   = buildFileName(now);
   const meta   = metaRows(userName, now, periodoLabel);
   const symbol = currencyFilter || 'C$';
+  const rate   = exchangeRate ?? getUsdRateReport();
 
   // Resolve per-currency KPIs
   const filtIngresos  = (data.ingresosPerMoneda ?? []).find(m => m.moneda === symbol)?.total ?? 0;
@@ -506,14 +544,14 @@ export async function generateExcel(data, userName, periodoLabel, currencyFilter
   const clientes = [
     ...meta,
     [
-      { value: 'Cliente',     ...HEADER_STYLE },
-      { value: 'N° Ventas',   ...HEADER_STYLE },
-      { value: 'Monto Total', ...HEADER_STYLE },
+      { value: 'Cliente',                     ...HEADER_STYLE },
+      { value: 'N° Ventas',                   ...HEADER_STYLE },
+      { value: `Monto Total (${symbol})`,     ...HEADER_STYLE },
     ],
     ...(data.topClientes || []).map(c => [
-      { value: c.nombre,        ...LABEL_STYLE },
-      { value: c.totalVentas ?? 0, ...VALUE_STYLE },
-      { value: c.totalMonto  ?? 0, format: moneyFmt, ...VALUE_STYLE },
+      { value: c.nombre,                                                  ...LABEL_STYLE },
+      { value: c.totalVentas ?? 0,                                        ...VALUE_STYLE },
+      { value: clientConvertedTotal(c, symbol, rate), format: moneyFmt,   ...VALUE_STYLE },
     ]),
   ];
 

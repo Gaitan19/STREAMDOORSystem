@@ -583,6 +583,7 @@ namespace STREAMDOORSystem.Models.DTOs
         public string Nombre { get; set; } = string.Empty;
         public int TotalVentas { get; set; }
         public decimal TotalMonto { get; set; }
+        public List<CierrePorMonedaDTO> MontosPorMoneda { get; set; } = new();
     }
 
     // ── DTOs de Cierre ─────────────────────────────────────────────────────────
