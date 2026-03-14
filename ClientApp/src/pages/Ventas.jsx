@@ -13,16 +13,27 @@ import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
 const CURRENCY_NAME = import.meta.env.VITE_CURRENCY_NAME || 'Cordobas';
-const USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
+const ENV_USD_RATE = parseFloat(import.meta.env.VITE_CURRENCY_TO_USD_RATE) || 36.50;
 const CURRENCY_OPTIONS = [
   { value: 'C$', label: `C$ — ${CURRENCY_NAME}` },
   { value: '$', label: '$ — Dólares' },
 ];
 
+/** Get the active C$→USD exchange rate (localStorage overrides the .env value) */
+const getUsdRate = () => {
+  const stored = localStorage.getItem('currency_usd_rate');
+  if (stored) {
+    const parsed = parseFloat(stored);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return ENV_USD_RATE;
+};
+
 /** Convert a C$ amount to the selected currency */
 const convertPrice = (amountCordObas, moneda) => {
-  if (moneda === '$' && USD_RATE !== 1) {
-    return Math.round((amountCordObas / USD_RATE) * 100) / 100;
+  const rate = getUsdRate();
+  if (moneda === '$' && rate !== 1) {
+    return Math.round((amountCordObas / rate) * 100) / 100;
   }
   return amountCordObas;
 };
@@ -509,7 +520,7 @@ const Ventas = () => {
         fechaFin: formData.fechaFin,
         medioPagoID: formData.medioPagoID ? parseInt(formData.medioPagoID) : null,
         moneda: formData.moneda,
-        tasaCambio: formData.moneda === '$' ? USD_RATE : 1,
+        tasaCambio: formData.moneda === '$' ? getUsdRate() : 1,
         notas: formData.notas,
         detalles
       };
