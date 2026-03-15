@@ -255,15 +255,20 @@ PRINT 'Datos iniciales insertados exitosamente';
 GO
 
 -- ============================================
--- Agregar permiso de Plantillas al Administrador (idempotente)
+-- Agregar permiso de Plantillas al Administrador (upsert)
 -- ============================================
 DECLARE @AdminRolID3 INT = (SELECT RolID FROM Roles WHERE Nombre = 'Administrador');
 
 IF @AdminRolID3 IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM RolPermisos WHERE RolID = @AdminRolID3 AND Modulo = 'plantillas')
 BEGIN
-    INSERT INTO RolPermisos (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar)
-    VALUES (@AdminRolID3, 'plantillas', 1, 0, 1, 0);
+    MERGE RolPermisos AS target
+    USING (SELECT @AdminRolID3 AS RolID, 'plantillas' AS Modulo) AS source
+    ON target.RolID = source.RolID AND target.Modulo = source.Modulo
+    WHEN MATCHED THEN
+        UPDATE SET PuedeVer = 1, PuedeEditar = 1
+    WHEN NOT MATCHED THEN
+        INSERT (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar)
+        VALUES (@AdminRolID3, 'plantillas', 1, 0, 1, 0);
 END
 GO
 
