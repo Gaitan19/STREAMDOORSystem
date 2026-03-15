@@ -18,6 +18,7 @@ import Ingresos from './pages/Ingresos';
 import Egresos from './pages/Egresos';
 import Roles from './pages/Roles';
 import Cierre from './pages/Cierre';
+import Plantillas from './pages/Plantillas';
 
 function App() {
   return (
@@ -174,6 +175,17 @@ function App() {
               <ProtectedRoute modulo="cierre">
                 <Layout>
                   <Cierre />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/plantillas"
+            element={
+              <ProtectedRoute modulo="plantillas">
+                <Layout>
+                  <Plantillas />
                 </Layout>
               </ProtectedRoute>
             }

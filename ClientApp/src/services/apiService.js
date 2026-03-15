@@ -143,4 +143,10 @@ export const rolesService = {
   delete: (id) => apiClient.delete(`/roles/${id}`),
 };
 
+export const plantillasService = {
+  getAll: () => apiClient.get('/plantillas'),
+  getByKey: (clave) => apiClient.get(`/plantillas/${clave}`),
+  update: (clave, data) => apiClient.put(`/plantillas/${clave}`, data),
+};
+
 export default apiClient;

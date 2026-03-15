@@ -887,3 +887,30 @@ GO
 
 PRINT 'Base de datos DBStreamDoor creada exitosamente';
 GO
+
+-- ============================================
+-- Tabla: PlantillasMensajes
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PlantillasMensajes')
+BEGIN
+    CREATE TABLE PlantillasMensajes (
+        PlantillaID INT PRIMARY KEY IDENTITY(1,1),
+        Clave NVARCHAR(50) NOT NULL UNIQUE,
+        Nombre NVARCHAR(100) NOT NULL,
+        Descripcion NVARCHAR(500) NULL,
+        Contenido NVARCHAR(MAX) NOT NULL,
+        FechaActualizacion DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- Migración: Agregar PrefijoTelefono a Clientes si no existe
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Clientes')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'PrefijoTelefono')
+    BEGIN
+        ALTER TABLE Clientes ADD PrefijoTelefono NVARCHAR(10) NULL;
+        PRINT 'Columna PrefijoTelefono agregada a Clientes';
+    END
+END
+GO

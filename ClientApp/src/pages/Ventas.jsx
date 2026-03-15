@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy } from 'lucide-react';
+import { Plus, Trash2, X, Search, ShoppingCart, Calendar, Package, Eye, Edit, Copy, MessageCircle } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,7 +8,7 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
-import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService, combosService } from '../services/apiService';
+import { ventasService, clientesService, cuentasService, mediosPagoService, serviciosService, combosService, plantillasService } from '../services/apiService';
 import { formatDate, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 
@@ -56,6 +56,7 @@ const Ventas = () => {
   const [alert, setAlert] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState('todas'); // Filter for sales status
   const [createdSaleDetails, setCreatedSaleDetails] = useState(null);
+  const [plantillas, setPlantillas] = useState({});
   
   // Client search
   const [clienteSearch, setClienteSearch] = useState('');
@@ -109,6 +110,14 @@ const Ventas = () => {
 
   useEffect(() => {
     loadData();
+    // Load message templates
+    plantillasService.getAll()
+      .then(data => {
+        const map = {};
+        data.forEach(p => { map[p.clave] = p.contenido; });
+        setPlantillas(map);
+      })
+      .catch(() => {}); // fail silently, fallback templates will be used
   }, []);
 
   const loadData = async (filtro = 'todas') => {
@@ -741,12 +750,20 @@ const Ventas = () => {
   const formatWhatsAppMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
 
-    const formatDate = (date) => {
+    const fmtDate = (date) => {
       const d = new Date(date);
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
       return `${day}/${month}/${year}`;
+    };
+
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
     };
 
     // Group services by combo
@@ -774,51 +791,59 @@ const Ventas = () => {
     // Format combos
     Object.values(comboGroups).forEach(combo => {
       const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
-      message += `🔥 COMBO ACTIVO [${serviceNames.toUpperCase()}]\n\n`;
+      message += applyTpl('combo_header',
+        { NOMBRES_SERVICIOS: serviceNames.toUpperCase() },
+        `🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]\n\n`
+      );
 
       combo.servicios.forEach(detalle => {
-        message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
-        message += `🆔 # VENTA: V-${venta.ventaID}\n`;
-        message += `🛡 CORREO: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-        message += `⚔ CONTRASEÑA: ${detalle.passwordCuenta}\n`;
-        message += `👤 PERFIL: ${detalle.numeroPerfil}\n`;
-        if (detalle.pinPerfil) {
-          message += `🔐 PIN: ${detalle.pinPerfil}\n`;
-        }
-        message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
-        message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
+        const pinLinea = detalle.pinPerfil ? `🔐 PIN: ${detalle.pinPerfil}\n` : '';
+        message += applyTpl('combo_item', {
+          NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+          ID_VENTA: venta.ventaID,
+          CORREO: detalle.correoCuenta || detalle.emailCuenta,
+          CONTRASENA: detalle.passwordCuenta,
+          PERFIL: detalle.numeroPerfil,
+          PIN_LINEA: pinLinea,
+          FECHA_INICIO: fmtDate(venta.fechaInicio),
+          FECHA_FIN: fmtDate(venta.fechaFin),
+        },
+          `DATOS DE ACCESO {NOMBRE_SERVICIO}\n🆔 # VENTA: V-{ID_VENTA}\n🛡 CORREO: {CORREO}\n⚔ CONTRASEÑA: {CONTRASENA}\n👤 PERFIL: {PERFIL}\n{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}\n✂ F. DE FIN: {FECHA_FIN}\n\n`
+        );
       });
-      
-      // Add combo price
-      message += `💰 PRECIO DEL COMBO: ${combo.precioCombo.toFixed(2)} ${venta.moneda}\n\n`;
+
+      message += applyTpl('combo_footer',
+        { PRECIO_COMBO: combo.precioCombo.toFixed(2), MONEDA: venta.moneda },
+        `💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}\n\n`
+      );
     });
 
     // Format individual services
     individualServices.forEach((detalle, index) => {
       if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
-      
-      message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
-      message += `Acceda con los siguientes datos por favor\n`;
-      message += `🛡 Correo: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-      message += `⚔ Contraseña: ${detalle.passwordCuenta}\n`;
-      message += `⚙ Tipo: PERFIL\n\n`;
-      message += `👤 Perfil: ${detalle.numeroPerfil}`;
-      if (detalle.pinPerfil) {
-        message += `      🔐 Pin: ${detalle.pinPerfil}`;
-      }
-      message += `\n\n`;
-      message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
-      message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
-      
-      // Add individual service price
-      message += `💰 PRECIO: ${(detalle.precioUnitario || 0).toFixed(2)} ${venta.moneda}\n\n`;
+      const pinLinea = detalle.pinPerfil || '';
+      message += applyTpl('individual_item', {
+        NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+        ID_VENTA: venta.ventaID,
+        CORREO: detalle.correoCuenta || detalle.emailCuenta,
+        CONTRASENA: detalle.passwordCuenta,
+        PERFIL: detalle.numeroPerfil,
+        PIN_LINEA: pinLinea,
+        FECHA_INICIO: fmtDate(venta.fechaInicio),
+        FECHA_FIN: fmtDate(venta.fechaFin),
+        PRECIO: (detalle.precioUnitario || 0).toFixed(2),
+        MONEDA: venta.moneda,
+      },
+        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      🔐 Pin: {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
+      );
     });
 
     // Add total price at the end (only once)
     if (message.trim()) {
-      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
-      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
+      message += applyTpl('mensaje_footer',
+        { PRECIO_TOTAL: venta.monto?.toFixed(2) || '0.00', MONEDA: venta.moneda },
+        `💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}\n\n*💵 GRACIAS POR SU COMPRA 🛍*`
+      );
     }
 
     return message;
@@ -840,33 +865,41 @@ const Ventas = () => {
 
   const formatProximoVencerMessage = (venta) => {
     if (!venta) return '';
-
-    let message = `⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*\n\n`;
-    message += `Hola ${venta.nombreCliente} 👋\n\n`;
-    message += `Te informamos que tu suscripción de *${getVentaServiceNames(venta)}* está próxima a vencer.\n\n`;
-    message += `📋 *Detalles de tu venta:*\n`;
-    message += `🆔 # Venta: V-${venta.ventaID}\n`;
-    message += `✂ Fecha de vencimiento: *${formatExpiryDateLocal(venta.fechaFin)}*\n\n`;
-    message += `Para renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.\n\n`;
-    message += `*¡Gracias por preferirnos! 🙌*`;
-
-    return message;
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
+    };
+    return applyTpl('proximo_vencer', {
+      NOMBRE_CLIENTE: venta.nombreCliente,
+      SERVICIOS: getVentaServiceNames(venta),
+      ID_VENTA: venta.ventaID,
+      FECHA_FIN: formatExpiryDateLocal(venta.fechaFin),
+    },
+      `⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTe informamos que tu suscripción de *{SERVICIOS}* está próxima a vencer.\n\n📋 *Detalles de tu venta:*\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPara renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.\n\n*¡Gracias por preferirnos! 🙌*`
+    );
   };
 
   // Format "vencido" notification message for the client
   const formatVencidoMessage = (venta) => {
     if (!venta) return '';
-
-    let message = `❌ *AVISO DE SUSCRIPCIÓN VENCIDA*\n\n`;
-    message += `Hola ${venta.nombreCliente} 👋\n\n`;
-    message += `Te informamos que tu suscripción de *${getVentaServiceNames(venta)}* ha vencido.\n\n`;
-    message += `📋 *Detalles de tu venta:*\n`;
-    message += `🆔 # Venta: V-${venta.ventaID}\n`;
-    message += `✂ Fecha de vencimiento: *${formatExpiryDateLocal(venta.fechaFin)}*\n\n`;
-    message += `Para reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!\n\n`;
-    message += `*¡Gracias por preferirnos! 🙌*`;
-
-    return message;
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
+    };
+    return applyTpl('vencido', {
+      NOMBRE_CLIENTE: venta.nombreCliente,
+      SERVICIOS: getVentaServiceNames(venta),
+      ID_VENTA: venta.ventaID,
+      FECHA_FIN: formatExpiryDateLocal(venta.fechaFin),
+    },
+      `❌ *AVISO DE SUSCRIPCIÓN VENCIDA*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTe informamos que tu suscripción de *{SERVICIOS}* ha vencido.\n\n📋 *Detalles de tu venta:*\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPara reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!\n\n*¡Gracias por preferirnos! 🙌*`
+    );
   };
 
   // Format account-change details as WhatsApp message
@@ -878,23 +911,38 @@ const Ventas = () => {
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     };
 
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
+    };
+
     let message = '';
     venta.detalles.forEach((detalle) => {
-      const serviceName = (detalle.nombreServicio || '').toUpperCase();
-      message += `📧 *CAMBIO DE CORREO [${serviceName}]*\n\n`;
-      message += `_Acceda nuevamente con los siguientes datos por favor_\n`;
-      message += `🛡 *Correo:* ${detalle.correoCuenta || detalle.emailCuenta || ''}\n`;
-      message += `⚔ *Contraseña:* ${detalle.passwordCuenta || ''}\n`;
-      message += `⚙ Tipo: PERFIL \n\n`;
-      message += `👤 Perfil: ${detalle.numeroPerfil}`;
-      if (detalle.pinPerfil) {
-        message += `      🔐 Pin: ${detalle.pinPerfil}`;
-      }
-      message += `\n\n`;
-      message += `⏳ Fecha de inicio: ${fmtDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${fmtDate(venta.fechaFin)}\n\n`;
+      const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
+      message += applyTpl('cambio_cuenta_item', {
+        NOMBRE_SERVICIO: (detalle.nombreServicio || '').toUpperCase(),
+        CORREO: detalle.correoCuenta || detalle.emailCuenta || '',
+        CONTRASENA: detalle.passwordCuenta || '',
+        PERFIL: detalle.numeroPerfil,
+        PIN_LINEA: pinLinea,
+        FECHA_INICIO: fmtDate(venta.fechaInicio),
+        FECHA_FIN: fmtDate(venta.fechaFin),
+      },
+        `📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*\n\n_Acceda nuevamente con los siguientes datos por favor_\n🛡 *Correo:* {CORREO}\n⚔ *Contraseña:* {CONTRASENA}\n⚙ Tipo: PERFIL \n\n👤 Perfil: {PERFIL}      {PIN_LINEA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n`
+      );
     });
     return message.trim();
+  };
+
+  // Build WhatsApp direct chat URL
+  const buildWhatsAppUrl = (prefijoTelefono, telefono, message) => {
+    const prefix = (prefijoTelefono || '').replace(/[^\d]/g, '');
+    const phone = (telefono || '').replace(/[^\d]/g, '');
+    const fullPhone = prefix ? `${prefix}${phone}` : phone;
+    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
   };
 
   const columns = [
@@ -2136,6 +2184,21 @@ const Ventas = () => {
                   <Copy size={16} />
                   Copiar Detalles
                 </Button>
+                {ventaCompleta.telefonoCliente && (
+                  <a
+                    href={buildWhatsAppUrl(
+                      ventaCompleta.prefijoTelefonoCliente,
+                      ventaCompleta.telefonoCliente,
+                      formatWhatsAppMessage(ventaCompleta)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    Abrir en WhatsApp
+                  </a>
+                )}
                 {ventaCompleta.estado === 'ProximoVencer' && (
                   <Button
                     onClick={() => {
@@ -2149,6 +2212,21 @@ const Ventas = () => {
                     Copiar Aviso de Vencimiento Próximo
                   </Button>
                 )}
+                {ventaCompleta.estado === 'ProximoVencer' && ventaCompleta.telefonoCliente && (
+                  <a
+                    href={buildWhatsAppUrl(
+                      ventaCompleta.prefijoTelefonoCliente,
+                      ventaCompleta.telefonoCliente,
+                      formatProximoVencerMessage(ventaCompleta)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    WhatsApp Aviso Vencimiento
+                  </a>
+                )}
                 {ventaCompleta.estado === 'Vencido' && (
                   <Button
                     onClick={() => {
@@ -2161,6 +2239,21 @@ const Ventas = () => {
                     <Copy size={16} />
                     Copiar Aviso de Venta Vencida
                   </Button>
+                )}
+                {ventaCompleta.estado === 'Vencido' && ventaCompleta.telefonoCliente && (
+                  <a
+                    href={buildWhatsAppUrl(
+                      ventaCompleta.prefijoTelefonoCliente,
+                      ventaCompleta.telefonoCliente,
+                      formatVencidoMessage(ventaCompleta)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    WhatsApp Aviso Vencido
+                  </a>
                 )}
               </div>
               <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>

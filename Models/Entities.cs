@@ -95,6 +95,9 @@ namespace STREAMDOORSystem.Models
         [MaxLength(100)]
         public string? SegundoApellido { get; set; }
 
+        [MaxLength(10)]
+        public string? PrefijoTelefono { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string Telefono { get; set; } = string.Empty;
@@ -506,5 +509,28 @@ namespace STREAMDOORSystem.Models
 
         [ForeignKey("CuentaID")]
         public virtual Cuenta? Cuenta { get; set; }
+    }
+
+    [Table("PlantillasMensajes")]
+    public class PlantillaMensaje
+    {
+        [Key]
+        public int PlantillaID { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Clave { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        [Required]
+        public string Contenido { get; set; } = string.Empty;
+
+        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
     }
 }

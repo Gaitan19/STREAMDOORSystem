@@ -34,6 +34,7 @@ namespace STREAMDOORSystem.Controllers
                         SegundoNombre = c.SegundoNombre,
                         Apellido = c.Apellido,
                         SegundoApellido = c.SegundoApellido,
+                        PrefijoTelefono = c.PrefijoTelefono,
                         Telefono = c.Telefono,
                         FechaRegistro = c.FechaRegistro,
                         Activo = c.Activo
@@ -68,6 +69,7 @@ namespace STREAMDOORSystem.Controllers
                     SegundoNombre = cliente.SegundoNombre,
                     Apellido = cliente.Apellido,
                     SegundoApellido = cliente.SegundoApellido,
+                    PrefijoTelefono = cliente.PrefijoTelefono,
                     Telefono = cliente.Telefono,
                     FechaRegistro = cliente.FechaRegistro,
                     Activo = cliente.Activo
@@ -98,6 +100,7 @@ namespace STREAMDOORSystem.Controllers
                     SegundoNombre = crearClienteDto.SegundoNombre,
                     Apellido = crearClienteDto.Apellido,
                     SegundoApellido = crearClienteDto.SegundoApellido,
+                    PrefijoTelefono = crearClienteDto.PrefijoTelefono,
                     Telefono = crearClienteDto.Telefono,
                     FechaRegistro = DateTime.Now,
                     Activo = true
@@ -113,6 +116,7 @@ namespace STREAMDOORSystem.Controllers
                     SegundoNombre = cliente.SegundoNombre,
                     Apellido = cliente.Apellido,
                     SegundoApellido = cliente.SegundoApellido,
+                    PrefijoTelefono = cliente.PrefijoTelefono,
                     Telefono = cliente.Telefono,
                     FechaRegistro = cliente.FechaRegistro,
                     Activo = cliente.Activo
@@ -148,6 +152,7 @@ namespace STREAMDOORSystem.Controllers
                 cliente.SegundoNombre = crearClienteDto.SegundoNombre;
                 cliente.Apellido = crearClienteDto.Apellido;
                 cliente.SegundoApellido = crearClienteDto.SegundoApellido;
+                cliente.PrefijoTelefono = crearClienteDto.PrefijoTelefono;
                 cliente.Telefono = crearClienteDto.Telefono;
 
                 _context.Clientes.Update(cliente);
@@ -214,6 +219,7 @@ namespace STREAMDOORSystem.Controllers
                         SegundoNombre = c.SegundoNombre,
                         Apellido = c.Apellido,
                         SegundoApellido = c.SegundoApellido,
+                        PrefijoTelefono = c.PrefijoTelefono,
                         Telefono = c.Telefono,
                         FechaRegistro = c.FechaRegistro,
                         Activo = c.Activo
@@ -257,6 +263,7 @@ namespace STREAMDOORSystem.Controllers
                         VentaID = v.VentaID,
                         ClienteID = v.ClienteID,
                         NombreCliente = v.Cliente!.Nombre + " " + v.Cliente.Apellido,
+                        PrefijoTelefonoCliente = v.Cliente.PrefijoTelefono,
                         TelefonoCliente = v.Cliente.Telefono,
                         FechaInicio = v.FechaInicio,
                         FechaFin = v.FechaFin,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign, Copy, MessageCircle } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,9 +8,29 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
-import { clientesService, ventasService } from '../services/apiService';
+import { clientesService, ventasService, plantillasService } from '../services/apiService';
 import { validatePhone } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+
+// Common country phone prefixes
+const PAISES_PREFIJOS = [
+  { code: '+505', label: '🇳🇮 +505 Nicaragua' },
+  { code: '+506', label: '🇨🇷 +506 Costa Rica' },
+  { code: '+504', label: '🇭🇳 +504 Honduras' },
+  { code: '+503', label: '🇸🇻 +503 El Salvador' },
+  { code: '+502', label: '🇬🇹 +502 Guatemala' },
+  { code: '+507', label: '🇵🇦 +507 Panamá' },
+  { code: '+53',  label: '🇨🇺 +53  Cuba' },
+  { code: '+1',   label: '🇺🇸 +1   EE.UU. / Canadá' },
+  { code: '+52',  label: '🇲🇽 +52  México' },
+  { code: '+57',  label: '🇨🇴 +57  Colombia' },
+  { code: '+58',  label: '🇻🇪 +58  Venezuela' },
+  { code: '+51',  label: '🇵🇪 +51  Perú' },
+  { code: '+54',  label: '🇦🇷 +54  Argentina' },
+  { code: '+55',  label: '🇧🇷 +55  Brasil' },
+  { code: '+56',  label: '🇨🇱 +56  Chile' },
+  { code: '+34',  label: '🇪🇸 +34  España' },
+];
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
@@ -29,9 +49,11 @@ const Clientes = () => {
     segundoNombre: '',
     apellido: '',
     segundoApellido: '',
+    prefijoTelefono: '+505',
     telefono: ''
   });
   const [errors, setErrors] = useState({});
+  const [plantillas, setPlantillas] = useState({});
 
   // Sorting for the Clientes table
   const [sortBy, setSortBy] = useState('');
@@ -41,6 +63,13 @@ const Clientes = () => {
 
   useEffect(() => {
     loadClientes();
+    plantillasService.getAll()
+      .then(data => {
+        const map = {};
+        data.forEach(p => { map[p.clave] = p.contenido; });
+        setPlantillas(map);
+      })
+      .catch(() => {});
   }, []);
 
   const loadClientes = async () => {
@@ -66,16 +95,31 @@ const Clientes = () => {
     showAlert('success', `${label} copiado al portapapeles`);
   };
 
-  // Format sale details for WhatsApp
+  const buildWhatsAppUrl = (prefijoTelefono, telefono, message) => {
+    const prefix = (prefijoTelefono || '').replace(/[^\d]/g, '');
+    const phone = (telefono || '').replace(/[^\d]/g, '');
+    const fullPhone = prefix ? `${prefix}${phone}` : phone;
+    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+  };
+
+  // Format sale details for WhatsApp using stored templates
   const formatWhatsAppMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
 
-    const formatDate = (date) => {
+    const fmtDate = (date) => {
       const d = new Date(date);
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
       return `${day}/${month}/${year}`;
+    };
+
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
     };
 
     // Group services by combo
@@ -103,51 +147,59 @@ const Clientes = () => {
     // Format combos
     Object.values(comboGroups).forEach(combo => {
       const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
-      message += `🔥 COMBO ACTIVO [${serviceNames.toUpperCase()}]\n\n`;
+      message += applyTpl('combo_header',
+        { NOMBRES_SERVICIOS: serviceNames.toUpperCase() },
+        `🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]\n\n`
+      );
 
       combo.servicios.forEach(detalle => {
-        message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
-        message += `🆔 # VENTA: V-${venta.ventaID}\n`;
-        message += `🛡 CORREO: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-        message += `⚔ CONTRASEÑA: ${detalle.passwordCuenta}\n`;
-        message += `👤 PERFIL: ${detalle.numeroPerfil}\n`;
-        if (detalle.pinPerfil) {
-          message += `🔐 PIN: ${detalle.pinPerfil}\n`;
-        }
-        message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
-        message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
+        const pinLinea = detalle.pinPerfil ? `🔐 PIN: ${detalle.pinPerfil}\n` : '';
+        message += applyTpl('combo_item', {
+          NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+          ID_VENTA: venta.ventaID,
+          CORREO: detalle.correoCuenta || detalle.emailCuenta,
+          CONTRASENA: detalle.passwordCuenta,
+          PERFIL: detalle.numeroPerfil,
+          PIN_LINEA: pinLinea,
+          FECHA_INICIO: fmtDate(venta.fechaInicio),
+          FECHA_FIN: fmtDate(venta.fechaFin),
+        },
+          `DATOS DE ACCESO {NOMBRE_SERVICIO}\n🆔 # VENTA: V-{ID_VENTA}\n🛡 CORREO: {CORREO}\n⚔ CONTRASEÑA: {CONTRASENA}\n👤 PERFIL: {PERFIL}\n{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}\n✂ F. DE FIN: {FECHA_FIN}\n\n`
+        );
       });
-      
-      // Add combo price
-      message += `💰 PRECIO DEL COMBO: ${combo.precioCombo.toFixed(2)} ${venta.moneda}\n\n`;
+
+      message += applyTpl('combo_footer',
+        { PRECIO_COMBO: combo.precioCombo.toFixed(2), MONEDA: venta.moneda },
+        `💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}\n\n`
+      );
     });
 
     // Format individual services
     individualServices.forEach((detalle, index) => {
       if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
-      
-      message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
-      message += `Acceda con los siguientes datos por favor\n`;
-      message += `🛡 Correo: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-      message += `⚔ Contraseña: ${detalle.passwordCuenta}\n`;
-      message += `⚙ Tipo: PERFIL\n\n`;
-      message += `👤 Perfil: ${detalle.numeroPerfil}`;
-      if (detalle.pinPerfil) {
-        message += `      🔐 Pin: ${detalle.pinPerfil}`;
-      }
-      message += `\n\n`;
-      message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
-      message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
-      
-      // Add individual service price
-      message += `💰 PRECIO: ${(detalle.precioUnitario || 0).toFixed(2)} ${venta.moneda}\n\n`;
+      const pinLinea = detalle.pinPerfil || '';
+      message += applyTpl('individual_item', {
+        NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+        ID_VENTA: venta.ventaID,
+        CORREO: detalle.correoCuenta || detalle.emailCuenta,
+        CONTRASENA: detalle.passwordCuenta,
+        PERFIL: detalle.numeroPerfil,
+        PIN_LINEA: pinLinea,
+        FECHA_INICIO: fmtDate(venta.fechaInicio),
+        FECHA_FIN: fmtDate(venta.fechaFin),
+        PRECIO: (detalle.precioUnitario || 0).toFixed(2),
+        MONEDA: venta.moneda,
+      },
+        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      🔐 Pin: {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
+      );
     });
 
     // Add total price at the end (only once)
     if (message.trim()) {
-      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
-      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
+      message += applyTpl('mensaje_footer',
+        { PRECIO_TOTAL: venta.monto?.toFixed(2) || '0.00', MONEDA: venta.moneda },
+        `💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}\n\n*💵 GRACIAS POR SU COMPRA 🛍*`
+      );
     }
 
     return message;
@@ -225,6 +277,7 @@ const Clientes = () => {
       segundoNombre: cliente.segundoNombre || '',
       apellido: cliente.apellido,
       segundoApellido: cliente.segundoApellido || '',
+      prefijoTelefono: cliente.prefijoTelefono || '+505',
       telefono: cliente.telefono
     });
     setModalOpen(true);
@@ -248,6 +301,7 @@ const Clientes = () => {
       segundoNombre: '',
       apellido: '',
       segundoApellido: '',
+      prefijoTelefono: '+505',
       telefono: ''
     });
     setErrors({});
@@ -462,15 +516,35 @@ const Clientes = () => {
               onChange={handleChange}
             />
           </div>
-          <Input
-            label="Teléfono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            error={errors.telefono}
-            required
-            placeholder="Ej: 88888888"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-2">
+              <select
+                name="prefijoTelefono"
+                value={formData.prefijoTelefono}
+                onChange={handleChange}
+                className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                {PAISES_PREFIJOS.map(p => (
+                  <option key={p.code} value={p.code}>{p.label}</option>
+                ))}
+              </select>
+              <Input
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                error={errors.telefono}
+                required
+                placeholder="Ej: 88888888"
+                className="flex-1"
+              />
+            </div>
+            {errors.telefono && (
+              <p className="mt-1 text-sm text-red-600">{errors.telefono}</p>
+            )}
+          </div>
           <div className="flex gap-3 justify-end pt-4">
             <Button
               type="button"
@@ -706,18 +780,35 @@ const Clientes = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-              <Button
-                onClick={() => {
-                  const message = formatWhatsAppMessage(selectedVenta);
-                  copyToClipboard(message, 'Detalles');
-                }}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Copy size={16} />
-                Copiar Detalles
-              </Button>
+            <div className="flex flex-wrap justify-between items-center pt-4 border-t gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    const message = formatWhatsAppMessage(selectedVenta);
+                    copyToClipboard(message, 'Detalles');
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Copy size={16} />
+                  Copiar Detalles
+                </Button>
+                {selectedCliente?.telefono && (
+                  <a
+                    href={buildWhatsAppUrl(
+                      selectedCliente.prefijoTelefono,
+                      selectedCliente.telefono,
+                      formatWhatsAppMessage(selectedVenta)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    Abrir en WhatsApp
+                  </a>
+                )}
+              </div>
               <Button variant="secondary" onClick={() => {
                 setDetallesModalOpen(false);
                 setSelectedVenta(null);
