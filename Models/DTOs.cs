@@ -280,6 +280,8 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? Notas { get; set; }
         public int? MedioPagoID { get; set; }
         public string? NombreMedioPago { get; set; }
+        public string? NumeroCuentaMedioPago { get; set; }
+        public string? BeneficiarioMedioPago { get; set; }
         public int? UsuarioID { get; set; }
         public string? NombreUsuario { get; set; }
         public List<VentaDetalleCompletaDTO> Detalles { get; set; } = new();
@@ -603,6 +605,9 @@ namespace STREAMDOORSystem.Models.DTOs
     public class CierreIngresosPorMedioPagoDTO
     {
         public string MedioPago { get; set; } = string.Empty;
+        public string? Moneda { get; set; }
+        public string? NumeroCuenta { get; set; }
+        public string? Beneficiario { get; set; }
         public int Cantidad { get; set; }
         public decimal Total { get; set; }
         public List<CierreIngresoItemDTO> Items { get; set; } = new();
@@ -662,5 +667,21 @@ namespace STREAMDOORSystem.Models.DTOs
         public CierreIngresosDTO Ingresos { get; set; } = new();
         public CierreEgresosDTO Egresos { get; set; } = new();
         public decimal GananciaNeta { get; set; }
+    }
+
+    // DTOs de PlantillaMensaje
+    public class PlantillaMensajeDTO
+    {
+        public int PlantillaID { get; set; }
+        public string Clave { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public string Contenido { get; set; } = string.Empty;
+        public DateTime FechaActualizacion { get; set; }
+    }
+
+    public class ActualizarPlantillaDTO
+    {
+        public string Contenido { get; set; } = string.Empty;
     }
 }

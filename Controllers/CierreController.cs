@@ -53,10 +53,20 @@ namespace STREAMDOORSystem.Controllers
             var ingresosVentas = ingresos.Where(i => i.VentaID != null).ToList();
 
             var ventasPorMedioPago = ingresosVentas
-                .GroupBy(i => i.Venta?.MedioPago?.Nombre ?? "Sin Medio de Pago")
+                .GroupBy(i => new
+                {
+                    MedioPagoID = i.Venta?.MedioPagoID ?? 0,
+                    Nombre = i.Venta?.MedioPago?.Nombre ?? "Sin Medio de Pago",
+                    Moneda = i.Venta?.MedioPago?.Moneda ?? i.Moneda ?? "—",
+                    NumeroCuenta = i.Venta?.MedioPago?.NumeroCuenta,
+                    Beneficiario = i.Venta?.MedioPago?.Beneficiario
+                })
                 .Select(g => new CierreIngresosPorMedioPagoDTO
                 {
-                    MedioPago = g.Key,
+                    MedioPago = g.Key.Nombre,
+                    Moneda = g.Key.Moneda,
+                    NumeroCuenta = g.Key.NumeroCuenta,
+                    Beneficiario = g.Key.Beneficiario,
                     Cantidad = g.Count(),
                     Total = g.Sum(i => i.Monto),
                     Items = g.Select(i => new CierreIngresoItemDTO

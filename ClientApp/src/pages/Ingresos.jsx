@@ -245,7 +245,13 @@ const Ingresos = () => {
     }] : []),
   ];
 
-  const totalIngresos = filteredIngresos.reduce((sum, ing) => sum + ing.monto, 0);
+  const totalesPorMoneda = Object.entries(
+    filteredIngresos.reduce((acc, ing) => {
+      const moneda = ing.moneda || CURRENCY_SYMBOL;
+      acc[moneda] = (acc[moneda] || 0) + ing.monto;
+      return acc;
+    }, {})
+  ).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <div className="space-y-6">
@@ -266,9 +272,19 @@ const Ingresos = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="col-span-1">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-gray-600">Total Ingresos</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIngresos)}</p>
+              {totalesPorMoneda.length === 0 ? (
+                <p className="text-2xl font-bold text-green-600">—</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {totalesPorMoneda.map(([moneda, total]) => (
+                    <p key={moneda} className="text-xl font-bold text-green-600">
+                      {formatCurrency(total, moneda)}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
             <TrendingUp className="text-green-600" size={32} />
           </div>

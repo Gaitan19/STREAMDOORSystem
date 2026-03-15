@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign, Copy } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Plus, Edit, Trash2, Phone, ShoppingBag, Eye, Calendar, DollarSign, Copy, MessageCircle, ChevronDown, Search } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,9 +8,288 @@ import SearchBar from '../components/SearchBar';
 import Table from '../components/Table';
 import Alert from '../components/Alert';
 import Badge from '../components/Badge';
-import { clientesService, ventasService } from '../services/apiService';
+import { clientesService, ventasService, plantillasService } from '../services/apiService';
 import { validatePhone } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+
+// Full sorted list of country phone prefixes (alphabetical by country name)
+const PAISES_PREFIJOS = [
+  { code: '+93',   flag: '🇦🇫', name: 'Afganistán' },
+  { code: '+355',  flag: '🇦🇱', name: 'Albania' },
+  { code: '+213',  flag: '🇩🇿', name: 'Argelia' },
+  { code: '+376',  flag: '🇦🇩', name: 'Andorra' },
+  { code: '+244',  flag: '🇦🇴', name: 'Angola' },
+  { code: '+1',    flag: '🇦🇬', name: 'Antigua y Barbuda' },
+  { code: '+54',   flag: '🇦🇷', name: 'Argentina' },
+  { code: '+374',  flag: '🇦🇲', name: 'Armenia' },
+  { code: '+61',   flag: '🇦🇺', name: 'Australia' },
+  { code: '+43',   flag: '🇦🇹', name: 'Austria' },
+  { code: '+994',  flag: '🇦🇿', name: 'Azerbaiyán' },
+  { code: '+1',    flag: '🇧🇸', name: 'Bahamas' },
+  { code: '+973',  flag: '🇧🇭', name: 'Baréin' },
+  { code: '+880',  flag: '🇧🇩', name: 'Bangladés' },
+  { code: '+1',    flag: '🇧🇧', name: 'Barbados' },
+  { code: '+375',  flag: '🇧🇾', name: 'Bielorrusia' },
+  { code: '+32',   flag: '🇧🇪', name: 'Bélgica' },
+  { code: '+501',  flag: '🇧🇿', name: 'Belice' },
+  { code: '+229',  flag: '🇧🇯', name: 'Benín' },
+  { code: '+975',  flag: '🇧🇹', name: 'Bután' },
+  { code: '+591',  flag: '🇧🇴', name: 'Bolivia' },
+  { code: '+387',  flag: '🇧🇦', name: 'Bosnia y Herzegovina' },
+  { code: '+267',  flag: '🇧🇼', name: 'Botsuana' },
+  { code: '+55',   flag: '🇧🇷', name: 'Brasil' },
+  { code: '+673',  flag: '🇧🇳', name: 'Brunéi' },
+  { code: '+359',  flag: '🇧🇬', name: 'Bulgaria' },
+  { code: '+226',  flag: '🇧🇫', name: 'Burkina Faso' },
+  { code: '+257',  flag: '🇧🇮', name: 'Burundi' },
+  { code: '+238',  flag: '🇨🇻', name: 'Cabo Verde' },
+  { code: '+855',  flag: '🇰🇭', name: 'Camboya' },
+  { code: '+237',  flag: '🇨🇲', name: 'Camerún' },
+  { code: '+1',    flag: '🇨🇦', name: 'Canadá' },
+  { code: '+236',  flag: '🇨🇫', name: 'República Centroafricana' },
+  { code: '+235',  flag: '🇹🇩', name: 'Chad' },
+  { code: '+56',   flag: '🇨🇱', name: 'Chile' },
+  { code: '+86',   flag: '🇨🇳', name: 'China' },
+  { code: '+357',  flag: '🇨🇾', name: 'Chipre' },
+  { code: '+57',   flag: '🇨🇴', name: 'Colombia' },
+  { code: '+269',  flag: '🇰🇲', name: 'Comoras' },
+  { code: '+242',  flag: '🇨🇬', name: 'Congo' },
+  { code: '+243',  flag: '🇨🇩', name: 'Congo (RDC)' },
+  { code: '+506',  flag: '🇨🇷', name: 'Costa Rica' },
+  { code: '+385',  flag: '🇭🇷', name: 'Croacia' },
+  { code: '+53',   flag: '🇨🇺', name: 'Cuba' },
+  { code: '+45',   flag: '🇩🇰', name: 'Dinamarca' },
+  { code: '+253',  flag: '🇩🇯', name: 'Yibuti' },
+  { code: '+1',    flag: '🇩🇲', name: 'Dominica' },
+  { code: '+593',  flag: '🇪🇨', name: 'Ecuador' },
+  { code: '+20',   flag: '🇪🇬', name: 'Egipto' },
+  { code: '+503',  flag: '🇸🇻', name: 'El Salvador' },
+  { code: '+971',  flag: '🇦🇪', name: 'Emiratos Árabes Unidos' },
+  { code: '+291',  flag: '🇪🇷', name: 'Eritrea' },
+  { code: '+421',  flag: '🇸🇰', name: 'Eslovaquia' },
+  { code: '+386',  flag: '🇸🇮', name: 'Eslovenia' },
+  { code: '+34',   flag: '🇪🇸', name: 'España' },
+  { code: '+1',    flag: '🇺🇸', name: 'Estados Unidos' },
+  { code: '+372',  flag: '🇪🇪', name: 'Estonia' },
+  { code: '+251',  flag: '🇪🇹', name: 'Etiopía' },
+  { code: '+679',  flag: '🇫🇯', name: 'Fiyi' },
+  { code: '+63',   flag: '🇵🇭', name: 'Filipinas' },
+  { code: '+358',  flag: '🇫🇮', name: 'Finlandia' },
+  { code: '+33',   flag: '🇫🇷', name: 'Francia' },
+  { code: '+241',  flag: '🇬🇦', name: 'Gabón' },
+  { code: '+220',  flag: '🇬🇲', name: 'Gambia' },
+  { code: '+995',  flag: '🇬🇪', name: 'Georgia' },
+  { code: '+233',  flag: '🇬🇭', name: 'Ghana' },
+  { code: '+350',  flag: '🇬🇮', name: 'Gibraltar' },
+  { code: '+30',   flag: '🇬🇷', name: 'Grecia' },
+  { code: '+1',    flag: '🇬🇩', name: 'Granada' },
+  { code: '+502',  flag: '🇬🇹', name: 'Guatemala' },
+  { code: '+224',  flag: '🇬🇳', name: 'Guinea' },
+  { code: '+240',  flag: '🇬🇶', name: 'Guinea Ecuatorial' },
+  { code: '+245',  flag: '🇬🇼', name: 'Guinea-Bisáu' },
+  { code: '+592',  flag: '🇬🇾', name: 'Guyana' },
+  { code: '+509',  flag: '🇭🇹', name: 'Haití' },
+  { code: '+504',  flag: '🇭🇳', name: 'Honduras' },
+  { code: '+36',   flag: '🇭🇺', name: 'Hungría' },
+  { code: '+91',   flag: '🇮🇳', name: 'India' },
+  { code: '+62',   flag: '🇮🇩', name: 'Indonesia' },
+  { code: '+98',   flag: '🇮🇷', name: 'Irán' },
+  { code: '+964',  flag: '🇮🇶', name: 'Irak' },
+  { code: '+353',  flag: '🇮🇪', name: 'Irlanda' },
+  { code: '+354',  flag: '🇮🇸', name: 'Islandia' },
+  { code: '+972',  flag: '🇮🇱', name: 'Israel' },
+  { code: '+39',   flag: '🇮🇹', name: 'Italia' },
+  { code: '+1',    flag: '🇯🇲', name: 'Jamaica' },
+  { code: '+81',   flag: '🇯🇵', name: 'Japón' },
+  { code: '+962',  flag: '🇯🇴', name: 'Jordania' },
+  { code: '+7',    flag: '🇰🇿', name: 'Kazajistán' },
+  { code: '+254',  flag: '🇰🇪', name: 'Kenia' },
+  { code: '+996',  flag: '🇰🇬', name: 'Kirguistán' },
+  { code: '+686',  flag: '🇰🇮', name: 'Kiribati' },
+  { code: '+965',  flag: '🇰🇼', name: 'Kuwait' },
+  { code: '+856',  flag: '🇱🇦', name: 'Laos' },
+  { code: '+266',  flag: '🇱🇸', name: 'Lesoto' },
+  { code: '+371',  flag: '🇱🇻', name: 'Letonia' },
+  { code: '+961',  flag: '🇱🇧', name: 'Líbano' },
+  { code: '+231',  flag: '🇱🇷', name: 'Liberia' },
+  { code: '+218',  flag: '🇱🇾', name: 'Libia' },
+  { code: '+423',  flag: '🇱🇮', name: 'Liechtenstein' },
+  { code: '+370',  flag: '🇱🇹', name: 'Lituania' },
+  { code: '+352',  flag: '🇱🇺', name: 'Luxemburgo' },
+  { code: '+261',  flag: '🇲🇬', name: 'Madagascar' },
+  { code: '+265',  flag: '🇲🇼', name: 'Malaui' },
+  { code: '+60',   flag: '🇲🇾', name: 'Malasia' },
+  { code: '+960',  flag: '🇲🇻', name: 'Maldivas' },
+  { code: '+223',  flag: '🇲🇱', name: 'Malí' },
+  { code: '+356',  flag: '🇲🇹', name: 'Malta' },
+  { code: '+212',  flag: '🇲🇦', name: 'Marruecos' },
+  { code: '+222',  flag: '🇲🇷', name: 'Mauritania' },
+  { code: '+230',  flag: '🇲🇺', name: 'Mauricio' },
+  { code: '+52',   flag: '🇲🇽', name: 'México' },
+  { code: '+691',  flag: '🇫🇲', name: 'Micronesia' },
+  { code: '+373',  flag: '🇲🇩', name: 'Moldavia' },
+  { code: '+377',  flag: '🇲🇨', name: 'Mónaco' },
+  { code: '+976',  flag: '🇲🇳', name: 'Mongolia' },
+  { code: '+382',  flag: '🇲🇪', name: 'Montenegro' },
+  { code: '+258',  flag: '🇲🇿', name: 'Mozambique' },
+  { code: '+264',  flag: '🇳🇦', name: 'Namibia' },
+  { code: '+674',  flag: '🇳🇷', name: 'Nauru' },
+  { code: '+977',  flag: '🇳🇵', name: 'Nepal' },
+  { code: '+505',  flag: '🇳🇮', name: 'Nicaragua' },
+  { code: '+227',  flag: '🇳🇪', name: 'Níger' },
+  { code: '+234',  flag: '🇳🇬', name: 'Nigeria' },
+  { code: '+47',   flag: '🇳🇴', name: 'Noruega' },
+  { code: '+64',   flag: '🇳🇿', name: 'Nueva Zelanda' },
+  { code: '+968',  flag: '🇴🇲', name: 'Omán' },
+  { code: '+31',   flag: '🇳🇱', name: 'Países Bajos' },
+  { code: '+92',   flag: '🇵🇰', name: 'Pakistán' },
+  { code: '+680',  flag: '🇵🇼', name: 'Palaos' },
+  { code: '+970',  flag: '🇵🇸', name: 'Palestina' },
+  { code: '+507',  flag: '🇵🇦', name: 'Panamá' },
+  { code: '+675',  flag: '🇵🇬', name: 'Papúa Nueva Guinea' },
+  { code: '+595',  flag: '🇵🇾', name: 'Paraguay' },
+  { code: '+51',   flag: '🇵🇪', name: 'Perú' },
+  { code: '+48',   flag: '🇵🇱', name: 'Polonia' },
+  { code: '+351',  flag: '🇵🇹', name: 'Portugal' },
+  { code: '+974',  flag: '🇶🇦', name: 'Catar' },
+  { code: '+44',   flag: '🇬🇧', name: 'Reino Unido' },
+  { code: '+236',  flag: '🇨🇫', name: 'República Centroafricana' },
+  { code: '+1',    flag: '🇩🇴', name: 'República Dominicana' },
+  { code: '+40',   flag: '🇷🇴', name: 'Rumanía' },
+  { code: '+7',    flag: '🇷🇺', name: 'Rusia' },
+  { code: '+250',  flag: '🇷🇼', name: 'Ruanda' },
+  { code: '+1',    flag: '🇰🇳', name: 'San Cristóbal y Nieves' },
+  { code: '+1',    flag: '🇱🇨', name: 'Santa Lucía' },
+  { code: '+1',    flag: '🇻🇨', name: 'San Vicente y las Granadinas' },
+  { code: '+685',  flag: '🇼🇸', name: 'Samoa' },
+  { code: '+378',  flag: '🇸🇲', name: 'San Marino' },
+  { code: '+239',  flag: '🇸🇹', name: 'Santo Tomé y Príncipe' },
+  { code: '+966',  flag: '🇸🇦', name: 'Arabia Saudita' },
+  { code: '+221',  flag: '🇸🇳', name: 'Senegal' },
+  { code: '+381',  flag: '🇷🇸', name: 'Serbia' },
+  { code: '+248',  flag: '🇸🇨', name: 'Seychelles' },
+  { code: '+232',  flag: '🇸🇱', name: 'Sierra Leona' },
+  { code: '+65',   flag: '🇸🇬', name: 'Singapur' },
+  { code: '+963',  flag: '🇸🇾', name: 'Siria' },
+  { code: '+252',  flag: '🇸🇴', name: 'Somalia' },
+  { code: '+94',   flag: '🇱🇰', name: 'Sri Lanka' },
+  { code: '+268',  flag: '🇸🇿', name: 'Suazilandia' },
+  { code: '+249',  flag: '🇸🇩', name: 'Sudán' },
+  { code: '+211',  flag: '🇸🇸', name: 'Sudán del Sur' },
+  { code: '+46',   flag: '🇸🇪', name: 'Suecia' },
+  { code: '+41',   flag: '🇨🇭', name: 'Suiza' },
+  { code: '+597',  flag: '🇸🇷', name: 'Surinam' },
+  { code: '+66',   flag: '🇹🇭', name: 'Tailandia' },
+  { code: '+255',  flag: '🇹🇿', name: 'Tanzania' },
+  { code: '+992',  flag: '🇹🇯', name: 'Tayikistán' },
+  { code: '+670',  flag: '🇹🇱', name: 'Timor Oriental' },
+  { code: '+228',  flag: '🇹🇬', name: 'Togo' },
+  { code: '+676',  flag: '🇹🇴', name: 'Tonga' },
+  { code: '+1',    flag: '🇹🇹', name: 'Trinidad y Tobago' },
+  { code: '+216',  flag: '🇹🇳', name: 'Túnez' },
+  { code: '+993',  flag: '🇹🇲', name: 'Turkmenistán' },
+  { code: '+90',   flag: '🇹🇷', name: 'Turquía' },
+  { code: '+688',  flag: '🇹🇻', name: 'Tuvalu' },
+  { code: '+380',  flag: '🇺🇦', name: 'Ucrania' },
+  { code: '+256',  flag: '🇺🇬', name: 'Uganda' },
+  { code: '+598',  flag: '🇺🇾', name: 'Uruguay' },
+  { code: '+998',  flag: '🇺🇿', name: 'Uzbekistán' },
+  { code: '+678',  flag: '🇻🇺', name: 'Vanuatu' },
+  { code: '+58',   flag: '🇻🇪', name: 'Venezuela' },
+  { code: '+84',   flag: '🇻🇳', name: 'Vietnam' },
+  { code: '+967',  flag: '🇾🇪', name: 'Yemen' },
+  { code: '+253',  flag: '🇩🇯', name: 'Yibuti' },
+  { code: '+260',  flag: '🇿🇲', name: 'Zambia' },
+  { code: '+263',  flag: '🇿🇼', name: 'Zimbabue' },
+].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+// Searchable country-prefix dropdown component
+const PrefijoPicker = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef(null);
+  const searchRef = useRef(null);
+
+  const selected = PAISES_PREFIJOS.find(p => p.code === value && p.name === PAISES_PREFIJOS.find(x => x.code === value)?.name)
+    || PAISES_PREFIJOS.find(p => p.code === value)
+    || PAISES_PREFIJOS[0];
+
+  const filtered = PAISES_PREFIJOS.filter(p => {
+    const q = query.toLowerCase();
+    return p.name.toLowerCase().includes(q) || p.code.includes(q);
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
+
+  const handleSelect = (p) => {
+    onChange({ target: { name: 'prefijoTelefono', value: p.code } });
+    setOpen(false);
+    setQuery('');
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px]"
+      >
+        <span>{selected?.flag}</span>
+        <span className="font-medium">{selected?.code}</span>
+        <ChevronDown size={14} className="ml-1 text-gray-400" />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg">
+          <div className="p-2 border-b border-gray-100">
+            <div className="flex items-center gap-2 px-2 py-1 border border-gray-300 rounded-md bg-gray-50">
+              <Search size={14} className="text-gray-400 shrink-0" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Buscar país o código..."
+                className="bg-transparent text-sm outline-none w-full"
+              />
+            </div>
+          </div>
+          <ul className="max-h-56 overflow-y-auto py-1">
+            {filtered.length === 0 && (
+              <li className="px-4 py-2 text-sm text-gray-400">Sin resultados</li>
+            )}
+            {filtered.map((p, i) => (
+              <li key={`${p.code}-${p.name}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(p)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 text-left ${p.code === value && p.name === selected?.name ? 'bg-blue-50 font-medium' : ''}`}
+                >
+                  <span className="text-base">{p.flag}</span>
+                  <span className="flex-1 truncate">{p.name}</span>
+                  <span className="text-gray-500 shrink-0">{p.code}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
@@ -29,9 +308,11 @@ const Clientes = () => {
     segundoNombre: '',
     apellido: '',
     segundoApellido: '',
+    prefijoTelefono: '+505',
     telefono: ''
   });
   const [errors, setErrors] = useState({});
+  const [plantillas, setPlantillas] = useState({});
 
   // Sorting for the Clientes table
   const [sortBy, setSortBy] = useState('');
@@ -41,6 +322,13 @@ const Clientes = () => {
 
   useEffect(() => {
     loadClientes();
+    plantillasService.getAll()
+      .then(data => {
+        const map = {};
+        data.forEach(p => { map[p.clave] = p.contenido; });
+        setPlantillas(map);
+      })
+      .catch(() => {});
   }, []);
 
   const loadClientes = async () => {
@@ -66,16 +354,29 @@ const Clientes = () => {
     showAlert('success', `${label} copiado al portapapeles`);
   };
 
-  // Format sale details for WhatsApp
+  const buildWhatsAppUrl = (telefono) => {
+    const phone = (telefono || '').replace(/[^\d]/g, '');
+    return `https://wa.me/${phone}`;
+  };
+
+  // Format sale details for WhatsApp using stored templates
   const formatWhatsAppMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
 
-    const formatDate = (date) => {
+    const fmtDate = (date) => {
       const d = new Date(date);
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
       return `${day}/${month}/${year}`;
+    };
+
+    const applyTpl = (key, vars, fallback) => {
+      const tpl = plantillas[key] || fallback;
+      return Object.entries(vars).reduce(
+        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+        tpl
+      );
     };
 
     // Group services by combo
@@ -103,51 +404,59 @@ const Clientes = () => {
     // Format combos
     Object.values(comboGroups).forEach(combo => {
       const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
-      message += `🔥 COMBO ACTIVO [${serviceNames.toUpperCase()}]\n\n`;
+      message += applyTpl('combo_header',
+        { NOMBRES_SERVICIOS: serviceNames.toUpperCase() },
+        `🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]\n\n`
+      );
 
       combo.servicios.forEach(detalle => {
-        message += `DATOS DE ACCESO ${detalle.nombreServicio.toUpperCase()}\n`;
-        message += `🆔 # VENTA: V-${venta.ventaID}\n`;
-        message += `🛡 CORREO: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-        message += `⚔ CONTRASEÑA: ${detalle.passwordCuenta}\n`;
-        message += `👤 PERFIL: ${detalle.numeroPerfil}\n`;
-        if (detalle.pinPerfil) {
-          message += `🔐 PIN: ${detalle.pinPerfil}\n`;
-        }
-        message += `⏳ F. DE INICIO: ${formatDate(venta.fechaInicio)}\n`;
-        message += `✂ F. DE FIN: ${formatDate(venta.fechaFin)}\n\n`;
+        const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}\n` : '';
+        message += applyTpl('combo_item', {
+          NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+          ID_VENTA: venta.ventaID,
+          CORREO: detalle.correoCuenta || detalle.emailCuenta,
+          CONTRASENA: detalle.passwordCuenta,
+          PERFIL: detalle.numeroPerfil,
+          PIN_LINEA: pinLinea,
+          FECHA_INICIO: fmtDate(venta.fechaInicio),
+          FECHA_FIN: fmtDate(venta.fechaFin),
+        },
+          `DATOS DE ACCESO {NOMBRE_SERVICIO}\n🆔 # VENTA: V-{ID_VENTA}\n🛡 CORREO: {CORREO}\n⚔ CONTRASEÑA: {CONTRASENA}\n👤 PERFIL: {PERFIL}\n{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}\n✂ F. DE FIN: {FECHA_FIN}\n\n`
+        );
       });
-      
-      // Add combo price
-      message += `💰 PRECIO DEL COMBO: ${combo.precioCombo.toFixed(2)} ${venta.moneda}\n\n`;
+
+      message += applyTpl('combo_footer',
+        { PRECIO_COMBO: combo.precioCombo.toFixed(2), MONEDA: venta.moneda },
+        `💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}\n\n`
+      );
     });
 
     // Format individual services
     individualServices.forEach((detalle, index) => {
       if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
-      
-      message += `📌 SUSCRIPCIÓN ACTIVA [${detalle.nombreServicio.toUpperCase()}]\n\n`;
-      message += `Acceda con los siguientes datos por favor\n`;
-      message += `🛡 Correo: ${detalle.correoCuenta || detalle.emailCuenta}\n`;
-      message += `⚔ Contraseña: ${detalle.passwordCuenta}\n`;
-      message += `⚙ Tipo: PERFIL\n\n`;
-      message += `👤 Perfil: ${detalle.numeroPerfil}`;
-      if (detalle.pinPerfil) {
-        message += `      🔐 Pin: ${detalle.pinPerfil}`;
-      }
-      message += `\n\n`;
-      message += `🆔 # VENTA: V-${venta.ventaID}\n\n`;
-      message += `⏳ Fecha de inicio: ${formatDate(venta.fechaInicio)}\n`;
-      message += `✂ Fecha de corte: ${formatDate(venta.fechaFin)}\n\n`;
-      
-      // Add individual service price
-      message += `💰 PRECIO: ${(detalle.precioUnitario || 0).toFixed(2)} ${venta.moneda}\n\n`;
+      const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
+      message += applyTpl('individual_item', {
+        NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
+        ID_VENTA: venta.ventaID,
+        CORREO: detalle.correoCuenta || detalle.emailCuenta,
+        CONTRASENA: detalle.passwordCuenta,
+        PERFIL: detalle.numeroPerfil,
+        PIN_LINEA: pinLinea,
+        FECHA_INICIO: fmtDate(venta.fechaInicio),
+        FECHA_FIN: fmtDate(venta.fechaFin),
+        PRECIO: (detalle.precioUnitario || 0).toFixed(2),
+        MONEDA: venta.moneda,
+      },
+        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
+      );
     });
 
     // Add total price at the end (only once)
     if (message.trim()) {
-      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n`;
-      message += `*💵 GRACIAS POR SU COMPRA 🛍*`;
+      message += applyTpl('mensaje_footer',
+        { PRECIO_TOTAL: venta.monto?.toFixed(2) || '0.00', MONEDA: venta.moneda },
+        `💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}\n\n*💵 GRACIAS POR SU COMPRA 🛍*`
+      );
     }
 
     return message;
@@ -202,11 +511,13 @@ const Clientes = () => {
     if (!validate()) return;
 
     try {
+      const { prefijoTelefono, telefono, ...rest } = formData;
+      const payload = { ...rest, telefono: `${prefijoTelefono}${telefono}` };
       if (selectedCliente) {
-        await clientesService.update(selectedCliente.clienteID, formData);
+        await clientesService.update(selectedCliente.clienteID, payload);
         showAlert('success', 'Cliente actualizado exitosamente');
       } else {
-        await clientesService.create(formData);
+        await clientesService.create(payload);
         showAlert('success', 'Cliente creado exitosamente');
       }
       
@@ -220,12 +531,19 @@ const Clientes = () => {
 
   const handleEdit = (cliente) => {
     setSelectedCliente(cliente);
+    // Extract prefix from stored phone number (longest match first)
+    const storedPhone = cliente.telefono || '';
+    const sortedPrefixes = [...PAISES_PREFIJOS].sort((a, b) => b.code.length - a.code.length);
+    const matchedPrefix = sortedPrefixes.find(p => storedPhone.startsWith(p.code));
+    const prefijo = matchedPrefix ? matchedPrefix.code : '+505';
+    const telefonoSinPrefijo = matchedPrefix ? storedPhone.slice(matchedPrefix.code.length) : storedPhone;
     setFormData({
       nombre: cliente.nombre,
       segundoNombre: cliente.segundoNombre || '',
       apellido: cliente.apellido,
       segundoApellido: cliente.segundoApellido || '',
-      telefono: cliente.telefono
+      prefijoTelefono: prefijo,
+      telefono: telefonoSinPrefijo
     });
     setModalOpen(true);
   };
@@ -248,6 +566,7 @@ const Clientes = () => {
       segundoNombre: '',
       apellido: '',
       segundoApellido: '',
+      prefijoTelefono: '+505',
       telefono: ''
     });
     setErrors({});
@@ -462,15 +781,28 @@ const Clientes = () => {
               onChange={handleChange}
             />
           </div>
-          <Input
-            label="Teléfono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            error={errors.telefono}
-            required
-            placeholder="Ej: 88888888"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-2 items-start">
+              <div>
+                <PrefijoPicker value={formData.prefijoTelefono} onChange={handleChange} />
+              </div>
+              <Input
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                error={errors.telefono}
+                required
+                placeholder="Ej: 88888888"
+                className="flex-1"
+              />
+            </div>
+            {errors.telefono && (
+              <p className="mt-1 text-sm text-red-600">{errors.telefono}</p>
+            )}
+          </div>
           <div className="flex gap-3 justify-end pt-4">
             <Button
               type="button"
@@ -706,18 +1038,31 @@ const Clientes = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-              <Button
-                onClick={() => {
-                  const message = formatWhatsAppMessage(selectedVenta);
-                  copyToClipboard(message, 'Detalles');
-                }}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Copy size={16} />
-                Copiar Detalles
-              </Button>
+            <div className="flex flex-wrap justify-between items-center pt-4 border-t gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    const message = formatWhatsAppMessage(selectedVenta);
+                    copyToClipboard(message, 'Detalles');
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Copy size={16} />
+                  Copiar Detalles
+                </Button>
+                {selectedCliente?.telefono && (
+                  <a
+                    href={buildWhatsAppUrl(selectedCliente.telefono)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    Abrir en WhatsApp
+                  </a>
+                )}
+              </div>
               <Button variant="secondary" onClick={() => {
                 setDetallesModalOpen(false);
                 setSelectedVenta(null);

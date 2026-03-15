@@ -495,7 +495,7 @@ const Cierre = () => {
                   {(ing?.ventasPorMedioPago ?? []).map((grupo, idx) => (
                     <SubGroup
                       key={idx}
-                      title={grupo.medioPago}
+                      title={`${grupo.medioPago}${grupo.moneda ? ` (${grupo.moneda})` : ''}${grupo.numeroCuenta ? ` · ${grupo.numeroCuenta}` : ''}`}
                       icon={CreditCard}
                       iconColor="text-blue-500"
                       items={grupo.items.map((i) => ({ ...i, label: `Venta #${i.ventaID}` }))}

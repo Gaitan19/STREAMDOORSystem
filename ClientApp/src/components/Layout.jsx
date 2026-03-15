@@ -17,7 +17,8 @@ import {
   TrendingDown,
   User,
   Shield,
-  ClipboardList
+  ClipboardList,
+  MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -41,6 +42,7 @@ const Layout = ({ children }) => {
     { path: '/medios-pago', icon: Wallet, label: 'Medios de Pago', modulo: 'medios-pago' },
     { path: '/usuarios', icon: UserCog, label: 'Usuarios', modulo: 'usuarios' },
     { path: '/roles', icon: Shield, label: 'Roles', modulo: 'roles' },
+    { path: '/plantillas', icon: MessageSquare, label: 'Plantillas', modulo: 'plantillas' },
   ];
 
   // Filter menu items based on user permissions

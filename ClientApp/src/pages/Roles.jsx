@@ -23,6 +23,7 @@ const MODULOS = [
   { id: 'medios-pago', nombre: 'Medios de Pago' },
   { id: 'usuarios', nombre: 'Usuarios' },
   { id: 'roles', nombre: 'Roles' },
+  { id: 'plantillas', nombre: 'Plantillas' },
 ];
 
 const PERMISOS_LABELS = [

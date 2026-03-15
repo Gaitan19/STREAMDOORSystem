@@ -253,3 +253,163 @@ GO
 
 PRINT 'Datos iniciales insertados exitosamente';
 GO
+
+-- ============================================
+-- Agregar permiso de Plantillas al Administrador (upsert)
+-- ============================================
+DECLARE @AdminRolID3 INT = (SELECT RolID FROM Roles WHERE Nombre = 'Administrador');
+
+IF @AdminRolID3 IS NOT NULL
+BEGIN
+    MERGE RolPermisos AS target
+    USING (SELECT @AdminRolID3 AS RolID, 'plantillas' AS Modulo) AS source
+    ON target.RolID = source.RolID AND target.Modulo = source.Modulo
+    WHEN MATCHED THEN
+        UPDATE SET PuedeVer = 1, PuedeEditar = 1
+    WHEN NOT MATCHED THEN
+        INSERT (RolID, Modulo, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar)
+        VALUES (@AdminRolID3, 'plantillas', 1, 0, 1, 0);
+END
+GO
+
+-- ============================================
+-- Plantillas de Mensajes (idempotente)
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_header')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_header',
+        'Encabezado de Combo',
+        'Texto de encabezado para un combo de servicios. Variables: {NOMBRES_SERVICIOS}',
+        N'🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_item',
+        'Item de Servicio en Combo',
+        'Datos de un servicio dentro de un combo. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA}, {FECHA_INICIO}, {FECHA_FIN}',
+        N'DATOS DE ACCESO {NOMBRE_SERVICIO}
+🆔 # VENTA: V-{ID_VENTA}
+🛡 CORREO: {CORREO}
+⚔ CONTRASEÑA: {CONTRASENA}
+👤 PERFIL: {PERFIL}
+{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}
+✂ F. DE FIN: {FECHA_FIN}
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_footer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_footer',
+        'Precio del Combo',
+        'Pie de un combo con el precio. Variables: {PRECIO_COMBO}, {MONEDA}',
+        N'💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'individual_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'individual_item',
+        'Suscripción Individual',
+        'Datos de un servicio individual. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA} (ej: 🔐 Pin: 1234 o vacío), {FECHA_INICIO}, {FECHA_FIN}, {PRECIO}, {MONEDA}',
+        N'📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]
+
+Acceda con los siguientes datos por favor
+🛡 Correo: {CORREO}
+⚔ Contraseña: {CONTRASENA}
+⚙ Tipo: PERFIL
+
+👤 Perfil: {PERFIL}      {PIN_LINEA}
+🆔 # VENTA: V-{ID_VENTA}
+
+⏳ Fecha de inicio: {FECHA_INICIO}
+✂ Fecha de corte: {FECHA_FIN}
+
+💰 PRECIO: {PRECIO} {MONEDA}
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'mensaje_footer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'mensaje_footer',
+        'Pie del Mensaje de Venta',
+        'Texto al final del mensaje de detalles de venta. Variables: {PRECIO_TOTAL}, {MONEDA}',
+        N'💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}
+
+*💵 GRACIAS POR SU COMPRA 🛍*'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'proximo_vencer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'proximo_vencer',
+        'Aviso de Próximo Vencimiento',
+        'Mensaje para notificar al cliente que su suscripción está próxima a vencer. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}',
+        N'⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*
+
+Hola {NOMBRE_CLIENTE} 👋
+
+Te informamos que tu suscripción de *{SERVICIOS}* está próxima a vencer.
+
+📋 *Detalles de tu venta:*
+🆔 # Venta: V-{ID_VENTA}
+✂ Fecha de vencimiento: *{FECHA_FIN}*
+
+Para renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.
+
+*¡Gracias por preferirnos! 🙌*'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'vencido')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'vencido',
+        'Aviso de Suscripción Vencida',
+        'Mensaje para notificar al cliente que su suscripción ha vencido. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}',
+        N'❌ *AVISO DE SUSCRIPCIÓN VENCIDA*
+
+Hola {NOMBRE_CLIENTE} 👋
+
+Te informamos que tu suscripción de *{SERVICIOS}* ha vencido.
+
+📋 *Detalles de tu venta:*
+🆔 # Venta: V-{ID_VENTA}
+✂ Fecha de vencimiento: *{FECHA_FIN}*
+
+Para reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!
+
+*¡Gracias por preferirnos! 🙌*'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'cambio_cuenta_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'cambio_cuenta_item',
+        'Item de Cambio de Cuenta',
+        'Datos de un servicio cuando se cambia de cuenta. Variables: {NOMBRE_SERVICIO}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA}, {FECHA_INICIO}, {FECHA_FIN}',
+        N'📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*
+
+_Acceda nuevamente con los siguientes datos por favor_
+🛡 *Correo:* {CORREO}
+⚔ *Contraseña:* {CONTRASENA}
+⚙ Tipo: PERFIL
+
+👤 Perfil: {PERFIL}      {PIN_LINEA}
+⏳ Fecha de inicio: {FECHA_INICIO}
+✂ Fecha de corte: {FECHA_FIN}
+
+'
+    );
+GO
+
+PRINT 'Plantillas de mensajes insertadas exitosamente';
+GO
