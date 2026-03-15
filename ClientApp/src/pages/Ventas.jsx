@@ -1932,6 +1932,24 @@ const Ventas = () => {
                     <p className="font-medium">{ventaCompleta.nombreUsuario}</p>
                   </div>
                 )}
+                {ventaCompleta.nombreMedioPago && (
+                  <div>
+                    <p className="text-sm text-gray-600">Forma de Pago:</p>
+                    <p className="font-medium">{ventaCompleta.nombreMedioPago}</p>
+                  </div>
+                )}
+                {ventaCompleta.numeroCuentaMedioPago && (
+                  <div>
+                    <p className="text-sm text-gray-600">Número de Cuenta:</p>
+                    <p className="font-medium font-mono text-sm">{ventaCompleta.numeroCuentaMedioPago}</p>
+                  </div>
+                )}
+                {ventaCompleta.beneficiarioMedioPago && (
+                  <div>
+                    <p className="text-sm text-gray-600">Beneficiario:</p>
+                    <p className="font-medium">{ventaCompleta.beneficiarioMedioPago}</p>
+                  </div>
+                )}
               </div>
               {ventaCompleta.notas && (
                 <div className="mt-3">
@@ -2130,19 +2148,19 @@ const Ventas = () => {
               })()}
             </div>
 
-            <div className="flex flex-wrap justify-between items-center pt-4 border-t gap-2">
-              <div className="flex flex-wrap gap-2">
-                <Button
+            <div className="pt-4 border-t space-y-3">
+              {/* Main actions - always visible */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
                   onClick={() => {
                     const message = formatWhatsAppMessage(ventaCompleta);
                     copyToClipboard(message, 'Detalles');
                   }}
-                  variant="primary"
-                  className="flex items-center gap-2"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex-1"
                 >
                   <Copy size={16} />
                   Copiar Detalles
-                </Button>
+                </button>
                 {ventaCompleta.telefonoCliente && (
                   <a
                     href={buildWhatsAppUrl(
@@ -2151,70 +2169,81 @@ const Ventas = () => {
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors flex-1"
                   >
                     <MessageCircle size={16} />
                     Abrir en WhatsApp
                   </a>
                 )}
-                {ventaCompleta.estado === 'ProximoVencer' && (
-                  <Button
+              </div>
+
+              {/* Expiry warning actions */}
+              {ventaCompleta.estado === 'ProximoVencer' && (
+                <div className="flex flex-col sm:flex-row gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <span className="text-sm font-semibold text-yellow-800 self-center sm:mr-2">⏰ Próximo a Vencer:</span>
+                  <button
                     onClick={() => {
                       const message = formatProximoVencerMessage(ventaCompleta);
                       copyToClipboard(message, 'Aviso de vencimiento próximo');
                     }}
-                    variant="warning"
-                    className="flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
                   >
-                    <Copy size={16} />
-                    Copiar Aviso de Vencimiento Próximo
-                  </Button>
-                )}
-                {ventaCompleta.estado === 'ProximoVencer' && ventaCompleta.telefonoCliente && (
-                  <a
-                    href={buildWhatsAppUrl(
-                      ventaCompleta.telefonoCliente,
-                      formatProximoVencerMessage(ventaCompleta)
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
-                  >
-                    <MessageCircle size={16} />
-                    WhatsApp Aviso Vencimiento
-                  </a>
-                )}
-                {ventaCompleta.estado === 'Vencido' && (
-                  <Button
+                    <Copy size={14} />
+                    Copiar Aviso
+                  </button>
+                  {ventaCompleta.telefonoCliente && (
+                    <a
+                      href={buildWhatsAppUrl(
+                        ventaCompleta.telefonoCliente,
+                        formatProximoVencerMessage(ventaCompleta)
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
+                    >
+                      <MessageCircle size={14} />
+                      WhatsApp Aviso
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Expired actions */}
+              {ventaCompleta.estado === 'Vencido' && (
+                <div className="flex flex-col sm:flex-row gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <span className="text-sm font-semibold text-red-800 self-center sm:mr-2">🔴 Vencida:</span>
+                  <button
                     onClick={() => {
                       const message = formatVencidoMessage(ventaCompleta);
                       copyToClipboard(message, 'Aviso de venta vencida');
                     }}
-                    variant="danger"
-                    className="flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
                   >
-                    <Copy size={16} />
-                    Copiar Aviso de Venta Vencida
-                  </Button>
-                )}
-                {ventaCompleta.estado === 'Vencido' && ventaCompleta.telefonoCliente && (
-                  <a
-                    href={buildWhatsAppUrl(
-                      ventaCompleta.telefonoCliente,
-                      formatVencidoMessage(ventaCompleta)
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
-                  >
-                    <MessageCircle size={16} />
-                    WhatsApp Aviso Vencido
-                  </a>
-                )}
+                    <Copy size={14} />
+                    Copiar Aviso
+                  </button>
+                  {ventaCompleta.telefonoCliente && (
+                    <a
+                      href={buildWhatsAppUrl(
+                        ventaCompleta.telefonoCliente,
+                        formatVencidoMessage(ventaCompleta)
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
+                    >
+                      <MessageCircle size={14} />
+                      WhatsApp Aviso
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>
+                  Cerrar
+                </Button>
               </div>
-              <Button variant="secondary" onClick={() => setViewDetailsModalOpen(false)}>
-                Cerrar
-              </Button>
             </div>
           </div>
         )}
@@ -2534,24 +2563,38 @@ const Ventas = () => {
               </div>
             </div>
 
-            {/* Copy Button */}
-            <div className="flex justify-center">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => {
                   const message = formatWhatsAppMessage(createdSaleDetails);
                   copyToClipboard(message, 'Detalles');
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 flex-1"
               >
                 <Copy size={18} />
-                Copiar Detalles para WhatsApp
+                Copiar para WhatsApp
               </Button>
+              {createdSaleDetails.telefonoCliente && (
+                <a
+                  href={buildWhatsAppUrl(
+                    createdSaleDetails.telefonoCliente,
+                    formatWhatsAppMessage(createdSaleDetails)
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors flex-1"
+                >
+                  <MessageCircle size={18} />
+                  Abrir en WhatsApp
+                </a>
+              )}
             </div>
 
             {/* Preview of formatted message */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Vista Previa del Mensaje</h3>
-              <div className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap">
+              <div className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
                 {formatWhatsAppMessage(createdSaleDetails)}
               </div>
             </div>

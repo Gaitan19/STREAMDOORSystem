@@ -245,7 +245,13 @@ const Egresos = () => {
     }] : []),
   ];
 
-  const totalEgresos = filteredEgresos.reduce((sum, egr) => sum + egr.monto, 0);
+  const totalesPorMoneda = Object.entries(
+    filteredEgresos.reduce((acc, egr) => {
+      const moneda = egr.moneda || CURRENCY_SYMBOL;
+      acc[moneda] = (acc[moneda] || 0) + egr.monto;
+      return acc;
+    }, {})
+  ).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <div className="space-y-6">
@@ -266,9 +272,19 @@ const Egresos = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="col-span-1">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-gray-600">Total Egresos</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(totalEgresos)}</p>
+              {totalesPorMoneda.length === 0 ? (
+                <p className="text-2xl font-bold text-red-600">—</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {totalesPorMoneda.map(([moneda, total]) => (
+                    <p key={moneda} className="text-xl font-bold text-red-600">
+                      {formatCurrency(total, moneda)}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
             <TrendingDown className="text-red-600" size={32} />
           </div>

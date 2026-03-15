@@ -47,7 +47,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
+                        DiasRestantes = (int)(v.FechaFin.Date - ahora.Date).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -111,7 +111,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = venta.Monto,
                     Moneda = venta.Moneda,
                     Estado = venta.Estado,
-                    DiasRestantes = (int)Math.Ceiling((venta.FechaFin - GetManaguaTime()).TotalDays),
+                    DiasRestantes = (int)(venta.FechaFin.Date - GetManaguaTime().Date).TotalDays,
                     Detalles = venta.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -175,7 +175,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
+                        DiasRestantes = (int)(v.FechaFin.Date - ahora.Date).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
@@ -396,7 +396,7 @@ namespace STREAMDOORSystem.Controllers
                     Monto = ventaCreada.Monto,
                     Moneda = ventaCreada.Moneda,
                     Estado = ventaCreada.Estado,
-                    DiasRestantes = (int)Math.Ceiling((ventaCreada.FechaFin - fechaInicio).TotalDays),
+                    DiasRestantes = (int)(ventaCreada.FechaFin.Date - fechaInicio.Date).TotalDays,
                     Detalles = ventaCreada.Detalles.Select(d => new VentaDetalleDTO
                     {
                         VentaDetalleID = d.VentaDetalleID,
@@ -521,6 +521,8 @@ namespace STREAMDOORSystem.Controllers
                     Notas = null,
                     MedioPagoID = venta.MedioPagoID,
                     NombreMedioPago = venta.MedioPago?.Nombre,
+                    NumeroCuentaMedioPago = venta.MedioPago?.NumeroCuenta,
+                    BeneficiarioMedioPago = venta.MedioPago?.Beneficiario,
                     UsuarioID = venta.UsuarioID,
                     NombreUsuario = venta.Usuario?.Nombre,
                     Detalles = venta.Detalles.Select(d => new VentaDetalleCompletaDTO
@@ -722,10 +724,7 @@ namespace STREAMDOORSystem.Controllers
                     }
                     else
                     {
-                        // Calculate days remaining based on full datetime comparison
-                        var tiempoRestante = venta.FechaFin - ahora;
-                        // Use ceiling to avoid truncation issues (5.8 days should count as 6 days)
-                        var diasRestantes = (int)Math.Ceiling(tiempoRestante.TotalDays);
+                        var diasRestantes = (int)(venta.FechaFin.Date - ahora.Date).TotalDays;
                         
                         if (diasRestantes <= 5)
                         {
@@ -812,7 +811,7 @@ namespace STREAMDOORSystem.Controllers
                         Monto = v.Monto,
                         Moneda = v.Moneda,
                         Estado = v.Estado,
-                        DiasRestantes = (int)Math.Ceiling((v.FechaFin - ahora).TotalDays),
+                        DiasRestantes = (int)(v.FechaFin.Date - ahora.Date).TotalDays,
                         Detalles = v.Detalles.Select(d => new VentaDetalleDTO
                         {
                             VentaDetalleID = d.VentaDetalleID,
