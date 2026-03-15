@@ -57,7 +57,7 @@ namespace STREAMDOORSystem.Controllers
                 {
                     MedioPagoID = i.Venta?.MedioPagoID ?? 0,
                     Nombre = i.Venta?.MedioPago?.Nombre ?? "Sin Medio de Pago",
-                    Moneda = i.Venta?.MedioPago?.Moneda ?? i.Moneda ?? "",
+                    Moneda = i.Venta?.MedioPago?.Moneda ?? i.Moneda ?? "—",
                     NumeroCuenta = i.Venta?.MedioPago?.NumeroCuenta,
                     Beneficiario = i.Venta?.MedioPago?.Beneficiario
                 })

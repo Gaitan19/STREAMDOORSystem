@@ -2594,7 +2594,11 @@ const Ventas = () => {
             {/* Preview of formatted message */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Vista Previa del Mensaje</h3>
-              <div className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
+              <div
+                role="region"
+                aria-label="Vista previa del mensaje de WhatsApp"
+                className="bg-white p-4 rounded border font-mono text-sm whitespace-pre-wrap max-h-64 overflow-y-auto"
+              >
                 {formatWhatsAppMessage(createdSaleDetails)}
               </div>
             </div>
