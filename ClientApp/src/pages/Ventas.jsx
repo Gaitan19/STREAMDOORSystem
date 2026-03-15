@@ -746,25 +746,29 @@ const Ventas = () => {
     showAlert('success', `${label} copiado al portapapeles`);
   };
 
+  // Shared template application helper
+  const applyTpl = (key, vars, fallback) => {
+    const tpl = plantillas[key] || fallback;
+    return Object.entries(vars).reduce(
+      (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
+      tpl
+    );
+  };
+
+  const fmtDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Default template text (fallback if DB template not loaded)
+  const DEFAULT_DETALLES_TPL = `📌 {NOMBRE_SERVICIO}\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}   {PIN}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`;
+
   // Format sale details for WhatsApp
   const formatWhatsAppMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
-
-    const fmtDate = (date) => {
-      const d = new Date(date);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
-
-    const applyTpl = (key, vars, fallback) => {
-      const tpl = plantillas[key] || fallback;
-      return Object.entries(vars).reduce(
-        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
-        tpl
-      );
-    };
 
     // Group services by combo
     const comboGroups = {};
@@ -773,11 +777,7 @@ const Ventas = () => {
     venta.detalles.forEach(detalle => {
       if (detalle.comboID) {
         if (!comboGroups[detalle.comboID]) {
-          comboGroups[detalle.comboID] = {
-            nombreCombo: detalle.nombreCombo,
-            servicios: [],
-            precioCombo: 0
-          };
+          comboGroups[detalle.comboID] = { servicios: [], precioCombo: 0 };
         }
         comboGroups[detalle.comboID].servicios.push(detalle);
         comboGroups[detalle.comboID].precioCombo += (detalle.precioUnitario || 0);
@@ -791,59 +791,46 @@ const Ventas = () => {
     // Format combos
     Object.values(comboGroups).forEach(combo => {
       const serviceNames = combo.servicios.map(s => s.nombreServicio).join(' + ');
-      message += applyTpl('combo_header',
-        { NOMBRES_SERVICIOS: serviceNames.toUpperCase() },
-        `🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]\n\n`
-      );
-
+      message += `🔥 COMBO ACTIVO [${serviceNames.toUpperCase()}]\n\n`;
       combo.servicios.forEach(detalle => {
-        const pinLinea = detalle.pinPerfil ? `🔐 PIN: ${detalle.pinPerfil}\n` : '';
-        message += applyTpl('combo_item', {
+        const pin = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
+        message += applyTpl('detalles_venta', {
           NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
           ID_VENTA: venta.ventaID,
           CORREO: detalle.correoCuenta || detalle.emailCuenta,
           CONTRASENA: detalle.passwordCuenta,
           PERFIL: detalle.numeroPerfil,
-          PIN_LINEA: pinLinea,
+          PIN: pin,
           FECHA_INICIO: fmtDate(venta.fechaInicio),
           FECHA_FIN: fmtDate(venta.fechaFin),
-        },
-          `DATOS DE ACCESO {NOMBRE_SERVICIO}\n🆔 # VENTA: V-{ID_VENTA}\n🛡 CORREO: {CORREO}\n⚔ CONTRASEÑA: {CONTRASENA}\n👤 PERFIL: {PERFIL}\n{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}\n✂ F. DE FIN: {FECHA_FIN}\n\n`
-        );
+          PRECIO: '',
+          MONEDA: '',
+        }, DEFAULT_DETALLES_TPL);
       });
-
-      message += applyTpl('combo_footer',
-        { PRECIO_COMBO: combo.precioCombo.toFixed(2), MONEDA: venta.moneda },
-        `💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}\n\n`
-      );
+      message += `💰 PRECIO DEL COMBO: ${combo.precioCombo.toFixed(2)} ${venta.moneda}\n\n`;
     });
 
     // Format individual services
     individualServices.forEach((detalle, index) => {
       if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
-      const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
-      message += applyTpl('individual_item', {
+      const pin = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
+      message += applyTpl('detalles_venta', {
         NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
         ID_VENTA: venta.ventaID,
         CORREO: detalle.correoCuenta || detalle.emailCuenta,
         CONTRASENA: detalle.passwordCuenta,
         PERFIL: detalle.numeroPerfil,
-        PIN_LINEA: pinLinea,
+        PIN: pin,
         FECHA_INICIO: fmtDate(venta.fechaInicio),
         FECHA_FIN: fmtDate(venta.fechaFin),
         PRECIO: (detalle.precioUnitario || 0).toFixed(2),
         MONEDA: venta.moneda,
-      },
-        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
-      );
+      }, DEFAULT_DETALLES_TPL);
     });
 
-    // Add total price at the end (only once)
+    // Add total price footer
     if (message.trim()) {
-      message += applyTpl('mensaje_footer',
-        { PRECIO_TOTAL: venta.monto?.toFixed(2) || '0.00', MONEDA: venta.moneda },
-        `💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}\n\n*💵 GRACIAS POR SU COMPRA 🛍*`
-      );
+      message += `💸 PRECIO DE COMPRA: ${venta.monto?.toFixed(2) || '0.00'} ${venta.moneda}\n\n*💵 GRACIAS POR SU COMPRA 🛍*`;
     }
 
     return message;
@@ -865,73 +852,45 @@ const Ventas = () => {
 
   const formatProximoVencerMessage = (venta) => {
     if (!venta) return '';
-    const applyTpl = (key, vars, fallback) => {
-      const tpl = plantillas[key] || fallback;
-      return Object.entries(vars).reduce(
-        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
-        tpl
-      );
-    };
     return applyTpl('proximo_vencer', {
       NOMBRE_CLIENTE: venta.nombreCliente,
       SERVICIOS: getVentaServiceNames(venta),
       ID_VENTA: venta.ventaID,
       FECHA_FIN: formatExpiryDateLocal(venta.fechaFin),
     },
-      `⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTe informamos que tu suscripción de *{SERVICIOS}* está próxima a vencer.\n\n📋 *Detalles de tu venta:*\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPara renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.\n\n*¡Gracias por preferirnos! 🙌*`
+      `⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTu suscripción de *{SERVICIOS}* está próxima a vencer.\n\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPor favor contáctanos antes de esa fecha para renovar y seguir disfrutando del servicio.\n\n*¡Gracias por preferirnos! 🙌*`
     );
   };
 
   // Format "vencido" notification message for the client
   const formatVencidoMessage = (venta) => {
     if (!venta) return '';
-    const applyTpl = (key, vars, fallback) => {
-      const tpl = plantillas[key] || fallback;
-      return Object.entries(vars).reduce(
-        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
-        tpl
-      );
-    };
     return applyTpl('vencido', {
       NOMBRE_CLIENTE: venta.nombreCliente,
       SERVICIOS: getVentaServiceNames(venta),
       ID_VENTA: venta.ventaID,
       FECHA_FIN: formatExpiryDateLocal(venta.fechaFin),
     },
-      `❌ *AVISO DE SUSCRIPCIÓN VENCIDA*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTe informamos que tu suscripción de *{SERVICIOS}* ha vencido.\n\n📋 *Detalles de tu venta:*\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPara reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!\n\n*¡Gracias por preferirnos! 🙌*`
+      `❌ *AVISO DE SUSCRIPCIÓN VENCIDA*\n\nHola {NOMBRE_CLIENTE} 👋\n\nTu suscripción de *{SERVICIOS}* ha vencido.\n\n🆔 # Venta: V-{ID_VENTA}\n✂ Fecha de vencimiento: *{FECHA_FIN}*\n\nPara reactivar tu servicio contáctanos. ¡Estaremos encantados de ayudarte!\n\n*¡Gracias por preferirnos! 🙌*`
     );
   };
 
   // Format account-change details as WhatsApp message
   const formatWhatsAppChangeMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
-
-    const fmtDate = (date) => {
-      const d = new Date(date);
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    };
-
-    const applyTpl = (key, vars, fallback) => {
-      const tpl = plantillas[key] || fallback;
-      return Object.entries(vars).reduce(
-        (str, [k, v]) => str.replaceAll(`{${k}}`, v ?? ''),
-        tpl
-      );
-    };
-
     let message = '';
     venta.detalles.forEach((detalle) => {
-      const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
-      message += applyTpl('cambio_cuenta_item', {
+      const pin = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
+      message += applyTpl('editar_venta', {
         NOMBRE_SERVICIO: (detalle.nombreServicio || '').toUpperCase(),
         CORREO: detalle.correoCuenta || detalle.emailCuenta || '',
         CONTRASENA: detalle.passwordCuenta || '',
         PERFIL: detalle.numeroPerfil,
-        PIN_LINEA: pinLinea,
+        PIN: pin,
         FECHA_INICIO: fmtDate(venta.fechaInicio),
         FECHA_FIN: fmtDate(venta.fechaFin),
       },
-        `📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*\n\n_Acceda nuevamente con los siguientes datos por favor_\n🛡 *Correo:* {CORREO}\n⚔ *Contraseña:* {CONTRASENA}\n⚙ Tipo: PERFIL \n\n👤 Perfil: {PERFIL}      {PIN_LINEA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n`
+        `📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*\n\n_Acceda nuevamente con los siguientes datos por favor_\n🛡 *Correo:* {CORREO}\n⚔ *Contraseña:* {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      {PIN}\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n`
       );
     });
     return message.trim();

@@ -6,107 +6,95 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Alert from '../components/Alert';
 
-// Map of template key -> list of available variables with descriptions
-const PLANTILLA_VARIABLES = {
-  combo_header: [
-    { variable: '{NOMBRES_SERVICIOS}', desc: 'Nombres de los servicios del combo separados por "+"' },
-  ],
-  combo_item: [
-    { variable: '{NOMBRE_SERVICIO}', desc: 'Nombre del servicio' },
-    { variable: '{ID_VENTA}', desc: 'Número de la venta' },
-    { variable: '{CORREO}', desc: 'Correo de la cuenta' },
-    { variable: '{CONTRASENA}', desc: 'Contraseña de la cuenta' },
-    { variable: '{PERFIL}', desc: 'Número de perfil' },
-    { variable: '{PIN_LINEA}', desc: 'Línea con PIN del perfil (o vacío si no tiene)' },
-    { variable: '{FECHA_INICIO}', desc: 'Fecha de inicio de la suscripción' },
-    { variable: '{FECHA_FIN}', desc: 'Fecha de fin (corte) de la suscripción' },
-  ],
-  combo_footer: [
-    { variable: '{PRECIO_COMBO}', desc: 'Precio total del combo' },
-    { variable: '{MONEDA}', desc: 'Moneda de la venta' },
-  ],
-  individual_item: [
-    { variable: '{NOMBRE_SERVICIO}', desc: 'Nombre del servicio' },
-    { variable: '{ID_VENTA}', desc: 'Número de la venta' },
-    { variable: '{CORREO}', desc: 'Correo de la cuenta' },
-    { variable: '{CONTRASENA}', desc: 'Contraseña de la cuenta' },
-    { variable: '{PERFIL}', desc: 'Número de perfil' },
-    { variable: '{PIN_LINEA}', desc: 'PIN del perfil (o vacío si no tiene)' },
-    { variable: '{FECHA_INICIO}', desc: 'Fecha de inicio de la suscripción' },
-    { variable: '{FECHA_FIN}', desc: 'Fecha de fin (corte) de la suscripción' },
-    { variable: '{PRECIO}', desc: 'Precio del servicio' },
-    { variable: '{MONEDA}', desc: 'Moneda de la venta' },
-  ],
-  mensaje_footer: [
-    { variable: '{PRECIO_TOTAL}', desc: 'Precio total de la compra' },
-    { variable: '{MONEDA}', desc: 'Moneda de la venta' },
-  ],
-  proximo_vencer: [
-    { variable: '{NOMBRE_CLIENTE}', desc: 'Nombre completo del cliente' },
-    { variable: '{SERVICIOS}', desc: 'Lista de servicios contratados' },
-    { variable: '{ID_VENTA}', desc: 'Número de la venta' },
-    { variable: '{FECHA_FIN}', desc: 'Fecha de vencimiento' },
-  ],
-  vencido: [
-    { variable: '{NOMBRE_CLIENTE}', desc: 'Nombre completo del cliente' },
-    { variable: '{SERVICIOS}', desc: 'Lista de servicios contratados' },
-    { variable: '{ID_VENTA}', desc: 'Número de la venta' },
-    { variable: '{FECHA_FIN}', desc: 'Fecha de vencimiento' },
-  ],
-  cambio_cuenta_item: [
-    { variable: '{NOMBRE_SERVICIO}', desc: 'Nombre del servicio' },
-    { variable: '{CORREO}', desc: 'Nuevo correo de la cuenta' },
-    { variable: '{CONTRASENA}', desc: 'Nueva contraseña de la cuenta' },
-    { variable: '{PERFIL}', desc: 'Número de perfil' },
-    { variable: '{PIN_LINEA}', desc: 'Línea con PIN del perfil (o vacío si no tiene)' },
-    { variable: '{FECHA_INICIO}', desc: 'Fecha de inicio' },
-    { variable: '{FECHA_FIN}', desc: 'Fecha de corte' },
-  ],
+const PLANTILLA_INFO = {
+  detalles_venta: {
+    titulo: 'Detalles de Venta',
+    descripcion: 'Se aplica por cada servicio al copiar los detalles de una venta (vista Ventas y Clientes). Para combos, el encabezado "🔥 COMBO ACTIVO" y el precio total del combo se añaden automáticamente.',
+    variables: [
+      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio' },
+      { v: '{ID_VENTA}', d: 'Número de la venta' },
+      { v: '{CORREO}', d: 'Correo de la cuenta' },
+      { v: '{CONTRASENA}', d: 'Contraseña de la cuenta' },
+      { v: '{PERFIL}', d: 'Número de perfil' },
+      { v: '{PIN}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
+      { v: '{FECHA_INICIO}', d: 'Fecha de inicio' },
+      { v: '{FECHA_FIN}', d: 'Fecha de corte / vencimiento' },
+      { v: '{PRECIO}', d: 'Precio del servicio (vacío para items de combo)' },
+      { v: '{MONEDA}', d: 'Moneda (C$, USD…)' },
+    ],
+  },
+  proximo_vencer: {
+    titulo: 'Próximo a Vencer',
+    descripcion: 'Aviso que se copia cuando una suscripción está próxima a vencer (botón amarillo en Ventas).',
+    variables: [
+      { v: '{NOMBRE_CLIENTE}', d: 'Nombre completo del cliente' },
+      { v: '{SERVICIOS}', d: 'Lista de servicios de la venta' },
+      { v: '{ID_VENTA}', d: 'Número de la venta' },
+      { v: '{FECHA_FIN}', d: 'Fecha de vencimiento' },
+    ],
+  },
+  vencido: {
+    titulo: 'Suscripción Vencida',
+    descripcion: 'Aviso que se copia cuando una suscripción ya venció (botón rojo en Ventas).',
+    variables: [
+      { v: '{NOMBRE_CLIENTE}', d: 'Nombre completo del cliente' },
+      { v: '{SERVICIOS}', d: 'Lista de servicios de la venta' },
+      { v: '{ID_VENTA}', d: 'Número de la venta' },
+      { v: '{FECHA_FIN}', d: 'Fecha de vencimiento' },
+    ],
+  },
+  editar_venta: {
+    titulo: 'Cambio de Cuenta',
+    descripcion: 'Se copia por cada servicio cuando se edita / cambia la cuenta de una venta.',
+    variables: [
+      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio' },
+      { v: '{CORREO}', d: 'Nuevo correo de la cuenta' },
+      { v: '{CONTRASENA}', d: 'Nueva contraseña de la cuenta' },
+      { v: '{PERFIL}', d: 'Número de perfil' },
+      { v: '{PIN}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
+      { v: '{FECHA_INICIO}', d: 'Fecha de inicio' },
+      { v: '{FECHA_FIN}', d: 'Fecha de corte' },
+    ],
+  },
 };
 
-const PlantillaEditor = ({ plantilla, onSave, canEdit }) => {
+// Order in which to display templates
+const PLANTILLA_ORDER = ['detalles_venta', 'proximo_vencer', 'vencido', 'editar_venta'];
+
+const PlantillaCard = ({ plantilla, onSave, canEdit }) => {
+  const info = PLANTILLA_INFO[plantilla.clave] || {};
   const [contenido, setContenido] = useState(plantilla.contenido);
   const [saving, setSaving] = useState(false);
   const [showVars, setShowVars] = useState(false);
   const [localAlert, setLocalAlert] = useState(null);
-  const vars = PLANTILLA_VARIABLES[plantilla.clave] || [];
+
+  const isDirty = contenido !== plantilla.contenido;
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await onSave(plantilla.clave, contenido);
-      setLocalAlert({ type: 'success', message: 'Plantilla guardada correctamente' });
+      setLocalAlert({ type: 'success', message: 'Plantilla guardada' });
     } catch {
-      setLocalAlert({ type: 'error', message: 'Error al guardar la plantilla' });
+      setLocalAlert({ type: 'error', message: 'Error al guardar' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setContenido(plantilla.contenido);
-    setLocalAlert(null);
-  };
-
-  const isDirty = contenido !== plantilla.contenido;
-
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
-      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-gray-900">{plantilla.nombre}</h3>
-            {plantilla.descripcion && (
-              <p className="text-sm text-gray-500 mt-0.5">{plantilla.descripcion}</p>
-            )}
-          </div>
-          <span className="text-xs font-mono bg-gray-200 text-gray-600 px-2 py-1 rounded">
-            {plantilla.clave}
-          </span>
+    <Card>
+      <div className="space-y-4">
+        {/* Header */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {info.titulo || plantilla.nombre}
+          </h2>
+          {info.descripcion && (
+            <p className="text-sm text-gray-500 mt-1">{info.descripcion}</p>
+          )}
         </div>
-      </div>
 
-      <div className="p-4 space-y-3">
         {localAlert && (
           <Alert
             type={localAlert.type}
@@ -115,33 +103,34 @@ const PlantillaEditor = ({ plantilla, onSave, canEdit }) => {
           />
         )}
 
+        {/* Editor */}
         <textarea
           value={contenido}
           onChange={(e) => setContenido(e.target.value)}
           disabled={!canEdit}
-          rows={contenido.split('\n').length + 2}
+          rows={Math.max(8, contenido.split('\n').length + 1)}
           className="w-full font-mono text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 resize-y"
-          placeholder="Contenido de la plantilla..."
         />
 
-        {vars.length > 0 && (
+        {/* Variables toggle */}
+        {info.variables && info.variables.length > 0 && (
           <div>
             <button
               type="button"
               onClick={() => setShowVars(!showVars)}
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
             >
-              {showVars ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              Variables disponibles ({vars.length})
+              {showVars ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              Variables disponibles ({info.variables.length})
             </button>
             {showVars && (
-              <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                {vars.map(({ variable, desc }) => (
-                  <div key={variable} className="flex items-start gap-2 text-sm">
+              <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {info.variables.map(({ v, d }) => (
+                  <div key={v} className="flex items-start gap-2 text-sm">
                     <code className="bg-white border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono whitespace-nowrap">
-                      {variable}
+                      {v}
                     </code>
-                    <span className="text-gray-600 text-xs mt-0.5">{desc}</span>
+                    <span className="text-gray-600 text-xs mt-0.5">{d}</span>
                   </div>
                 ))}
               </div>
@@ -149,30 +138,31 @@ const PlantillaEditor = ({ plantilla, onSave, canEdit }) => {
           </div>
         )}
 
+        {/* Actions */}
         {canEdit && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2">
             <Button
               onClick={handleSave}
               disabled={saving || !isDirty}
               className="flex items-center gap-2"
             >
               <Save size={16} />
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? 'Guardando…' : 'Guardar'}
             </Button>
             {isDirty && (
               <Button
                 variant="secondary"
-                onClick={handleReset}
+                onClick={() => { setContenido(plantilla.contenido); setLocalAlert(null); }}
                 className="flex items-center gap-2"
               >
                 <RefreshCw size={16} />
-                Descartar cambios
+                Descartar
               </Button>
             )}
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
@@ -181,50 +171,24 @@ const Plantillas = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
   const { canEdit } = useAuth();
-
   const canEditPlantillas = canEdit('plantillas');
 
-  const fetchPlantillas = async () => {
-    setLoading(true);
-    try {
-      const data = await plantillasService.getAll();
-      setPlantillas(data);
-    } catch {
-      setAlert({ type: 'error', message: 'Error al cargar las plantillas' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPlantillas();
+    setLoading(true);
+    plantillasService.getAll()
+      .then(data => setPlantillas(data))
+      .catch(() => setAlert({ type: 'error', message: 'Error al cargar las plantillas' }))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleSave = async (clave, contenido) => {
     await plantillasService.update(clave, { contenido });
-    // Update local state to reflect saved value
-    setPlantillas(prev =>
-      prev.map(p => p.clave === clave ? { ...p, contenido } : p)
-    );
+    setPlantillas(prev => prev.map(p => p.clave === clave ? { ...p, contenido } : p));
   };
 
-  const GRUPOS = [
-    {
-      titulo: 'Mensaje de Detalles de Venta',
-      descripcion: 'Estas plantillas se usan al copiar los detalles completos de una venta (en Ventas y en el historial del Cliente).',
-      claves: ['combo_header', 'combo_item', 'combo_footer', 'individual_item', 'mensaje_footer'],
-    },
-    {
-      titulo: 'Avisos de Vencimiento',
-      descripcion: 'Mensajes de aviso cuando una venta está próxima a vencer o ya venció.',
-      claves: ['proximo_vencer', 'vencido'],
-    },
-    {
-      titulo: 'Cambio de Cuenta',
-      descripcion: 'Mensaje que se envía al cliente cuando se cambia la cuenta/correo de un servicio.',
-      claves: ['cambio_cuenta_item'],
-    },
-  ];
+  const ordered = PLANTILLA_ORDER
+    .map(clave => plantillas.find(p => p.clave === clave))
+    .filter(Boolean);
 
   return (
     <div className="space-y-6">
@@ -233,7 +197,7 @@ const Plantillas = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Plantillas de Mensajes</h1>
           <p className="text-gray-600 mt-1">
-            Personaliza los mensajes que se copian al portapapeles en las vistas de Ventas y Clientes.
+            Personaliza los mensajes que se copian en las vistas de Ventas y Clientes.
           </p>
         </div>
       </div>
@@ -242,36 +206,23 @@ const Plantillas = () => {
 
       {loading ? (
         <Card>
-          <div className="text-center py-12 text-gray-500">Cargando plantillas...</div>
+          <div className="text-center py-12 text-gray-500">Cargando plantillas…</div>
+        </Card>
+      ) : ordered.length === 0 ? (
+        <Card>
+          <div className="text-center py-12 text-gray-500">
+            No se encontraron plantillas. Ejecuta el script <code>data.sql</code> para generarlas.
+          </div>
         </Card>
       ) : (
-        GRUPOS.map((grupo) => {
-          const grupoPlantillas = plantillas.filter(p => grupo.claves.includes(p.clave));
-          if (grupoPlantillas.length === 0) return null;
-
-          return (
-            <Card key={grupo.titulo}>
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">{grupo.titulo}</h2>
-                <p className="text-sm text-gray-500 mt-1">{grupo.descripcion}</p>
-              </div>
-              <div className="space-y-4">
-                {grupo.claves.map(clave => {
-                  const plantilla = grupoPlantillas.find(p => p.clave === clave);
-                  if (!plantilla) return null;
-                  return (
-                    <PlantillaEditor
-                      key={plantilla.clave}
-                      plantilla={plantilla}
-                      onSave={handleSave}
-                      canEdit={canEditPlantillas}
-                    />
-                  );
-                })}
-              </div>
-            </Card>
-          );
-        })
+        ordered.map(plantilla => (
+          <PlantillaCard
+            key={plantilla.clave}
+            plantilla={plantilla}
+            onSave={handleSave}
+            canEdit={canEditPlantillas}
+          />
+        ))
       )}
     </div>
   );
