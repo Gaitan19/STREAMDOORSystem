@@ -2227,17 +2227,6 @@ const Ventas = () => {
                     <Copy size={14} />
                     Copiar Aviso
                   </button>
-                  {ventaCompleta.telefonoCliente && (
-                    <a
-                      href={buildWhatsAppUrl(ventaCompleta.telefonoCliente)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
-                    >
-                      <MessageCircle size={14} />
-                      WhatsApp Aviso
-                    </a>
-                  )}
                 </div>
               )}
 
@@ -2255,17 +2244,6 @@ const Ventas = () => {
                     <Copy size={14} />
                     Copiar Aviso
                   </button>
-                  {ventaCompleta.telefonoCliente && (
-                    <a
-                      href={buildWhatsAppUrl(ventaCompleta.telefonoCliente)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors flex-1"
-                    >
-                      <MessageCircle size={14} />
-                      WhatsApp Aviso
-                    </a>
-                  )}
                 </div>
               )}
 
