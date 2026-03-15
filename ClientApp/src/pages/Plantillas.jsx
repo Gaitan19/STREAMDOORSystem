@@ -7,19 +7,56 @@ import Button from '../components/Button';
 import Alert from '../components/Alert';
 
 const PLANTILLA_INFO = {
-  detalles_venta: {
-    titulo: 'Detalles de Venta',
-    descripcion: 'Se aplica por cada servicio al copiar los detalles de una venta (vista Ventas y Clientes). Para combos, el encabezado "🔥 COMBO ACTIVO" y el precio total del combo se añaden automáticamente.',
+  combo_header: {
+    titulo: 'Encabezado de Combo',
+    descripcion: 'Texto de encabezado que aparece al inicio de un combo de servicios.',
     variables: [
-      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio' },
+      { v: '{NOMBRES_SERVICIOS}', d: 'Nombres de los servicios del combo en mayúsculas (ej: NETFLIX + PRIME VIDEO)' },
+    ],
+  },
+  combo_item: {
+    titulo: 'Item de Servicio en Combo',
+    descripcion: 'Datos de acceso de cada servicio dentro de un combo. Se repite por cada servicio.',
+    variables: [
+      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio en mayúsculas' },
       { v: '{ID_VENTA}', d: 'Número de la venta' },
       { v: '{CORREO}', d: 'Correo de la cuenta' },
       { v: '{CONTRASENA}', d: 'Contraseña de la cuenta' },
       { v: '{PERFIL}', d: 'Número de perfil' },
-      { v: '{PIN}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
+      { v: '{PIN_LINEA}', d: 'Línea de PIN (ej: "🔐 PIN: 1234\n") o vacío si no tiene' },
       { v: '{FECHA_INICIO}', d: 'Fecha de inicio' },
       { v: '{FECHA_FIN}', d: 'Fecha de corte / vencimiento' },
-      { v: '{PRECIO}', d: 'Precio del servicio (vacío para items de combo)' },
+    ],
+  },
+  combo_footer: {
+    titulo: 'Precio del Combo',
+    descripcion: 'Pie del bloque de combo con el precio total.',
+    variables: [
+      { v: '{PRECIO_COMBO}', d: 'Precio total del combo' },
+      { v: '{MONEDA}', d: 'Moneda (C$, USD…)' },
+    ],
+  },
+  individual_item: {
+    titulo: 'Suscripción Individual',
+    descripcion: 'Datos de acceso de un servicio individual (no combo). Se repite por cada servicio.',
+    variables: [
+      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio en mayúsculas' },
+      { v: '{ID_VENTA}', d: 'Número de la venta' },
+      { v: '{CORREO}', d: 'Correo de la cuenta' },
+      { v: '{CONTRASENA}', d: 'Contraseña de la cuenta' },
+      { v: '{PERFIL}', d: 'Número de perfil' },
+      { v: '{PIN_LINEA}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
+      { v: '{FECHA_INICIO}', d: 'Fecha de inicio' },
+      { v: '{FECHA_FIN}', d: 'Fecha de corte / vencimiento' },
+      { v: '{PRECIO}', d: 'Precio del servicio' },
+      { v: '{MONEDA}', d: 'Moneda (C$, USD…)' },
+    ],
+  },
+  mensaje_footer: {
+    titulo: 'Pie del Mensaje de Venta',
+    descripcion: 'Texto que se añade al final del mensaje completo de detalles de venta.',
+    variables: [
+      { v: '{PRECIO_TOTAL}', d: 'Precio total de la venta' },
       { v: '{MONEDA}', d: 'Moneda (C$, USD…)' },
     ],
   },
@@ -43,15 +80,15 @@ const PLANTILLA_INFO = {
       { v: '{FECHA_FIN}', d: 'Fecha de vencimiento' },
     ],
   },
-  editar_venta: {
+  cambio_cuenta_item: {
     titulo: 'Cambio de Cuenta',
     descripcion: 'Se copia por cada servicio cuando se edita / cambia la cuenta de una venta.',
     variables: [
-      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio' },
+      { v: '{NOMBRE_SERVICIO}', d: 'Nombre del servicio en mayúsculas' },
       { v: '{CORREO}', d: 'Nuevo correo de la cuenta' },
       { v: '{CONTRASENA}', d: 'Nueva contraseña de la cuenta' },
       { v: '{PERFIL}', d: 'Número de perfil' },
-      { v: '{PIN}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
+      { v: '{PIN_LINEA}', d: 'PIN del perfil (ej: "🔐 Pin: 1234") o vacío si no tiene' },
       { v: '{FECHA_INICIO}', d: 'Fecha de inicio' },
       { v: '{FECHA_FIN}', d: 'Fecha de corte' },
     ],
@@ -59,7 +96,7 @@ const PLANTILLA_INFO = {
 };
 
 // Order in which to display templates
-const PLANTILLA_ORDER = ['detalles_venta', 'proximo_vencer', 'vencido', 'editar_venta'];
+const PLANTILLA_ORDER = ['combo_header', 'combo_item', 'combo_footer', 'individual_item', 'mensaje_footer', 'proximo_vencer', 'vencido', 'cambio_cuenta_item'];
 
 const PlantillaCard = ({ plantilla, onSave, canEdit }) => {
   const info = PLANTILLA_INFO[plantilla.clave] || {};

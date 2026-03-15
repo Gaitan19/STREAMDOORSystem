@@ -268,132 +268,143 @@ END
 GO
 
 -- ============================================
--- Plantillas de Mensajes (upsert: crea si no existe, actualiza si ya existe)
+-- Plantillas de Mensajes (idempotente)
 -- ============================================
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_header')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_header',
+        'Encabezado de Combo',
+        'Texto de encabezado para un combo de servicios. Variables: {NOMBRES_SERVICIOS}',
+        N'🔥 COMBO ACTIVO [{NOMBRES_SERVICIOS}]
 
--- Eliminar claves antiguas que ya no se usan
-DELETE FROM PlantillasMensajes
-WHERE Clave IN ('combo_header', 'combo_item', 'combo_footer', 'individual_item', 'mensaje_footer', 'cambio_cuenta_item');
+'
+    );
 GO
 
--- Plantilla 1: Detalles de Venta
-MERGE PlantillasMensajes AS target
-USING (SELECT
-    'detalles_venta' AS Clave,
-    'Detalles de Venta' AS Nombre,
-    'Bloque por servicio al copiar los detalles de una venta. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN}, {FECHA_INICIO}, {FECHA_FIN}, {PRECIO}, {MONEDA}' AS Descripcion,
-    N'📌 {NOMBRE_SERVICIO}
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_item',
+        'Item de Servicio en Combo',
+        'Datos de un servicio dentro de un combo. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA}, {FECHA_INICIO}, {FECHA_FIN}',
+        N'DATOS DE ACCESO {NOMBRE_SERVICIO}
+🆔 # VENTA: V-{ID_VENTA}
+🛡 CORREO: {CORREO}
+⚔ CONTRASEÑA: {CONTRASENA}
+👤 PERFIL: {PERFIL}
+{PIN_LINEA}⏳ F. DE INICIO: {FECHA_INICIO}
+✂ F. DE FIN: {FECHA_FIN}
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'combo_footer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'combo_footer',
+        'Precio del Combo',
+        'Pie de un combo con el precio. Variables: {PRECIO_COMBO}, {MONEDA}',
+        N'💰 PRECIO DEL COMBO: {PRECIO_COMBO} {MONEDA}
+
+'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'individual_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'individual_item',
+        'Suscripción Individual',
+        'Datos de un servicio individual. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA} (ej: 🔐 Pin: 1234 o vacío), {FECHA_INICIO}, {FECHA_FIN}, {PRECIO}, {MONEDA}',
+        N'📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]
 
 Acceda con los siguientes datos por favor
 🛡 Correo: {CORREO}
 ⚔ Contraseña: {CONTRASENA}
 ⚙ Tipo: PERFIL
 
-👤 Perfil: {PERFIL}   {PIN}
+👤 Perfil: {PERFIL}      {PIN_LINEA}
 🆔 # VENTA: V-{ID_VENTA}
 
 ⏳ Fecha de inicio: {FECHA_INICIO}
 ✂ Fecha de corte: {FECHA_FIN}
+
 💰 PRECIO: {PRECIO} {MONEDA}
 
-' AS Contenido
-) AS source ON target.Clave = source.Clave
-WHEN MATCHED THEN
-    UPDATE SET target.Nombre = source.Nombre,
-               target.Descripcion = source.Descripcion,
-               target.Contenido = source.Contenido,
-               target.FechaActualizacion = GETDATE()
-WHEN NOT MATCHED THEN
-    INSERT (Clave, Nombre, Descripcion, Contenido)
-    VALUES (source.Clave, source.Nombre, source.Descripcion, source.Contenido);
+'
+    );
 GO
 
--- Plantilla 2: Próximo a Vencer
-MERGE PlantillasMensajes AS target
-USING (SELECT
-    'proximo_vencer' AS Clave,
-    'Próximo a Vencer' AS Nombre,
-    'Aviso de que la suscripción está próxima a vencer. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}' AS Descripcion,
-    N'⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'mensaje_footer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'mensaje_footer',
+        'Pie del Mensaje de Venta',
+        'Texto al final del mensaje de detalles de venta. Variables: {PRECIO_TOTAL}, {MONEDA}',
+        N'💸 PRECIO DE COMPRA: {PRECIO_TOTAL} {MONEDA}
+
+*💵 GRACIAS POR SU COMPRA 🛍*'
+    );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'proximo_vencer')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'proximo_vencer',
+        'Aviso de Próximo Vencimiento',
+        'Mensaje para notificar al cliente que su suscripción está próxima a vencer. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}',
+        N'⚠️ *AVISO DE PRÓXIMO VENCIMIENTO*
 
 Hola {NOMBRE_CLIENTE} 👋
 
-Tu suscripción de *{SERVICIOS}* está próxima a vencer.
+Te informamos que tu suscripción de *{SERVICIOS}* está próxima a vencer.
 
+📋 *Detalles de tu venta:*
 🆔 # Venta: V-{ID_VENTA}
 ✂ Fecha de vencimiento: *{FECHA_FIN}*
 
-Por favor contáctanos antes de esa fecha para renovar y seguir disfrutando del servicio.
+Para renovar tu suscripción y seguir disfrutando del servicio sin interrupciones, por favor contáctanos antes de esa fecha.
 
-*¡Gracias por preferirnos! 🙌*' AS Contenido
-) AS source ON target.Clave = source.Clave
-WHEN MATCHED THEN
-    UPDATE SET target.Nombre = source.Nombre,
-               target.Descripcion = source.Descripcion,
-               target.Contenido = source.Contenido,
-               target.FechaActualizacion = GETDATE()
-WHEN NOT MATCHED THEN
-    INSERT (Clave, Nombre, Descripcion, Contenido)
-    VALUES (source.Clave, source.Nombre, source.Descripcion, source.Contenido);
+*¡Gracias por preferirnos! 🙌*'
+    );
 GO
 
--- Plantilla 3: Suscripción Vencida
-MERGE PlantillasMensajes AS target
-USING (SELECT
-    'vencido' AS Clave,
-    'Suscripción Vencida' AS Nombre,
-    'Aviso de que la suscripción ha vencido. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}' AS Descripcion,
-    N'❌ *AVISO DE SUSCRIPCIÓN VENCIDA*
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'vencido')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'vencido',
+        'Aviso de Suscripción Vencida',
+        'Mensaje para notificar al cliente que su suscripción ha vencido. Variables: {NOMBRE_CLIENTE}, {SERVICIOS}, {ID_VENTA}, {FECHA_FIN}',
+        N'❌ *AVISO DE SUSCRIPCIÓN VENCIDA*
 
 Hola {NOMBRE_CLIENTE} 👋
 
-Tu suscripción de *{SERVICIOS}* ha vencido.
+Te informamos que tu suscripción de *{SERVICIOS}* ha vencido.
 
+📋 *Detalles de tu venta:*
 🆔 # Venta: V-{ID_VENTA}
 ✂ Fecha de vencimiento: *{FECHA_FIN}*
 
-Para reactivar tu servicio contáctanos. ¡Estaremos encantados de ayudarte!
+Para reactivar tu servicio, por favor contáctanos. ¡Estaremos encantados de ayudarte!
 
-*¡Gracias por preferirnos! 🙌*' AS Contenido
-) AS source ON target.Clave = source.Clave
-WHEN MATCHED THEN
-    UPDATE SET target.Nombre = source.Nombre,
-               target.Descripcion = source.Descripcion,
-               target.Contenido = source.Contenido,
-               target.FechaActualizacion = GETDATE()
-WHEN NOT MATCHED THEN
-    INSERT (Clave, Nombre, Descripcion, Contenido)
-    VALUES (source.Clave, source.Nombre, source.Descripcion, source.Contenido);
+*¡Gracias por preferirnos! 🙌*'
+    );
 GO
 
--- Plantilla 4: Editar / Cambio de Cuenta
-MERGE PlantillasMensajes AS target
-USING (SELECT
-    'editar_venta' AS Clave,
-    'Cambio de Cuenta' AS Nombre,
-    'Mensaje al cliente cuando se edita/cambia la cuenta de un servicio. Variables: {NOMBRE_SERVICIO}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN}, {FECHA_INICIO}, {FECHA_FIN}' AS Descripcion,
-    N'📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*
+IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'cambio_cuenta_item')
+    INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
+        'cambio_cuenta_item',
+        'Item de Cambio de Cuenta',
+        'Datos de un servicio cuando se cambia de cuenta. Variables: {NOMBRE_SERVICIO}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA}, {FECHA_INICIO}, {FECHA_FIN}',
+        N'📧 *CAMBIO DE CORREO [{NOMBRE_SERVICIO}]*
 
 _Acceda nuevamente con los siguientes datos por favor_
 🛡 *Correo:* {CORREO}
 ⚔ *Contraseña:* {CONTRASENA}
 ⚙ Tipo: PERFIL
 
-👤 Perfil: {PERFIL}      {PIN}
+👤 Perfil: {PERFIL}      {PIN_LINEA}
 ⏳ Fecha de inicio: {FECHA_INICIO}
 ✂ Fecha de corte: {FECHA_FIN}
 
-' AS Contenido
-) AS source ON target.Clave = source.Clave
-WHEN MATCHED THEN
-    UPDATE SET target.Nombre = source.Nombre,
-               target.Descripcion = source.Descripcion,
-               target.Contenido = source.Contenido,
-               target.FechaActualizacion = GETDATE()
-WHEN NOT MATCHED THEN
-    INSERT (Clave, Nombre, Descripcion, Contenido)
-    VALUES (source.Clave, source.Nombre, source.Descripcion, source.Contenido);
+'
+    );
 GO
 
-PRINT 'Plantillas de mensajes actualizadas exitosamente (4 plantillas)';
+PRINT 'Plantillas de mensajes insertadas exitosamente';
 GO
