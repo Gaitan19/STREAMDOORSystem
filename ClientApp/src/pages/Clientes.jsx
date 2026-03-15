@@ -10,6 +10,7 @@ import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import { clientesService, ventasService, plantillasService } from '../services/apiService';
 import { validatePhone } from '../utils/helpers';
+import { DEFAULT_DETALLES_TPL } from '../utils/plantillasFallback';
 import { useAuth } from '../context/AuthContext';
 
 // Full sorted list of country phone prefixes (alphabetical by country name)
@@ -376,7 +377,9 @@ const Clientes = () => {
     return `${day}/${month}/${year}`;
   };
 
-  const DEFAULT_DETALLES_TPL = `📌 {NOMBRE_SERVICIO}\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}   {PIN}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`;
+  // Default template text (fallback if DB template not loaded)
+  // Source of truth: ClientApp/src/utils/plantillasFallback.js
+
 
   const formatWhatsAppMessage = (venta) => {
     if (!venta || !venta.detalles || venta.detalles.length === 0) return '';
