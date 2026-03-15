@@ -903,14 +903,3 @@ BEGIN
     );
 END
 GO
-
--- Migración: Agregar PrefijoTelefono a Clientes si no existe
-IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Clientes')
-BEGIN
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Clientes') AND name = 'PrefijoTelefono')
-    BEGIN
-        ALTER TABLE Clientes ADD PrefijoTelefono NVARCHAR(10) NULL;
-        PRINT 'Columna PrefijoTelefono agregada a Clientes';
-    END
-END
-GO

@@ -354,11 +354,9 @@ const Clientes = () => {
     showAlert('success', `${label} copiado al portapapeles`);
   };
 
-  const buildWhatsAppUrl = (prefijoTelefono, telefono, message) => {
-    const prefix = (prefijoTelefono || '').replace(/[^\d]/g, '');
+  const buildWhatsAppUrl = (telefono, message) => {
     const phone = (telefono || '').replace(/[^\d]/g, '');
-    const fullPhone = prefix ? `${prefix}${phone}` : phone;
-    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   };
 
   // Format sale details for WhatsApp using stored templates
@@ -513,11 +511,13 @@ const Clientes = () => {
     if (!validate()) return;
 
     try {
+      const { prefijoTelefono, telefono, ...rest } = formData;
+      const payload = { ...rest, telefono: `${prefijoTelefono}${telefono}` };
       if (selectedCliente) {
-        await clientesService.update(selectedCliente.clienteID, formData);
+        await clientesService.update(selectedCliente.clienteID, payload);
         showAlert('success', 'Cliente actualizado exitosamente');
       } else {
-        await clientesService.create(formData);
+        await clientesService.create(payload);
         showAlert('success', 'Cliente creado exitosamente');
       }
       
@@ -531,13 +531,19 @@ const Clientes = () => {
 
   const handleEdit = (cliente) => {
     setSelectedCliente(cliente);
+    // Extract prefix from stored phone number (longest match first)
+    const storedPhone = cliente.telefono || '';
+    const sortedPrefixes = [...PAISES_PREFIJOS].sort((a, b) => b.code.length - a.code.length);
+    const matchedPrefix = sortedPrefixes.find(p => storedPhone.startsWith(p.code));
+    const prefijo = matchedPrefix ? matchedPrefix.code : '+505';
+    const telefonoSinPrefijo = matchedPrefix ? storedPhone.slice(matchedPrefix.code.length) : storedPhone;
     setFormData({
       nombre: cliente.nombre,
       segundoNombre: cliente.segundoNombre || '',
       apellido: cliente.apellido,
       segundoApellido: cliente.segundoApellido || '',
-      prefijoTelefono: cliente.prefijoTelefono || '+505',
-      telefono: cliente.telefono
+      prefijoTelefono: prefijo,
+      telefono: telefonoSinPrefijo
     });
     setModalOpen(true);
   };
@@ -1048,7 +1054,6 @@ const Clientes = () => {
                 {selectedCliente?.telefono && (
                   <a
                     href={buildWhatsAppUrl(
-                      selectedCliente.prefijoTelefono,
                       selectedCliente.telefono,
                       formatWhatsAppMessage(selectedVenta)
                     )}

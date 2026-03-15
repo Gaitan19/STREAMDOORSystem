@@ -95,9 +95,6 @@ namespace STREAMDOORSystem.Models
         [MaxLength(100)]
         public string? SegundoApellido { get; set; }
 
-        [MaxLength(10)]
-        public string? PrefijoTelefono { get; set; }
-
         [Required]
         [MaxLength(20)]
         public string Telefono { get; set; } = string.Empty;

@@ -100,7 +100,6 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? SegundoNombre { get; set; }
         public string Apellido { get; set; } = string.Empty;
         public string? SegundoApellido { get; set; }
-        public string? PrefijoTelefono { get; set; }
         public string Telefono { get; set; } = string.Empty;
         public DateTime FechaRegistro { get; set; }
         public bool Activo { get; set; }
@@ -112,7 +111,6 @@ namespace STREAMDOORSystem.Models.DTOs
         public string? SegundoNombre { get; set; }
         public string Apellido { get; set; } = string.Empty;
         public string? SegundoApellido { get; set; }
-        public string? PrefijoTelefono { get; set; }
         public string Telefono { get; set; } = string.Empty;
     }
 
@@ -241,7 +239,6 @@ namespace STREAMDOORSystem.Models.DTOs
         public int VentaID { get; set; }
         public int ClienteID { get; set; }
         public string NombreCliente { get; set; } = string.Empty;
-        public string? PrefijoTelefonoCliente { get; set; }
         public string TelefonoCliente { get; set; } = string.Empty;
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
@@ -273,7 +270,6 @@ namespace STREAMDOORSystem.Models.DTOs
         public int VentaID { get; set; }
         public int ClienteID { get; set; }
         public string NombreCliente { get; set; } = string.Empty;
-        public string? PrefijoTelefonoCliente { get; set; }
         public string TelefonoCliente { get; set; } = string.Empty;
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }

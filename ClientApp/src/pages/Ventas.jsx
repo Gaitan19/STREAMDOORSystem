@@ -938,11 +938,9 @@ const Ventas = () => {
   };
 
   // Build WhatsApp direct chat URL
-  const buildWhatsAppUrl = (prefijoTelefono, telefono, message) => {
-    const prefix = (prefijoTelefono || '').replace(/[^\d]/g, '');
+  const buildWhatsAppUrl = (telefono, message) => {
     const phone = (telefono || '').replace(/[^\d]/g, '');
-    const fullPhone = prefix ? `${prefix}${phone}` : phone;
-    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   };
 
   const columns = [
@@ -2187,7 +2185,6 @@ const Ventas = () => {
                 {ventaCompleta.telefonoCliente && (
                   <a
                     href={buildWhatsAppUrl(
-                      ventaCompleta.prefijoTelefonoCliente,
                       ventaCompleta.telefonoCliente,
                       formatWhatsAppMessage(ventaCompleta)
                     )}
@@ -2215,7 +2212,6 @@ const Ventas = () => {
                 {ventaCompleta.estado === 'ProximoVencer' && ventaCompleta.telefonoCliente && (
                   <a
                     href={buildWhatsAppUrl(
-                      ventaCompleta.prefijoTelefonoCliente,
                       ventaCompleta.telefonoCliente,
                       formatProximoVencerMessage(ventaCompleta)
                     )}
@@ -2243,7 +2239,6 @@ const Ventas = () => {
                 {ventaCompleta.estado === 'Vencido' && ventaCompleta.telefonoCliente && (
                   <a
                     href={buildWhatsAppUrl(
-                      ventaCompleta.prefijoTelefonoCliente,
                       ventaCompleta.telefonoCliente,
                       formatVencidoMessage(ventaCompleta)
                     )}
