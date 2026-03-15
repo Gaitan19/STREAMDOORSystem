@@ -821,7 +821,7 @@ const Ventas = () => {
     // Format individual services
     individualServices.forEach((detalle, index) => {
       if (index > 0 || Object.keys(comboGroups).length > 0) message += '\n';
-      const pinLinea = detalle.pinPerfil || '';
+      const pinLinea = detalle.pinPerfil ? `🔐 Pin: ${detalle.pinPerfil}` : '';
       message += applyTpl('individual_item', {
         NOMBRE_SERVICIO: detalle.nombreServicio.toUpperCase(),
         ID_VENTA: venta.ventaID,
@@ -834,7 +834,7 @@ const Ventas = () => {
         PRECIO: (detalle.precioUnitario || 0).toFixed(2),
         MONEDA: venta.moneda,
       },
-        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      🔐 Pin: {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
+        `📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]\n\nAcceda con los siguientes datos por favor\n🛡 Correo: {CORREO}\n⚔ Contraseña: {CONTRASENA}\n⚙ Tipo: PERFIL\n\n👤 Perfil: {PERFIL}      {PIN_LINEA}\n🆔 # VENTA: V-{ID_VENTA}\n\n⏳ Fecha de inicio: {FECHA_INICIO}\n✂ Fecha de corte: {FECHA_FIN}\n\n💰 PRECIO: {PRECIO} {MONEDA}\n\n`
       );
     });
 

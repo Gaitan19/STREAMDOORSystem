@@ -313,7 +313,7 @@ IF NOT EXISTS (SELECT 1 FROM PlantillasMensajes WHERE Clave = 'individual_item')
     INSERT INTO PlantillasMensajes (Clave, Nombre, Descripcion, Contenido) VALUES (
         'individual_item',
         'Suscripción Individual',
-        'Datos de un servicio individual. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA}, {FECHA_INICIO}, {FECHA_FIN}, {PRECIO}, {MONEDA}',
+        'Datos de un servicio individual. Variables: {NOMBRE_SERVICIO}, {ID_VENTA}, {CORREO}, {CONTRASENA}, {PERFIL}, {PIN_LINEA} (ej: 🔐 Pin: 1234 o vacío), {FECHA_INICIO}, {FECHA_FIN}, {PRECIO}, {MONEDA}',
         N'📌 SUSCRIPCIÓN ACTIVA [{NOMBRE_SERVICIO}]
 
 Acceda con los siguientes datos por favor
@@ -321,7 +321,7 @@ Acceda con los siguientes datos por favor
 ⚔ Contraseña: {CONTRASENA}
 ⚙ Tipo: PERFIL
 
-👤 Perfil: {PERFIL}      🔐 Pin: {PIN_LINEA}
+👤 Perfil: {PERFIL}      {PIN_LINEA}
 🆔 # VENTA: V-{ID_VENTA}
 
 ⏳ Fecha de inicio: {FECHA_INICIO}
